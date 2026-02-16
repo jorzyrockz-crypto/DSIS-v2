@@ -185,6 +185,7 @@ function registerPWAServiceWorker(){
   let pendingUpdateWorker = null;
   let applyProgressTimer = null;
   let applyProgressFailSafeTimer = null;
+  const UPDATE_READY_NOTIF_KEY = 'dsisLastUpdateReadyNotifiedVersion';
 
   function showUpdateProgressModal(title, statusText, percent, allowClose = false){
     const modal = document.getElementById('modal');
@@ -258,6 +259,20 @@ function registerPWAServiceWorker(){
       setTimeout(tick, 1000);
     };
     tick();
+  }
+
+  async function notifyUpdateReadyIfNeeded(){
+    try {
+      const version = await getRuntimeAppVersion();
+      const normalized = String(version || '').trim();
+      if (!normalized) return;
+      const lastNotified = String(localStorage.getItem(UPDATE_READY_NOTIF_KEY) || '').trim();
+      if (lastNotified === normalized) return;
+      notify('info', `New version v${normalized} is ready. Click Check Update, then Apply Update.`);
+      localStorage.setItem(UPDATE_READY_NOTIF_KEY, normalized);
+    } catch (_err){
+      notify('info', 'A new app update is ready. Click Check Update, then Apply Update.');
+    }
   }
 
   function requestWorkerActivation(worker){
@@ -355,6 +370,7 @@ function registerPWAServiceWorker(){
       if (pwaRegistration.waiting){
         pendingUpdateWorker = pwaRegistration.waiting;
         updateAppUpdateButtonState();
+        notifyUpdateReadyIfNeeded();
         showModal('App Update', 'Update downloaded and ready to apply.');
         promptApplyPendingUpdate();
         return;
@@ -365,6 +381,7 @@ function registerPWAServiceWorker(){
         if (state === 'installed' && pwaRegistration.waiting){
           pendingUpdateWorker = pwaRegistration.waiting;
           updateAppUpdateButtonState();
+          notifyUpdateReadyIfNeeded();
           showModal('App Update', 'Update downloaded and ready to apply.');
           promptApplyPendingUpdate();
           return;
@@ -412,6 +429,7 @@ function registerPWAServiceWorker(){
       if (registration.waiting){
         pendingUpdateWorker = registration.waiting;
         updateAppUpdateButtonState();
+        notifyUpdateReadyIfNeeded();
       }
       registration.addEventListener('updatefound', () => {
         const nextWorker = registration.installing;
@@ -420,6 +438,7 @@ function registerPWAServiceWorker(){
           if (nextWorker.state === 'installed' && navigator.serviceWorker.controller){
             pendingUpdateWorker = registration.waiting || nextWorker;
             updateAppUpdateButtonState();
+            notifyUpdateReadyIfNeeded();
           }
         });
       });
