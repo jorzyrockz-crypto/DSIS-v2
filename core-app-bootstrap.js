@@ -74,12 +74,8 @@ function buildReleaseNotesText(version){
 function showReleaseNotesModalForVersion(version, options = {}){
   const normalizedVersion = String(version || '').trim();
   if (!normalizedVersion) return;
-  const includeNotification = options.includeNotification === true;
   const details = buildReleaseNotesText(normalizedVersion);
   showModal(`What\'s New in v${normalizedVersion}`, details.lines);
-  if (includeNotification){
-    notify('info', `What\'s New v${normalizedVersion}: ${details.entries.join(' | ')}`);
-  }
 }
 
 async function getRuntimeAppVersion(){
