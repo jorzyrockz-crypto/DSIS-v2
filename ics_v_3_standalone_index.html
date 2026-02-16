@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ICS V3 - Dashboard Shell</title>
+<title>Digital School Inventory System v1.0</title>
 <meta name="theme-color" content="#2563eb" />
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
@@ -94,22 +94,34 @@ body{
     var(--bg);
   color:var(--t);
 }
-body[data-theme="playful"]{
+body[data-theme="playful-sunflower"]{
   background:
     radial-gradient(1600px 760px at 0% -10%, #fde68a 0%, rgba(253,230,138,0) 72%),
     radial-gradient(1380px 700px at 100% -5%, #bfdbfe 0%, rgba(191,219,254,0) 64%),
     var(--bg);
 }
-body[data-theme="playful-coral"]{
+body[data-theme="playful-flamingo"]{
   background:
     radial-gradient(1600px 760px at 0% -10%, #fecdd3 0%, rgba(254,205,211,0) 72%),
     radial-gradient(1380px 700px at 100% -5%, #fda4af 0%, rgba(253,164,175,0) 64%),
     var(--bg);
 }
-body[data-theme="playful-mint"]{
+body[data-theme="playful-lotus"]{
   background:
     radial-gradient(1600px 760px at 0% -10%, #99f6e4 0%, rgba(153,246,228,0) 72%),
     radial-gradient(1380px 700px at 100% -5%, #67e8f9 0%, rgba(103,232,249,0) 64%),
+    var(--bg);
+}
+body[data-theme="playful-kingfisher"]{
+  background:
+    radial-gradient(1600px 760px at 0% -10%, #bae6fd 0%, rgba(186,230,253,0) 72%),
+    radial-gradient(1380px 700px at 100% -5%, #7dd3fc 0%, rgba(125,211,252,0) 64%),
+    var(--bg);
+}
+body[data-theme="playful-fern"]{
+  background:
+    radial-gradient(1600px 760px at 0% -10%, #bbf7d0 0%, rgba(187,247,208,0) 72%),
+    radial-gradient(1380px 700px at 100% -5%, #86efac 0%, rgba(134,239,172,0) 64%),
     var(--bg);
 }
 body[data-theme="elegant-white"]{
@@ -129,12 +141,6 @@ body[data-theme="dracula"]{
     radial-gradient(1600px 760px at 0% -10%, #6f2dbd 0%, rgba(111,45,189,0) 72%),
     radial-gradient(1380px 700px at 100% -5%, #a663cc 0%, rgba(166,99,204,0) 64%),
     #171123;
-}
-body[data-theme="velvet-red"]{
-  background:
-    radial-gradient(1600px 760px at 0% -10%, #fee2e2 0%, rgba(254,226,226,0) 72%),
-    radial-gradient(1380px 700px at 100% -5%, #ffe4e6 0%, rgba(255,228,230,0) 64%),
-    #fff8f8;
 }
 body[data-theme="crimson-black"] .app-sidebar,
 body[data-theme="crimson-black"] .app-topbar,
@@ -430,6 +436,260 @@ body[data-theme="crimson-black"] .app-topbar-v2 .brand-title{
   align-items:center;
   gap:8px;
   justify-self:end;
+  position:relative;
+}
+.app-topbar-v2 .topbar-profile-btn{
+  width:auto;
+  min-width:136px;
+  height:40px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,.9);
+  display:inline-flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
+  padding:3px 7px 3px 10px;
+  color:var(--t);
+}
+.app-topbar-v2 .topbar-profile-btn:hover,
+.app-topbar-v2 .topbar-profile-btn:focus-visible{
+  border-color:#bfdbfe;
+  background:rgba(255,255,255,.98);
+}
+.topbar-profile-copy{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  line-height:1.1;
+}
+.topbar-profile-name{
+  max-width:110px;
+  font-size:12px;
+  font-weight:800;
+  color:var(--t);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.topbar-profile-role{
+  max-width:110px;
+  font-size:11px;
+  color:var(--tm);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.topbar-profile-avatar-wrap{
+  position:relative;
+  width:30px;
+  height:30px;
+  border-radius:999px;
+  flex:0 0 auto;
+}
+.topbar-profile-avatar{
+  width:100%;
+  height:100%;
+  border-radius:999px;
+  border:1px dashed #94a3b8;
+  background:rgba(148,163,184,.12) center/cover no-repeat;
+  display:grid;
+  place-items:center;
+  color:var(--ah);
+  font-size:11px;
+  font-weight:800;
+  line-height:1;
+}
+.topbar-profile-avatar.has-image{
+  border:1px solid #bfdbfe;
+  background-color:transparent;
+}
+.topbar-profile-avatar.has-icon{
+  font-size:0;
+}
+.topbar-profile-avatar .profile-avatar-icon{
+  width:14px;
+  height:14px;
+}
+.topbar-profile-status{
+  position:absolute;
+  right:-1px;
+  bottom:-1px;
+  width:9px;
+  height:9px;
+  border-radius:999px;
+  background:#22c55e;
+  border:2px solid #fff;
+}
+.topbar-profile-menu{
+  position:absolute;
+  top:calc(100% + 10px);
+  right:0;
+  width:min(92vw,320px);
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:var(--surface);
+  box-shadow:0 18px 36px rgba(15,23,42,.16);
+  overflow:hidden;
+  display:none;
+  z-index:260;
+}
+.topbar-profile-menu.show{
+  display:block;
+}
+.topbar-menu-head{
+  padding:12px;
+  border-bottom:1px solid #eef2f7;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.topbar-menu-avatar{
+  width:52px;
+  height:52px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:rgba(148,163,184,.12) center/cover no-repeat;
+  display:grid;
+  place-items:center;
+  color:var(--ah);
+  font-size:16px;
+  font-weight:800;
+  flex:0 0 auto;
+}
+.topbar-menu-avatar.has-image{
+  background-color:transparent;
+}
+.topbar-menu-avatar.has-icon{
+  font-size:0;
+}
+.topbar-menu-avatar .profile-avatar-icon{
+  width:20px;
+  height:20px;
+}
+.topbar-menu-meta{
+  min-width:0;
+}
+.topbar-menu-name{
+  margin:0;
+  font-size:14px;
+  font-weight:800;
+  color:var(--t);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.topbar-menu-email{
+  margin:3px 0 0;
+  font-size:12px;
+  color:var(--tm);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.topbar-menu-list{
+  padding:6px;
+}
+.topbar-menu-plan{
+  margin:0 12px 8px;
+  border:1px solid #c7d2fe;
+  background:#eef2ff;
+  border-radius:12px;
+  padding:10px 10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.topbar-menu-plan-left{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#3730a3;
+  font-size:12px;
+  font-weight:700;
+}
+.topbar-menu-plan-left .lucide{
+  width:14px;
+  height:14px;
+  stroke:currentColor;
+  stroke-width:2;
+  fill:none;
+}
+.topbar-menu-plan-manage{
+  border:0;
+  background:transparent;
+  color:#4f46e5;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+}
+.topbar-menu-plan-manage:hover,
+.topbar-menu-plan-manage:focus-visible{
+  text-decoration:underline;
+  outline:none;
+}
+.topbar-menu-item{
+  width:100%;
+  border:0;
+  background:transparent;
+  color:var(--t);
+  border-radius:10px;
+  height:38px;
+  padding:0 10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  cursor:pointer;
+}
+.topbar-menu-item:hover,
+.topbar-menu-item:focus-visible{
+  background:var(--as);
+  color:var(--ah);
+  outline:none;
+}
+.topbar-menu-item-left{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+.topbar-menu-item .lucide{
+  width:15px;
+  height:15px;
+  stroke:currentColor;
+  stroke-width:2;
+  fill:none;
+}
+.topbar-menu-badge{
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:700;
+  line-height:1.2;
+}
+.topbar-menu-badge.new{
+  background:#f43f5e;
+  color:#fff;
+}
+.topbar-menu-badge.mode{
+  background:#e2e8f0;
+  color:#334155;
+}
+.topbar-menu-foot{
+  border-top:1px solid #eef2f7;
+  padding:6px;
+}
+.topbar-menu-item.danger{
+  color:#dc2626;
+}
+.topbar-menu-item.danger:hover,
+.topbar-menu-item.danger:focus-visible{
+  background:#fee2e2;
+  color:#b91c1c;
 }
 .app-topbar-v2 .mobile-profile-btn{display:grid}
 .topbar-v2-search-main{
@@ -503,6 +763,83 @@ body[data-theme="dracula"] .app-topbar-v2 .icon-btn,
 body[data-theme="crimson-black"] .app-topbar-v2 .icon-btn{
   color:rgba(248,250,252,.9);
 }
+body[data-theme="dracula"] .topbar-profile-avatar,
+body[data-theme="crimson-black"] .topbar-profile-avatar{
+  border-color:rgba(148,163,184,.6);
+}
+body[data-theme="dracula"] .topbar-profile-avatar.has-image,
+body[data-theme="crimson-black"] .topbar-profile-avatar.has-image{
+  border-color:rgba(191,219,254,.72);
+}
+body[data-theme="dracula"] .app-topbar-v2 .topbar-profile-btn,
+body[data-theme="crimson-black"] .app-topbar-v2 .topbar-profile-btn{
+  background:rgba(15,23,42,.66);
+  border-color:rgba(148,163,184,.46);
+}
+body[data-theme="dracula"] .app-topbar-v2 .topbar-profile-name,
+body[data-theme="crimson-black"] .app-topbar-v2 .topbar-profile-name{
+  color:#f8fafc;
+}
+body[data-theme="dracula"] .app-topbar-v2 .topbar-profile-role,
+body[data-theme="crimson-black"] .app-topbar-v2 .topbar-profile-role{
+  color:#cbd5e1;
+}
+body[data-theme="dracula"] .app-topbar-v2 .topbar-profile-avatar,
+body[data-theme="crimson-black"] .app-topbar-v2 .topbar-profile-avatar{
+  color:#e2e8f0;
+}
+body[data-theme="dracula"] .topbar-profile-menu,
+body[data-theme="crimson-black"] .topbar-profile-menu{
+  background:#111827;
+  border-color:#334155;
+}
+body[data-theme="dracula"] .topbar-menu-head,
+body[data-theme="crimson-black"] .topbar-menu-head,
+body[data-theme="dracula"] .topbar-menu-foot,
+body[data-theme="crimson-black"] .topbar-menu-foot{
+  border-color:rgba(148,163,184,.2);
+}
+body[data-theme="dracula"] .topbar-menu-name,
+body[data-theme="crimson-black"] .topbar-menu-name{
+  color:#f8fafc;
+}
+body[data-theme="dracula"] .topbar-menu-email,
+body[data-theme="crimson-black"] .topbar-menu-email{
+  color:#94a3b8;
+}
+body[data-theme="dracula"] .topbar-menu-item,
+body[data-theme="crimson-black"] .topbar-menu-item{
+  color:#e2e8f0;
+}
+body[data-theme="dracula"] .topbar-menu-plan,
+body[data-theme="crimson-black"] .topbar-menu-plan{
+  background:rgba(30,41,59,.78);
+  border-color:rgba(99,102,241,.45);
+}
+body[data-theme="dracula"] .topbar-menu-plan-left,
+body[data-theme="crimson-black"] .topbar-menu-plan-left{
+  color:#c7d2fe;
+}
+body[data-theme="dracula"] .topbar-menu-plan-manage,
+body[data-theme="crimson-black"] .topbar-menu-plan-manage{
+  color:#a5b4fc;
+}
+body[data-theme="dracula"] .topbar-menu-item:hover,
+body[data-theme="dracula"] .topbar-menu-item:focus-visible,
+body[data-theme="crimson-black"] .topbar-menu-item:hover,
+body[data-theme="crimson-black"] .topbar-menu-item:focus-visible{
+  background:rgba(148,163,184,.16);
+  color:#ffffff;
+}
+body[data-theme="dracula"] .topbar-menu-badge.mode,
+body[data-theme="crimson-black"] .topbar-menu-badge.mode{
+  background:#334155;
+  color:#e2e8f0;
+}
+body[data-theme="dracula"] .topbar-profile-status,
+body[data-theme="crimson-black"] .topbar-profile-status{
+  border-color:#0f172a;
+}
 body[data-theme="dracula"] .app-topbar-v2 .icon-btn:hover,
 body[data-theme="dracula"] .app-topbar-v2 .icon-btn:focus-visible,
 body[data-theme="crimson-black"] .app-topbar-v2 .icon-btn:hover,
@@ -526,7 +863,10 @@ body[data-theme="crimson-black"] .topbar-v2-search-btn::after{
 }
 body.sidebar-collapsed .app-shell{grid-template-columns:86px 1fr}
 .app-shell.hide-sidebar{
-  grid-template-columns:246px 1fr;
+  grid-template-columns:1fr;
+}
+body.sidebar-collapsed .app-shell.hide-sidebar{
+  grid-template-columns:1fr;
 }
 .app-sidebar{
   position:sticky;
@@ -697,15 +1037,7 @@ body[data-theme="crimson-black"] .sidebar-nav .item:hover .nav-ico{
 }
 body.sidebar-collapsed .app-sidebar{padding:10px 8px}
 .app-shell.hide-sidebar .app-sidebar{
-  display:flex;
-}
-@media (min-width: 981px){
-  .app-shell.hide-sidebar{
-    grid-template-columns:1fr;
-  }
-  .app-shell.hide-sidebar .app-sidebar{
-    display:none;
-  }
+  display:none;
 }
 body.sidebar-collapsed .brand{
   display:grid;
@@ -5659,27 +5991,24 @@ body[data-density="compact"] .stage-input{padding:3px 5px;font-size:11px}
   height:6px;
   border-radius:999px;
 }
-.theme-preview-btn[data-theme="playful"] .theme-swatches i:nth-child(1){background:#f97316}
-.theme-preview-btn[data-theme="playful"] .theme-swatches i:nth-child(2){background:#fff2e8}
-.theme-preview-btn[data-theme="playful"] .theme-swatches i:nth-child(3){background:#c2410c}
-.theme-preview-btn[data-theme="playful-coral"] .theme-swatches i:nth-child(1){background:#ef4444}
-.theme-preview-btn[data-theme="playful-coral"] .theme-swatches i:nth-child(2){background:#fff1f2}
-.theme-preview-btn[data-theme="playful-coral"] .theme-swatches i:nth-child(3){background:#be123c}
-.theme-preview-btn[data-theme="playful-mint"] .theme-swatches i:nth-child(1){background:#14b8a6}
-.theme-preview-btn[data-theme="playful-mint"] .theme-swatches i:nth-child(2){background:#ecfeff}
-.theme-preview-btn[data-theme="playful-mint"] .theme-swatches i:nth-child(3){background:#0f766e}
+.theme-preview-btn[data-theme="playful-sunflower"] .theme-swatches i:nth-child(1){background:#f97316}
+.theme-preview-btn[data-theme="playful-sunflower"] .theme-swatches i:nth-child(2){background:#fff2e8}
+.theme-preview-btn[data-theme="playful-sunflower"] .theme-swatches i:nth-child(3){background:#c2410c}
+.theme-preview-btn[data-theme="playful-flamingo"] .theme-swatches i:nth-child(1){background:#ef4444}
+.theme-preview-btn[data-theme="playful-flamingo"] .theme-swatches i:nth-child(2){background:#fff1f2}
+.theme-preview-btn[data-theme="playful-flamingo"] .theme-swatches i:nth-child(3){background:#be123c}
+.theme-preview-btn[data-theme="playful-lotus"] .theme-swatches i:nth-child(1){background:#14b8a6}
+.theme-preview-btn[data-theme="playful-lotus"] .theme-swatches i:nth-child(2){background:#ecfeff}
+.theme-preview-btn[data-theme="playful-lotus"] .theme-swatches i:nth-child(3){background:#0f766e}
+.theme-preview-btn[data-theme="playful-kingfisher"] .theme-swatches i:nth-child(1){background:#0ea5e9}
+.theme-preview-btn[data-theme="playful-kingfisher"] .theme-swatches i:nth-child(2){background:#e0f2fe}
+.theme-preview-btn[data-theme="playful-kingfisher"] .theme-swatches i:nth-child(3){background:#0284c7}
+.theme-preview-btn[data-theme="playful-fern"] .theme-swatches i:nth-child(1){background:#10b981}
+.theme-preview-btn[data-theme="playful-fern"] .theme-swatches i:nth-child(2){background:#d1fae5}
+.theme-preview-btn[data-theme="playful-fern"] .theme-swatches i:nth-child(3){background:#059669}
 .theme-preview-btn[data-theme="elegant-white"] .theme-swatches i:nth-child(1){background:#2563eb}
 .theme-preview-btn[data-theme="elegant-white"] .theme-swatches i:nth-child(2){background:#eff6ff}
 .theme-preview-btn[data-theme="elegant-white"] .theme-swatches i:nth-child(3){background:#1d4ed8}
-.theme-preview-btn[data-theme="elegant-sky"] .theme-swatches i:nth-child(1){background:#0ea5e9}
-.theme-preview-btn[data-theme="elegant-sky"] .theme-swatches i:nth-child(2){background:#e0f2fe}
-.theme-preview-btn[data-theme="elegant-sky"] .theme-swatches i:nth-child(3){background:#0284c7}
-.theme-preview-btn[data-theme="elegant-emerald"] .theme-swatches i:nth-child(1){background:#10b981}
-.theme-preview-btn[data-theme="elegant-emerald"] .theme-swatches i:nth-child(2){background:#d1fae5}
-.theme-preview-btn[data-theme="elegant-emerald"] .theme-swatches i:nth-child(3){background:#059669}
-.theme-preview-btn[data-theme="velvet-red"] .theme-swatches i:nth-child(1){background:#b91c1c}
-.theme-preview-btn[data-theme="velvet-red"] .theme-swatches i:nth-child(2){background:#fff1f2}
-.theme-preview-btn[data-theme="velvet-red"] .theme-swatches i:nth-child(3){background:#991b1b}
 .theme-preview-btn[data-theme="crimson-black"] .theme-swatches i:nth-child(1){background:#be123c}
 .theme-preview-btn[data-theme="crimson-black"] .theme-swatches i:nth-child(2){background:#2a131d}
 .theme-preview-btn[data-theme="crimson-black"] .theme-swatches i:nth-child(3){background:#fb7185}
@@ -6450,6 +6779,9 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
   .topbar-v2-views{
     display:none;
   }
+  body.layout-no-sidebar .topbar-v2-views{
+    display:flex;
+  }
   .topbar-v2-search-btn{
     min-width:34px;
     width:34px;
@@ -6460,10 +6792,37 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
   .topbar-v2-search-btn::after{
     display:none;
   }
+  .topbar-profile-copy{
+    display:none;
+  }
+  .app-topbar-v2 .topbar-profile-btn{
+    min-width:34px;
+    width:34px;
+    height:34px;
+    border-radius:9px;
+    padding:2px;
+    justify-content:center;
+  }
+  .topbar-profile-avatar-wrap{
+    width:28px;
+    height:28px;
+  }
+  body.layout-no-sidebar .topbar-v2-search-btn{
+    min-width:190px;
+    width:auto;
+    justify-content:space-between;
+    padding:0 10px;
+  }
+  body.layout-no-sidebar .topbar-v2-search-label{
+    display:inline;
+  }
   .app-shell{
     grid-template-columns:1fr;
     gap:10px;
     padding:10px;
+  }
+  body.layout-no-sidebar .app-shell{
+    padding-bottom:10px;
   }
   .app-sidebar{
     position:relative;
@@ -6497,8 +6856,14 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
   .app-shell{
     padding-bottom:calc(92px + env(safe-area-inset-bottom, 0px));
   }
+  body.layout-no-sidebar .app-shell{
+    padding-bottom:10px;
+  }
   .app-main{
     padding-bottom:calc(94px + env(safe-area-inset-bottom, 0px));
+  }
+  body.layout-no-sidebar .app-main{
+    padding-bottom:0;
   }
   .app-sidebar{
     position:fixed;
@@ -6589,8 +6954,14 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
   .sheet.show{
     bottom:calc(86px + env(safe-area-inset-bottom, 0px));
   }
+  body.layout-no-sidebar .sheet.show{
+    bottom:20px;
+  }
   .main{
     padding-bottom:calc(100px + env(safe-area-inset-bottom, 0px));
+  }
+  body.layout-no-sidebar .main{
+    padding-bottom:16px;
   }
   .records-table-wrap,
   .stage-table-wrap,
@@ -6628,8 +6999,14 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
     padding-bottom:calc(84px + env(safe-area-inset-bottom, 0px));
     gap:8px;
   }
+  body.layout-no-sidebar .app-shell{
+    padding-bottom:8px;
+  }
   .app-main{
     padding-bottom:calc(86px + env(safe-area-inset-bottom, 0px));
+  }
+  body.layout-no-sidebar .app-main{
+    padding-bottom:0;
   }
   .app-sidebar{
     position:fixed;
@@ -6878,10 +7255,16 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
   .sheet.show{
     bottom:calc(78px + env(safe-area-inset-bottom, 0px));
   }
+  body.layout-no-sidebar .sheet.show{
+    bottom:20px;
+  }
   .main{
     padding:4px 2px 16px;
     padding-bottom:calc(92px + env(safe-area-inset-bottom, 0px));
     gap:10px;
+  }
+  body.layout-no-sidebar .main{
+    padding-bottom:16px;
   }
   .welcome-title{
     font-size:22px;
@@ -6965,7 +7348,7 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
     </div>
     <div class="topbar-v2-left">
       <div class="brand-copy">
-        <span class="brand-title">Digital School Inventory SYSTEM</span>
+        <span class="brand-title">Digital School Inventory System v1.0</span>
       </div>
     </div>
     <div class="right" aria-label="Topbar V2 actions">
@@ -7006,17 +7389,70 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
           <div class="notif-list" id="notifList"></div>
         </div>
       </div>
+      <button class="icon-btn topbar-profile-btn" id="topbarProfileBtn" type="button" title="User Profile" aria-label="User Profile" aria-expanded="false" data-action="toggleProfileMenu">
+        <span class="topbar-profile-copy">
+          <span class="topbar-profile-name" id="topUserName">Custodian</span>
+          <span class="topbar-profile-role" id="topUserRole">Inventory Officer</span>
+        </span>
+        <span class="topbar-profile-avatar-wrap" aria-hidden="true">
+          <span class="topbar-profile-avatar" id="topbarUserAvatar"></span>
+          <span class="topbar-profile-status"></span>
+        </span>
+      </button>
+      <div class="topbar-profile-menu" id="topbarProfileMenu" role="menu" aria-label="User profile menu">
+        <div class="topbar-menu-head">
+          <span class="topbar-menu-avatar" id="topbarMenuAvatar"></span>
+          <div class="topbar-menu-meta">
+            <p class="topbar-menu-name" id="topbarMenuName">Custodian</p>
+            <p class="topbar-menu-email" id="topbarMenuEmail">No email set</p>
+          </div>
+        </div>
+        <div class="topbar-menu-plan">
+          <span class="topbar-menu-plan-left"><i data-lucide="package-check"></i><span>Enterprise Plan</span></span>
+          <button class="topbar-menu-plan-manage" type="button" data-action="openProfileFromMenu" data-arg1="preferences">Manage</button>
+        </div>
+        <div class="topbar-menu-list">
+          <button class="topbar-menu-item" type="button" data-action="openProfileFromMenu" data-arg1="identity">
+            <span class="topbar-menu-item-left"><i data-lucide="user"></i><span>My Profile</span></span>
+          </button>
+          <button class="topbar-menu-item" type="button" data-action="openAuditLogsFromMenu">
+            <span class="topbar-menu-item-left"><i data-lucide="clipboard-list"></i><span>Audit Logs</span></span>
+            <span class="topbar-menu-badge new">5 New</span>
+          </button>
+          <button class="topbar-menu-item" type="button" data-action="openProfileFromMenu" data-arg1="preferences">
+            <span class="topbar-menu-item-left"><i data-lucide="settings"></i><span>Settings</span></span>
+          </button>
+          <button class="topbar-menu-item" type="button" data-action="installAppFromMenu">
+            <span class="topbar-menu-item-left"><i data-lucide="download"></i><span>Install App</span></span>
+          </button>
+          <button class="topbar-menu-item" type="button" data-action="checkUpdateFromMenu">
+            <span class="topbar-menu-item-left"><i data-lucide="refresh-cw"></i><span>Check Update</span></span>
+          </button>
+          <button class="topbar-menu-item" type="button" data-action="openHelpFromMenu">
+            <span class="topbar-menu-item-left"><i data-lucide="life-buoy"></i><span>Help & Documentation</span></span>
+          </button>
+          <button class="topbar-menu-item" type="button" data-action="toggleAppearanceFromMenu">
+            <span class="topbar-menu-item-left"><i data-lucide="sun-medium"></i><span>Appearance</span></span>
+            <span class="topbar-menu-badge mode" id="topbarAppearanceMode">Light</span>
+          </button>
+        </div>
+        <div class="topbar-menu-foot">
+          <button class="topbar-menu-item danger" type="button" data-action="signOutFromMenu">
+            <span class="topbar-menu-item-left"><i data-lucide="log-out"></i><span>Log out</span></span>
+          </button>
+        </div>
+      </div>
     </div>
   </header>
 </div>
 
-<div class="app-shell">
+<div class="app-shell hide-sidebar">
   <aside class="app-sidebar">
     <div class="brand">
       <div class="logo" id="appLogo">OES</div>
       <div class="brand-copy">
-        <span class="brand-title">Digital School Inventory</span>
-        <span class="brand-sub" id="brandSub">System Manager</span>
+        <span class="brand-title">Digital School Inventory System v1.0</span>
+        <span class="brand-sub" id="brandSub">Digital School Inventory System v1.0</span>
       </div>
     </div>
     <nav class="nav sidebar-nav">
@@ -7328,7 +7764,7 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
 <div class="actions-modal-overlay" id="profileOverlay">
   <div class="actions-modal modal-lg">
     <div class="modal-head">
-      <h3>User Profile</h3>
+      <h3>Profile Settings</h3>
       <p class="modal-sub">Manage identity and personal workspace preferences.</p>
     </div>
     <div class="modal-body">
@@ -7381,6 +7817,18 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
                     <button type="button" class="avatar-picker-btn" data-avatar="school" title="School"><i data-lucide="school" aria-hidden="true"></i></button>
                     <button type="button" class="avatar-picker-btn" data-avatar="shield" title="Shield"><i data-lucide="shield" aria-hidden="true"></i></button>
                     <button type="button" class="avatar-picker-btn" data-avatar="star" title="Star"><i data-lucide="star" aria-hidden="true"></i></button>
+                  </div>
+                </div>
+                <div class="full">
+                  <label>Topbar Profile Icon (UI Only)</label>
+                  <div class="profile-grid">
+                    <div class="full">
+                      <input id="profileTopbarAvatarInput" type="file" class="stage-input" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+                    </div>
+                    <div class="full" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                      <button type="button" class="btn btn-sm btn-danger" id="profileTopbarAvatarRemoveBtn">Remove Icon</button>
+                      <span class="profile-head-sub" id="profileTopbarAvatarHint">No icon selected.</span>
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -7455,13 +7903,12 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
                   <input id="profileAccent" type="hidden" value="elegant-white" />
                 </div>
                 <div class="full theme-preview-grid" id="profileThemePreview">
-                  <button type="button" class="theme-preview-btn" data-theme="playful"><span class="theme-name">Playful</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
-                  <button type="button" class="theme-preview-btn" data-theme="playful-coral"><span class="theme-name">Playful Coral</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
-                  <button type="button" class="theme-preview-btn" data-theme="playful-mint"><span class="theme-name">Playful Mint</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
+                  <button type="button" class="theme-preview-btn" data-theme="playful-sunflower"><span class="theme-name">Sunflower</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
+                  <button type="button" class="theme-preview-btn" data-theme="playful-flamingo"><span class="theme-name">Flamingo</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
+                  <button type="button" class="theme-preview-btn" data-theme="playful-lotus"><span class="theme-name">Lotus</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
+                  <button type="button" class="theme-preview-btn" data-theme="playful-kingfisher"><span class="theme-name">Kingfisher</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
+                  <button type="button" class="theme-preview-btn" data-theme="playful-fern"><span class="theme-name">Fern</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
                   <button type="button" class="theme-preview-btn" data-theme="elegant-white"><span class="theme-name">Elegant White</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
-                  <button type="button" class="theme-preview-btn" data-theme="elegant-sky"><span class="theme-name">Elegant Sky</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
-                  <button type="button" class="theme-preview-btn" data-theme="elegant-emerald"><span class="theme-name">Elegant Emerald</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
-                  <button type="button" class="theme-preview-btn" data-theme="velvet-red"><span class="theme-name">Velvet Red</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
                   <button type="button" class="theme-preview-btn" data-theme="crimson-black"><span class="theme-name">Crimson Black</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
                   <button type="button" class="theme-preview-btn" data-theme="dracula"><span class="theme-name">Dracula</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
                 </div>

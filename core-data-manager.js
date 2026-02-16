@@ -1065,7 +1065,7 @@ function buildSchemaVersionedExport(scope = 'records', options = {}){
     packageType: scope === 'full' ? 'full-backup' : 'records',
     exportedAt: new Date().toISOString(),
     exportedByProfileKey: getCurrentActorProfileKey(),
-    app: 'Project ICS v3',
+    app: 'DSIS V1',
     schoolIdentity: normalizeSchoolIdentity(schoolIdentity),
     data: {
       records: exportRecords
@@ -1107,8 +1107,8 @@ async function exportSchemaVersionedData(scope = 'records'){
     ? `-${filters.year || 'all'}-${filters.month || 'all'}`
     : '';
   const fileName = scope === 'full'
-    ? `ics-schema-v${ICS_SCHEMA_VERSION.replace(/\./g,'_')}-full-${stamp}.json`
-    : `ics-schema-v${ICS_SCHEMA_VERSION.replace(/\./g,'_')}-records${suffix}-${stamp}.json`;
+    ? `dsis-schema-v${ICS_SCHEMA_VERSION.replace(/\./g,'_')}-full-${stamp}.json`
+    : `dsis-schema-v${ICS_SCHEMA_VERSION.replace(/\./g,'_')}-records${suffix}-${stamp}.json`;
   downloadJSONPayload(payload, fileName);
   if (scope === 'full'){
     localStorage.setItem('icsLastFullBackupAt', new Date().toISOString());

@@ -76,6 +76,11 @@ function initializeUIEventWiring(){
     if (target?.closest?.('.fab')) return;
     closeSheet();
   });
+  document.addEventListener('click', (e) => {
+    if (e.target?.closest?.('#topbarProfileBtn')) return;
+    if (e.target?.closest?.('#topbarProfileMenu')) return;
+    if (typeof closeTopbarProfileMenu === 'function') closeTopbarProfileMenu();
+  });
   document.getElementById('dmExportYear')?.addEventListener('change', () => refreshDataManagerExportFilters());
   document.getElementById('dmExportMonth')?.addEventListener('change', () => updateDataManagerExportFilterHint());
   document.getElementById('icsImportInput')?.addEventListener('change', (e) => handleImportFile(e));
@@ -86,6 +91,7 @@ function initializeUIEventWiring(){
     const type = (document.getElementById('profileAvatarType')?.value || currentUser.avatar || 'initials').toLowerCase();
     renderUserAvatar(avatar, e.target?.value || currentUser.name || '', type);
     renderUserAvatar(sidebarUserAvatar, e.target?.value || currentUser.name || '', type);
+    renderTopbarProfileAvatar(topbarUserAvatar, profileDraftTopbarAvatarDataUrl || '', e.target?.value || currentUser.name || '', type);
   });
   document.querySelectorAll('#profileAvatarPicker .avatar-picker-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -94,6 +100,7 @@ function initializeUIEventWiring(){
       const name = (document.getElementById('profileName')?.value || currentUser.name || '');
       renderUserAvatar(document.getElementById('profileAvatarPreview'), name, next);
       renderUserAvatar(sidebarUserAvatar, name, next);
+      renderTopbarProfileAvatar(topbarUserAvatar, profileDraftTopbarAvatarDataUrl || '', name, next);
     });
   });
   document.getElementById('profileSchoolId')?.addEventListener('input', (e) => {
@@ -101,6 +108,7 @@ function initializeUIEventWiring(){
     if (e.target.value !== next) e.target.value = next;
   });
   document.getElementById('profileSchoolLogoInput')?.addEventListener('change', (e) => handleSchoolLogoUpload(e));
+  document.getElementById('profileTopbarAvatarInput')?.addEventListener('change', (e) => handleTopbarAvatarUpload(e));
   document.getElementById('setupSchoolId')?.addEventListener('input', (e) => {
     const next = normalizeSchoolId(e.target?.value || '');
     if (e.target.value !== next) e.target.value = next;
@@ -129,6 +137,7 @@ function initializeUIEventWiring(){
   document.getElementById('loginNewPersonnelBtn')?.addEventListener('click', () => openPersonnelSignupFromLogin());
   document.getElementById('loginSubmitBtn')?.addEventListener('click', () => submitLogin());
   document.getElementById('profileSchoolLogoRemoveBtn')?.addEventListener('click', () => clearSchoolLogoDraft());
+  document.getElementById('profileTopbarAvatarRemoveBtn')?.addEventListener('click', () => clearTopbarAvatarDraft());
   document.getElementById('profileTraceRepairBtn')?.addEventListener('click', () => repairLocalTraceIntegrity());
   document.getElementById('profileTraceUndoBtn')?.addEventListener('click', () => undoLastDataChange());
   document.getElementById('designationAddBtn')?.addEventListener('click', () => addDesignationFromProfile());
@@ -175,6 +184,14 @@ function invokeDelegatedAction(action, target, args){
   switch (action){
     case 'openSearchOverlay': return openSearchOverlay();
     case 'openProfileModal': return openProfileModal();
+    case 'toggleProfileMenu': return typeof toggleTopbarProfileMenu === 'function' ? toggleTopbarProfileMenu() : undefined;
+    case 'openProfileFromMenu': return typeof openProfileFromMenu === 'function' ? openProfileFromMenu(args[0]) : undefined;
+    case 'openAuditLogsFromMenu': return typeof openAuditLogsFromMenu === 'function' ? openAuditLogsFromMenu() : undefined;
+    case 'installAppFromMenu': return typeof installAppFromMenu === 'function' ? installAppFromMenu() : undefined;
+    case 'checkUpdateFromMenu': return typeof checkUpdateFromMenu === 'function' ? checkUpdateFromMenu() : undefined;
+    case 'openHelpFromMenu': return typeof openHelpFromMenu === 'function' ? openHelpFromMenu() : undefined;
+    case 'toggleAppearanceFromMenu': return typeof toggleAppearanceFromMenu === 'function' ? toggleAppearanceFromMenu() : undefined;
+    case 'signOutFromMenu': return typeof signOutFromMenu === 'function' ? signOutFromMenu() : undefined;
     case 'toggleNotificationsPanel': return typeof toggleNotificationsPanel === 'function' ? toggleNotificationsPanel() : undefined;
     case 'goToView': return goToView(args[0]);
     case 'dashboardNewICS': return dashboardNewICS();

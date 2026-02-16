@@ -1,8 +1,36 @@
+const LEGACY_THEME_ALIASES = {
+  playful: 'playful-sunflower',
+  'playful-coral': 'playful-flamingo',
+  'playful-mint': 'playful-lotus',
+  'elegant-sky': 'playful-kingfisher',
+  'elegant-emerald': 'playful-fern',
+  'velvet-red': 'playful-flamingo'
+};
+
+function syncThemeColorMeta(color){
+  const next = String(color || '').trim();
+  if (!next) return;
+  let themeMeta = document.querySelector('meta[name="theme-color"]');
+  if (!themeMeta){
+    themeMeta = document.createElement('meta');
+    themeMeta.setAttribute('name', 'theme-color');
+    document.head.appendChild(themeMeta);
+  }
+  themeMeta.setAttribute('content', next);
+}
+
+function normalizeThemeAccentKey(accent){
+  const raw = String(accent || '').trim();
+  const mapped = LEGACY_THEME_ALIASES[raw] || raw;
+  return Object.prototype.hasOwnProperty.call(ACCENT_THEMES, mapped) ? mapped : 'elegant-white';
+}
+
 function applyThemeAccent(accent){
-  const key = Object.prototype.hasOwnProperty.call(ACCENT_THEMES, accent) ? accent : 'elegant-white';
+  const key = normalizeThemeAccentKey(accent);
   const theme = ACCENT_THEMES[key];
   const isDark = key === 'dracula' || key === 'crimson-black';
   if (document.body) document.body.dataset.theme = key;
+  syncThemeColorMeta(theme.a);
   document.documentElement.style.setProperty('--a', theme.a);
   document.documentElement.style.setProperty('--as', theme.as);
   document.documentElement.style.setProperty('--ah', theme.ah);
@@ -88,6 +116,7 @@ function applyThemeAccent(accent){
   document.documentElement.style.setProperty('--fab-focus-ring', isDark
     ? '0 0 0 3px rgba(255,255,255,.22),0 10px 22px rgba(0,0,0,.45)'
     : '0 0 0 3px rgba(191,219,254,.9),0 10px 22px rgba(37,99,235,.34)');
+  return key;
 }
 
 function applyTableDensity(){

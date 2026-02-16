@@ -277,6 +277,11 @@ function initializeKeyboardRouting(){
     const typing = isTypingContext(e.target);
 
     if (handleOverlayKeydown(e)) return;
+    if (e.key === 'Escape' && topbarProfileMenu?.classList?.contains('show')){
+      e.preventDefault();
+      closeTopbarProfileMenu();
+      return;
+    }
     if (e.key === 'Escape' && view === 'Manage Inventory' && sheet.classList.contains('show')){
       e.preventDefault();
       closeSheet();

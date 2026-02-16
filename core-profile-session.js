@@ -7,6 +7,13 @@ const PROFILE_AVATAR_SVGS = {
   star: '<i class="profile-avatar-icon" data-lucide="star" aria-hidden="true"></i>'
 };
 
+function sanitizeProfileAvatarDataUrl(value){
+  const raw = (value || '').toString().trim();
+  if (!raw) return '';
+  const ok = /^data:image\/(png|jpeg|jpg|webp|svg\+xml);base64,[a-z0-9+/=\s]+$/i.test(raw);
+  return ok ? raw : '';
+}
+
 function createDefaultUser(){
   return {
     profileKey: '',
@@ -15,6 +22,7 @@ function createDefaultUser(){
     role: 'Encoder',
     email: '',
     avatar: 'initials',
+    topbarAvatarDataUrl: '',
     lastLogin: new Date().toISOString(),
     preferences: {
       tableDensity: 'comfortable',
@@ -40,6 +48,7 @@ function normalizeUser(user){
   const avatar = PROFILE_AVATAR_KEYS.includes((src.avatar || '').toString().trim().toLowerCase())
     ? (src.avatar || '').toString().trim().toLowerCase()
     : 'initials';
+  const topbarAvatarDataUrl = sanitizeProfileAvatarDataUrl(src.topbarAvatarDataUrl || src.profileImageDataUrl || '');
   return {
     profileKey,
     name: (src.name || base.name).toString().trim() || base.name,
@@ -47,6 +56,7 @@ function normalizeUser(user){
     role: roleLabel,
     email: (src.email || '').toString().trim(),
     avatar,
+    topbarAvatarDataUrl,
     lastLogin: src.lastLogin || base.lastLogin,
     preferences: {
       tableDensity: density,
@@ -77,6 +87,118 @@ function renderUserAvatar(target, name, avatarType){
   const icon = PROFILE_AVATAR_SVGS[safe] || PROFILE_AVATAR_SVGS.person;
   target.classList.add('has-icon');
   target.innerHTML = icon;
+}
+
+function renderTopbarProfileAvatar(target, dataUrl, name = '', avatarType = 'initials'){
+  if (!target) return;
+  const next = sanitizeProfileAvatarDataUrl(dataUrl || '');
+  if (next){
+    target.textContent = '';
+    target.innerHTML = '';
+    target.classList.remove('has-icon');
+    target.style.backgroundImage = `url("${next}")`;
+    target.classList.add('has-image');
+    return;
+  }
+  target.style.backgroundImage = '';
+  target.classList.remove('has-image');
+  renderUserAvatar(target, name || currentUser?.name || '', avatarType || currentUser?.avatar || 'initials');
+}
+
+function resolveCurrentThemeAccent(){
+  const raw = currentUser?.preferences?.themeAccent || 'elegant-white';
+  if (typeof normalizeThemeAccentKey === 'function') return normalizeThemeAccentKey(raw);
+  return raw;
+}
+
+function isDarkThemeAccent(accent){
+  return accent === 'dracula' || accent === 'crimson-black';
+}
+
+function updateTopbarProfileMenuIdentity(){
+  if (topbarMenuName) topbarMenuName.textContent = currentUser?.name || 'Custodian';
+  if (topbarMenuEmail){
+    const email = (currentUser?.email || '').toString().trim();
+    topbarMenuEmail.textContent = email || 'No email set';
+  }
+  renderTopbarProfileAvatar(topbarMenuAvatar, currentUser?.topbarAvatarDataUrl || '', currentUser?.name || '', currentUser?.avatar || 'initials');
+  if (topbarAppearanceMode){
+    topbarAppearanceMode.textContent = isDarkThemeAccent(resolveCurrentThemeAccent()) ? 'Dark' : 'Light';
+  }
+}
+
+function closeTopbarProfileMenu(){
+  if (!topbarProfileMenu) return;
+  topbarProfileMenu.classList.remove('show');
+  topbarProfileBtn?.setAttribute('aria-expanded', 'false');
+}
+
+function toggleTopbarProfileMenu(forceState){
+  if (!topbarProfileMenu) return;
+  const next = typeof forceState === 'boolean' ? forceState : !topbarProfileMenu.classList.contains('show');
+  if (!next){
+    closeTopbarProfileMenu();
+    return;
+  }
+  updateTopbarProfileMenuIdentity();
+  if (notifPanel?.classList?.contains('show')) notifPanel.classList.remove('show');
+  topbarProfileMenu.classList.add('show');
+  topbarProfileBtn?.setAttribute('aria-expanded', 'true');
+}
+
+function openProfileFromMenu(tab = 'identity'){
+  closeTopbarProfileMenu();
+  openProfileModal();
+  const safeTab = ['identity', 'school', 'preferences', 'security'].includes((tab || '').toLowerCase())
+    ? tab.toLowerCase()
+    : 'identity';
+  setTimeout(() => setProfileSettingsTab(safeTab, true), 0);
+}
+
+function openAuditLogsFromMenu(){
+  closeTopbarProfileMenu();
+  showModal('Audit Logs', 'Audit log viewer panel is not available yet. Use Export Full Package to include audit logs.');
+}
+
+function openHelpFromMenu(){
+  closeTopbarProfileMenu();
+  showModal('Help & Documentation', 'Help center is not available yet. Use Profile Settings and Data Hub for current workspace controls.');
+}
+
+function toggleAppearanceFromMenu(){
+  const current = resolveCurrentThemeAccent();
+  const next = isDarkThemeAccent(current) ? 'elegant-white' : 'dracula';
+  currentUser = normalizeUser({
+    ...currentUser,
+    preferences: {
+      ...currentUser.preferences,
+      themeAccent: next
+    }
+  });
+  saveCurrentUser();
+  if ((schoolIdentity?.schoolId || '').trim()) upsertCurrentUserForSchool(schoolIdentity.schoolId);
+  applyThemeAccent(next);
+  renderUserIdentity();
+  updateTopbarProfileMenuIdentity();
+}
+
+function installAppFromMenu(){
+  closeTopbarProfileMenu();
+  installPWAApp();
+}
+
+function checkUpdateFromMenu(){
+  closeTopbarProfileMenu();
+  if (typeof window.checkForPWAUpdateManual === 'function'){
+    window.checkForPWAUpdateManual();
+    return;
+  }
+  showModal('App Update', 'Update checker is still initializing. Try again in a moment.');
+}
+
+function signOutFromMenu(){
+  closeTopbarProfileMenu();
+  signOutSession();
 }
 
 function formatUserRoleLine(user){
@@ -321,7 +443,10 @@ function getInitials(name){
 
 function renderUserIdentity(){
   if (topUserName) topUserName.textContent = currentUser.name || 'Custodian';
-  if (topUserRole) topUserRole.textContent = formatUserRoleLine(currentUser);
+  if (topUserRole){
+    const topbarRole = (currentUser.designation || '').toString().trim() || normalizeRoleLabel(currentUser.role || 'encoder');
+    topUserRole.textContent = topbarRole;
+  }
   if (sidebarUserName) sidebarUserName.textContent = currentUser.name || 'Custodian';
   if (sidebarUserRole) sidebarUserRole.textContent = formatUserRoleLine(currentUser);
   if (topSchoolTitle || topSchoolTitleV2){
@@ -345,8 +470,14 @@ function renderUserIdentity(){
     sidebarProfileBtn.title = `Open profile for ${currentUser.name || 'Custodian'}`;
     sidebarProfileBtn.setAttribute('aria-label', `Open profile for ${currentUser.name || 'Custodian'}`);
   }
+  if (topbarProfileBtn){
+    topbarProfileBtn.title = `User Profile: ${currentUser.name || 'Custodian'}`;
+    topbarProfileBtn.setAttribute('aria-label', `User Profile: ${currentUser.name || 'Custodian'}`);
+  }
   const avatar = document.getElementById('profileAvatarPreview');
   renderUserAvatar(avatar, currentUser.name, currentUser.avatar);
   renderUserAvatar(sidebarUserAvatar, currentUser.name, currentUser.avatar);
+  renderTopbarProfileAvatar(topbarUserAvatar, currentUser.topbarAvatarDataUrl || '', currentUser.name, currentUser.avatar);
+  updateTopbarProfileMenuIdentity();
   renderAppLogo();
 }

@@ -28,7 +28,6 @@ function bootAppWithUserPreferences(){
   upsertCurrentUserForSchool(schoolIdentity.schoolId);
   if (tryRestoreRememberedSession()){
     applyCurrentUserVisualPrefs(false);
-    notify('success', `Welcome back, ${currentUser.name}.`);
     return;
   }
   applyCurrentUserVisualPrefs(true);
@@ -38,11 +37,11 @@ function bootAppWithUserPreferences(){
 
 const LAST_SEEN_APP_VERSION_STORAGE_KEY = 'icsLastSeenAppVersion';
 const RELEASE_NOTES_BY_VERSION = {
-  '4.0': [
-    'Major release baseline update to v4.0.',
-    'Schema/export baseline advanced to 4.0.0 for new data packages.',
-    'Service worker cache baseline refreshed for the 4.0 release line.',
-    'Ongoing workflow and UI refinements from recent Topbar v2 and WMR/archives iterations.'
+  '1': [
+    'Branding reset to DSIS V1 with version baseline set to 1.',
+    'Schema/export baseline reset to 1.0.0 for new data packages.',
+    'Service worker cache namespace reset for the DSIS V1 release line.',
+    'Includes recent Topbar v2, profile menu, and WMR/archives workflow refinements.'
   ],
   '3.3': [
     'New responsive mobile and tablet navigation with a centered New ICS action.',
@@ -145,7 +144,7 @@ function updateInstallAppButtonState(){
   installAppBtn.disabled = false;
   installAppBtn.textContent = deferredInstallPrompt ? 'Install App' : 'Install Guide';
   installAppBtn.title = deferredInstallPrompt
-    ? 'Install Project ICS v3 on this device.'
+    ? 'Install DSIS V1 on this device.'
     : 'Show install instructions for this browser.';
 }
 
@@ -329,15 +328,12 @@ function registerPWAServiceWorker(){
         updateAppUpdateButtonState();
         if (manualUpdateRequested){
           manualUpdateRequested = false;
-          notify('success', 'App update applied. Close and open the app again to start the latest version.');
           showModal('Update Applied', 'Update has been applied successfully.\nPlease close and open the app again to start the latest version.');
           return;
         }
-        notify('info', 'A new app version became active.');
       });
       if (registration.waiting){
         pendingUpdateWorker = registration.waiting;
-        notify('info', 'App update is ready. Click "Apply Update" in the sidebar.');
         updateAppUpdateButtonState();
       }
       registration.addEventListener('updatefound', () => {
@@ -347,7 +343,6 @@ function registerPWAServiceWorker(){
           if (nextWorker.state === 'installed' && navigator.serviceWorker.controller){
             pendingUpdateWorker = registration.waiting || nextWorker;
             updateAppUpdateButtonState();
-            notify('info', 'New app version available. Click "Apply Update" in the sidebar.');
           }
         });
       });

@@ -232,6 +232,7 @@ function showActiveModalToast(type, message){
 
 function toggleNotificationsPanel(){
   if (!notifPanel) return;
+  if (typeof closeTopbarProfileMenu === 'function') closeTopbarProfileMenu();
   notifPanel.classList.toggle('show');
 }
 

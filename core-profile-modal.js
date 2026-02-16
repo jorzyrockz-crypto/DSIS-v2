@@ -7,10 +7,11 @@ function openProfileModal(){
   const schoolNameEl = document.getElementById('profileSchoolName');
   const schoolIdEl = document.getElementById('profileSchoolId');
   const schoolLogoInput = document.getElementById('profileSchoolLogoInput');
+  const topbarAvatarInput = document.getElementById('profileTopbarAvatarInput');
   const density = document.getElementById('profileDensity');
   const accent = document.getElementById('profileAccent');
   const defaultView = document.getElementById('profileDefaultView');
-  profilePreviewOriginalTheme = currentUser.preferences?.themeAccent || 'elegant-white';
+  profilePreviewOriginalTheme = normalizeThemeAccentKey(currentUser.preferences?.themeAccent || 'elegant-white');
   if (name) name.value = currentUser.name || '';
   if (avatarTypeEl) avatarTypeEl.value = currentUser.avatar || 'initials';
   setDesignationSelectOptions('profileDesignation', currentUser.designation || '', schoolIdentity.schoolId);
@@ -19,9 +20,11 @@ function openProfileModal(){
   if (schoolNameEl) schoolNameEl.value = schoolIdentity.schoolName || '';
   if (schoolIdEl) schoolIdEl.value = schoolIdentity.schoolId || '';
   profileDraftSchoolLogoDataUrl = sanitizeSchoolLogoDataUrl(schoolIdentity.logoDataUrl || '');
+  profileDraftTopbarAvatarDataUrl = sanitizeProfileAvatarDataUrl(currentUser.topbarAvatarDataUrl || '');
   if (schoolLogoInput) schoolLogoInput.value = '';
+  if (topbarAvatarInput) topbarAvatarInput.value = '';
   if (density) density.value = currentUser.preferences?.tableDensity || 'comfortable';
-  if (accent) accent.value = currentUser.preferences?.themeAccent || 'elegant-white';
+  if (accent) accent.value = normalizeThemeAccentKey(currentUser.preferences?.themeAccent || 'elegant-white');
   if (defaultView) defaultView.value = currentUser.preferences?.defaultView || 'Dashboard';
   const lastLogin = document.getElementById('profileLastLogin');
   const profileKeyReadOnly = document.getElementById('profileKeyReadonly');
@@ -42,7 +45,7 @@ function openProfileModal(){
   renderDesignationManager();
   renderProfileTraceIntegritySummary();
   renderProfileRecentDataActivity();
-  syncProfileThemePreview(accent?.value || currentUser.preferences?.themeAccent || 'elegant-white');
+  syncProfileThemePreview(normalizeThemeAccentKey(accent?.value || currentUser.preferences?.themeAccent || 'elegant-white'));
   setProfileSettingsTab('identity', false);
   clearFieldErrors(profileOverlay);
   const canManageRole = hasRoleCapability('manage_roles');
@@ -77,18 +80,32 @@ function openProfileModal(){
   renderUserIdentity();
   applySchoolLogoPreview(profileDraftSchoolLogoDataUrl, true);
   updateSchoolLogoHint();
+  renderTopbarProfileAvatar(
+    topbarUserAvatar,
+    profileDraftTopbarAvatarDataUrl,
+    name?.value || currentUser.name || '',
+    avatarTypeEl?.value || currentUser.avatar || 'initials'
+  );
+  updateTopbarAvatarHint();
   if (profileOverlay) profileOverlay.classList.add('show');
   if (name) setTimeout(() => name.focus(), 10);
 }
 
 function closeProfileModal(restoreTheme = true){
   if (restoreTheme){
-    const fallback = currentUser.preferences?.themeAccent || 'elegant-white';
+    const fallback = normalizeThemeAccentKey(currentUser.preferences?.themeAccent || 'elegant-white');
     applyThemeAccent(profilePreviewOriginalTheme || fallback);
     syncProfileThemePreview(profilePreviewOriginalTheme || fallback);
   }
   if (profileOverlay) profileOverlay.classList.remove('show');
   profileDraftSchoolLogoDataUrl = sanitizeSchoolLogoDataUrl(schoolIdentity.logoDataUrl || '');
+  profileDraftTopbarAvatarDataUrl = sanitizeProfileAvatarDataUrl(currentUser.topbarAvatarDataUrl || '');
+  renderTopbarProfileAvatar(
+    topbarUserAvatar,
+    profileDraftTopbarAvatarDataUrl,
+    currentUser.name || '',
+    currentUser.avatar || 'initials'
+  );
   renderAppLogo();
 }
 
@@ -116,7 +133,7 @@ function saveProfileSettings(){
   const schoolName = (schoolNameEl?.value || '').trim();
   const schoolId = normalizeSchoolId(schoolIdEl?.value || '');
   const density = (densityEl?.value || 'comfortable').toLowerCase();
-  const accent = accentEl?.value || 'elegant-white';
+  const accent = normalizeThemeAccentKey(accentEl?.value || 'elegant-white');
   const defaultView = defaultViewEl?.value || 'Dashboard';
 
   let invalid = false;
@@ -172,6 +189,7 @@ function saveProfileSettings(){
     ...currentUser,
     name,
     avatar: avatarType,
+    topbarAvatarDataUrl: sanitizeProfileAvatarDataUrl(profileDraftTopbarAvatarDataUrl || ''),
     designation,
     role: normalizedRole,
     email,
@@ -199,4 +217,67 @@ function saveProfileSettings(){
   closeProfileModal(false);
   if (!isSessionActive()) openLoginModal(true);
   notify('success', 'Profile settings updated.');
+}
+
+function updateTopbarAvatarHint(){
+  const hint = document.getElementById('profileTopbarAvatarHint');
+  const removeBtn = document.getElementById('profileTopbarAvatarRemoveBtn');
+  const current = sanitizeProfileAvatarDataUrl(currentUser.topbarAvatarDataUrl || '');
+  const draft = sanitizeProfileAvatarDataUrl(profileDraftTopbarAvatarDataUrl || '');
+  const hasAvatar = !!(draft || current);
+  if (hint){
+    hint.textContent = draft
+      ? 'Icon selected. Save profile to apply.'
+      : (current ? 'Current icon active. Upload new icon then save to replace.' : 'No icon selected.');
+  }
+  if (removeBtn){
+    removeBtn.disabled = !hasAvatar;
+  }
+}
+
+function handleTopbarAvatarUpload(event){
+  const file = event?.target?.files?.[0];
+  if (!file) return;
+  if (!/^image\/(png|jpeg|jpg|webp|svg\+xml)$/i.test(file.type || '')){
+    notify('error', 'Unsupported image format. Use PNG, JPG, WEBP, or SVG.');
+    event.target.value = '';
+    return;
+  }
+  const maxBytes = 1024 * 1024;
+  if (file.size > maxBytes){
+    notify('error', 'Icon file is too large. Max size is 1MB.');
+    event.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = sanitizeProfileAvatarDataUrl(reader.result || '');
+    if (!dataUrl){
+      notify('error', 'Invalid icon image data.');
+      return;
+    }
+    profileDraftTopbarAvatarDataUrl = dataUrl;
+    renderTopbarProfileAvatar(
+      topbarUserAvatar,
+      profileDraftTopbarAvatarDataUrl,
+      document.getElementById('profileName')?.value || currentUser.name || '',
+      document.getElementById('profileAvatarType')?.value || currentUser.avatar || 'initials'
+    );
+    updateTopbarAvatarHint();
+  };
+  reader.onerror = () => notify('error', 'Unable to read icon file.');
+  reader.readAsDataURL(file);
+}
+
+function clearTopbarAvatarDraft(){
+  profileDraftTopbarAvatarDataUrl = '';
+  const input = document.getElementById('profileTopbarAvatarInput');
+  if (input) input.value = '';
+  renderTopbarProfileAvatar(
+    topbarUserAvatar,
+    '',
+    document.getElementById('profileName')?.value || currentUser.name || '',
+    document.getElementById('profileAvatarType')?.value || currentUser.avatar || 'initials'
+  );
+  updateTopbarAvatarHint();
 }

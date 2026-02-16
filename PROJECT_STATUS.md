@@ -3,6 +3,39 @@
 Last updated: 2026-02-16
 Main file: `ics_v_3_standalone_index.html`
 
+## Newly Implemented (2026-02-16, no-sidebar consistency + topbar profile UX expansion + theme catalog refresh)
+- Layout mode stabilization:
+  - fixed `hide-sidebar` behavior to act as a consistent no-sidebar mode across desktop/tablet/mobile breakpoints
+  - added runtime body mode sync (`layout-no-sidebar`) from `.app-shell.hide-sidebar` to prevent responsive CSS conflicts
+  - adjusted no-sidebar mobile/tablet paddings and sheet offsets to remove layout breakage
+- Asset and PWA path hardening:
+  - corrected root asset paths (removed stale `./vendor/` and `./icons/` references) in HTML, manifest, and service worker precache list
+  - aligned runtime/deploy paths for `lucide.min.js`, `icon-192.png`, and `icon-512.png`
+- Theme catalog overhaul:
+  - removed `Velvet Red`, `Elegant Sky`, and `Elegant Emerald` from active theme catalog and picker
+  - introduced 5 playful variants with plant/animal naming:
+    - `playful-sunflower` (Sunflower)
+    - `playful-flamingo` (Flamingo)
+    - `playful-lotus` (Lotus)
+    - `playful-kingfisher` (Kingfisher)
+    - `playful-fern` (Fern)
+  - added legacy theme key alias mapping to preserve existing saved preferences
+- Dynamic theme-color sync:
+  - wired `<meta name="theme-color">` updates on every theme apply so browser/PWA chrome tint follows active theme accent
+- Topbar profile control redesign:
+  - replaced plain profile icon trigger with a profile chip (name, role/designation, circular avatar, online status dot)
+  - fallback avatar now uses existing avatar icon/initials system when no uploaded topbar image is present
+  - topbar avatar upload added as UI-only profile field with draft preview/save/remove workflow (max 1MB, PNG/JPG/WEBP/SVG)
+- Topbar profile menu rollout:
+  - changed topbar profile click behavior to open a dedicated profile menu panel instead of direct modal open
+  - added menu actions: `My Profile`, `Audit Logs` (placeholder modal), `Settings`, `Install App`, `Check Update`, `Help & Documentation` (placeholder modal), `Appearance` toggle, and `Log out`
+  - added plan card row (`Enterprise Plan` + `Manage`) and menu identity header (avatar, name, email)
+  - wired outside-click close and `Esc` close; menu and notification panel now close each other when toggled
+- Notification noise reduction:
+  - removed refresh/session-restore `Welcome back ...` notification so reloads do not increment notification count
+  - removed service-worker lifecycle info/success notifications tied to passive refresh/update activation events
+  - reduced non-critical toasts in new topbar flows (e.g., topbar avatar select and appearance toggle)
+
 ## Newly Implemented (2026-02-16, v4.0 baseline bump + Topbar v2 default routing)
 - Version baseline advanced to `4.0`:
   - manifest app version updated to `4.0` (`manifest.webmanifest`)
