@@ -183,6 +183,82 @@ function registerPWAServiceWorker(){
   let manualUpdateRequested = false;
   let pwaRegistration = null;
   let pendingUpdateWorker = null;
+  let applyProgressTimer = null;
+  let applyProgressFailSafeTimer = null;
+
+  function showUpdateProgressModal(title, statusText, percent, allowClose = false){
+    const modal = document.getElementById('modal');
+    const titleEl = document.getElementById('modalTitle');
+    const messageEl = document.getElementById('modalMsg');
+    if (!modal || !titleEl || !messageEl) return;
+    const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+    titleEl.textContent = title;
+    messageEl.innerHTML = `
+      <div style="display:grid;gap:8px">
+        <div>${statusText}</div>
+        <div style="height:10px;background:#e2e8f0;border:1px solid #cbd5e1;border-radius:999px;overflow:hidden">
+          <div style="height:100%;width:${clamped}%;background:linear-gradient(90deg,#2563eb,#0ea5e9);transition:width .25s ease"></div>
+        </div>
+        <div style="font-size:12px;color:#64748b">${clamped}%</div>
+      </div>
+    `;
+    const actions = modal.querySelector('.modal-actions');
+    if (actions){
+      actions.innerHTML = allowClose
+        ? '<button class="btn btn-md btn-primary modal-btn primary" data-action="closeModal">OK</button>'
+        : '';
+    }
+    modal.style.display = 'flex';
+  }
+
+  function stopApplyProgressAnimation(){
+    if (applyProgressTimer){
+      clearInterval(applyProgressTimer);
+      applyProgressTimer = null;
+    }
+    if (applyProgressFailSafeTimer){
+      clearTimeout(applyProgressFailSafeTimer);
+      applyProgressFailSafeTimer = null;
+    }
+  }
+
+  function startApplyProgressAnimation(){
+    stopApplyProgressAnimation();
+    let progress = 8;
+    showUpdateProgressModal('Applying Update', 'Applying update...', progress, false);
+    applyProgressFailSafeTimer = setTimeout(() => {
+      if (!manualUpdateRequested) return;
+      stopApplyProgressAnimation();
+      manualUpdateRequested = false;
+      showUpdateProgressModal('Update Delayed', 'Update is taking longer than expected. Please try Check Update again.', 95, true);
+      updateAppUpdateButtonState();
+    }, 45000);
+    applyProgressTimer = setInterval(() => {
+      progress = Math.min(95, progress + Math.max(1, Math.round(Math.random() * 8)));
+      showUpdateProgressModal('Applying Update', 'Applying update...', progress, false);
+      if (progress >= 95){
+        clearInterval(applyProgressTimer);
+        applyProgressTimer = null;
+      }
+    }, 320);
+  }
+
+  function startAutoRefreshCountdown(seconds = 3){
+    let remaining = Math.max(0, Number(seconds) || 0);
+    const tick = () => {
+      const text = remaining > 0
+        ? `Update applied successfully. Refreshing in ${remaining}s...`
+        : 'Update applied successfully. Refreshing now...';
+      showUpdateProgressModal('Update Applied', text, 100, false);
+      if (remaining <= 0){
+        setTimeout(() => location.reload(), 80);
+        return;
+      }
+      remaining -= 1;
+      setTimeout(tick, 1000);
+    };
+    tick();
+  }
 
   function requestWorkerActivation(worker){
     if (!worker) return;
@@ -247,10 +323,10 @@ function registerPWAServiceWorker(){
     }
     showConfirm(
       'App Update Ready',
-      'A new version has been downloaded.\nApply update now?\n\nAfter apply, close and open the app again.',
+      'A new version has been downloaded.\nApply update now?',
       () => {
         manualUpdateRequested = true;
-        showModal('Applying Update', 'Applying update now...\nPlease wait.');
+        startApplyProgressAnimation();
         requestWorkerActivation(readyWorker);
       },
       'Apply Update'
@@ -328,7 +404,8 @@ function registerPWAServiceWorker(){
         updateAppUpdateButtonState();
         if (manualUpdateRequested){
           manualUpdateRequested = false;
-          showModal('Update Applied', 'Update has been applied successfully.\nPlease close and open the app again to start the latest version.');
+          stopApplyProgressAnimation();
+          startAutoRefreshCountdown(3);
           return;
         }
       });
