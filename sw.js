@@ -4,7 +4,7 @@ const PRECACHE = [
   './',
   './index.html',
   './ics_v_3_standalone_index.html',
-  './vendor/lucide.min.js',
+  './lucide.min.js',
   './core-storage-security.js',
   './core-shared-utils.js',
   './core-school-profile-normalization.js',
@@ -40,8 +40,8 @@ const PRECACHE = [
   './core-main-entry.js',
   './core-icon-init.js',
   './manifest.webmanifest',
-  './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {
