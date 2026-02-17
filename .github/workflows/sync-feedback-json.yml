@@ -1,6 +1,11 @@
 name: Sync Feedback JSON
 
 on:
+  push:
+    paths:
+      - '.github/workflows/sync-feedback-json.yml'
+      - 'scripts/sync-feedback-from-csv.js'
+      - 'feedback/google-form.config.json'
   schedule:
     - cron: '*/30 * * * *'
   workflow_dispatch:
