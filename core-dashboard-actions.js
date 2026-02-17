@@ -1,6 +1,52 @@
+const DASHBOARD_VIEW_MODE_STORAGE_KEY = 'icsDashboardViewMode';
+
+function getDashboardViewModeStorageKey(){
+  const profileKey = (currentUser?.profileKey || sessionState?.profileKey || 'guest').toString().trim().toLowerCase() || 'guest';
+  const schoolKey = (typeof normalizeSchoolId === 'function'
+    ? normalizeSchoolId(schoolIdentity?.schoolId || '')
+    : (schoolIdentity?.schoolId || '').toString().trim().toLowerCase()) || 'default';
+  return `${DASHBOARD_VIEW_MODE_STORAGE_KEY}:${schoolKey}:${profileKey}`;
+}
+
+function getDashboardViewMode(){
+  const raw = (localStorage.getItem(getDashboardViewModeStorageKey()) || 'guided').toString().trim().toLowerCase();
+  return raw === 'compact' ? 'compact' : 'guided';
+}
+
+function setDashboardViewMode(mode){
+  const next = (mode || '').toString().trim().toLowerCase() === 'compact' ? 'compact' : 'guided';
+  localStorage.setItem(getDashboardViewModeStorageKey(), next);
+  if ((content?.getAttribute('data-view') || '') === 'Dashboard'){
+    const current = content.classList.contains('dashboard-compact') ? 'compact' : 'guided';
+    if (current === next){
+      if (typeof syncTopbarViewButtons === 'function') syncTopbarViewButtons('Dashboard');
+      return;
+    }
+    content.classList.add('dash-mode-switching');
+    if (next === 'compact'){
+      content.querySelectorAll('.welcome-title, .welcome-subtitle, .dash-onboarding-card').forEach((el) => {
+        el.classList.add('dash-hero-out');
+      });
+    }
+    setTimeout(() => {
+      renderView('Dashboard');
+      content.classList.remove('dash-mode-switching');
+    }, 170);
+  }
+}
+
 function goToView(key){
-  const item = [...navItems].find((n) => n.dataset.view === key);
-  if (item) item.click();
+  const target = (key || '').toString();
+  if (!target || !viewRenderers[target]) return;
+  if (target === 'Developer Tools' && !(typeof isDeveloperUser === 'function' && isDeveloperUser())){
+    notify('error', 'Developer Tools is restricted to developer account.');
+    return;
+  }
+  navItems.forEach((n) => n.classList.remove('active'));
+  const item = [...navItems].find((n) => n.dataset.view === target);
+  if (item) item.classList.add('active');
+  if (typeof syncTopbarViewButtons === 'function') syncTopbarViewButtons(target);
+  renderView(target);
 }
 
 function dashboardNewICS(){

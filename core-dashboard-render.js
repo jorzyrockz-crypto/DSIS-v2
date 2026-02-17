@@ -1,19 +1,39 @@
+function renderSuppliesView(){
+  return `
+${renderWelcomeBanner('Supplies')}
+
+<section class="ics-card">
+  <h3>Supplies</h3>
+  <p class="card-subtext">This workspace is ready for consumables tracking and stock monitoring.</p>
+  <p class="card-subtext">Next step: wire supply categories, stock-in/out logs, and low-stock alerts.</p>
+</section>`;
+}
+
 function renderDashboardView(){
   const canEdit = hasRoleCapability('edit_records');
   const canImport = hasRoleCapability('import_data');
   const canExport = hasRoleCapability('export_data');
+  const dashboardMode = typeof getDashboardViewMode === 'function' ? getDashboardViewMode() : 'guided';
+  const isCompactMode = dashboardMode === 'compact';
+  const schoolName = ((schoolIdentity?.schoolName || 'Your School').toString().trim() || 'Your School');
+  const parseArray = (key) => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+  const totalRecords = parseArray('icsRecords').length + parseArray('parRecords').length;
+  const hasRecords = totalRecords > 0;
+  const onboardingLead = hasRecords
+    ? 'Here are 3 quick actions you can run anytime:'
+    : 'It looks empty right now. Here are 3 ways to get started:';
+  const onboardingPrimaryLabel = hasRecords ? 'Add New Supplies' : 'Create First Record';
   const kpiIcon = (name) => `<span class="dash-kpi-ico"><i data-lucide="${name}" aria-hidden="true"></i></span>`;
   const actionIcon = (name) => `<span class="ico" aria-hidden="true"><i data-lucide="${name}" aria-hidden="true"></i></span>`;
 
-  return `
-${renderWelcomeBanner('Dashboard')}
-
-<section class="dash-overview">
-  <div class="dash-overview-actions-row">
-    <button class="btn btn-sm btn-secondary" data-action="goToView" data-arg1="Manage Inventory"><i data-lucide="list" aria-hidden="true"></i>View Records</button>
-    <button class="btn btn-sm btn-primary" data-action="dashboardNewICS" ${canEdit ? '' : 'disabled title="Requires Encoder/Admin role"'}><i data-lucide="plus" aria-hidden="true"></i>Create New ICS</button>
-  </div>
-
+  const kpiGrid = hasRecords ? `
   <div class="dash-overview-kpis">
     <div class="dash-overview-kpi base">
       ${kpiIcon('layout-dashboard')}
@@ -40,10 +60,36 @@ ${renderWelcomeBanner('Dashboard')}
       <div class="s">Sum of record totals</div>
     </div>
   </div>
+  ` : '';
+
+  return `
+${isCompactMode ? '' : renderWelcomeBanner('Dashboard')}
+<section class="dash-overview ${isCompactMode ? 'is-compact' : ''}">
+  ${isCompactMode ? kpiGrid : ''}
+  ${isCompactMode ? '' : `<div class="dash-overview-actions-row">
+    <button class="btn btn-sm btn-secondary" data-action="goToView" data-arg1="Manage Inventory"><i data-lucide="list" aria-hidden="true"></i>View Records</button>
+    <button class="btn btn-sm btn-primary" data-action="dashboardNewICS" ${canEdit ? '' : 'disabled title="Requires Encoder/Admin role"'}><i data-lucide="plus" aria-hidden="true"></i>Create New ICS</button>
+  </div>`}
+
+  ${isCompactMode ? '' : `
+  <div class="dash-onboarding-card" id="dashOnboardingCard">
+    <img class="dash-onboarding-figure" src="./assets/dashboard-onboarding-illustration.png" alt="" aria-hidden="true" />
+    <div class="dash-onboarding-copy">
+      <h3>Welcome to your Dashboard, ${escapeHTML(schoolName)}! <span aria-hidden="true">\uD83D\uDC4B</span></h3>
+      <p>${onboardingLead}</p>
+      <div class="dash-onboarding-actions">
+        <button class="btn btn-sm btn-primary" data-action="dashboardNewICS" ${canEdit ? '' : 'disabled title="Requires Encoder/Admin role"'}><i data-lucide="plus" aria-hidden="true"></i>${onboardingPrimaryLabel}</button>
+        <button class="btn btn-sm btn-secondary" data-action="openDataManagerModal" data-arg1="import" ${canImport ? '' : 'disabled title="Requires Encoder/Admin role"'}><i data-lucide="file-spreadsheet" aria-hidden="true"></i>Import Data from Excel</button>
+        <button class="btn btn-sm btn-linklike" data-action="openHelpFromMenu"><i data-lucide="book-open" aria-hidden="true"></i>View User Guide</button>
+      </div>
+    </div>
+  </div>
+  ${kpiGrid}
+  `}
 
   <div class="dash-overview-grid">
     <div class="dash-action-card">
-      <div class="dash-action-head">${actionIcon('download')}<button class="btn btn-sm btn-secondary" data-action="openDataManagerModal" data-arg1="import" ${canImport ? '' : 'disabled title="Requires Encoder/Admin role"'}><i data-lucide="folder-open" aria-hidden="true"></i>Open</button></div>
+      <div class="dash-action-head">${actionIcon('download')}<button class="btn btn-sm btn-secondary" data-action="openDataManagerModal" data-arg1="import" data-arg2="widget" ${canImport ? '' : 'disabled title="Requires Encoder/Admin role"'}><i data-lucide="folder-open" aria-hidden="true"></i>Open</button></div>
       <h4>Import Center</h4>
       <p>Validate JSON, review conflicts, merge or replace.</p>
     </div>

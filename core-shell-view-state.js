@@ -117,6 +117,7 @@ function undoLastDataChange(){
 
 const viewRenderers = {
   Dashboard: renderDashboardView,
+  Supplies: renderSuppliesView,
   'Manage Inventory': renderInventoryView,
   'Action Center': renderActionsView,
   Archives: renderArchivesView,
@@ -124,7 +125,7 @@ const viewRenderers = {
 };
 
 function getDeveloperDiagnosticsSnapshot(){
-  const activeView = [...navItems].find((n) => n.classList.contains('active'))?.dataset?.view || '';
+  const activeView = content?.getAttribute('data-view') || [...navItems].find((n) => n.classList.contains('active'))?.dataset?.view || '';
   const storageKeys = Object.keys(localStorage || {}).sort();
   return {
     capturedAt: new Date().toISOString(),
@@ -854,6 +855,8 @@ function renderView(key){
   const renderer = viewRenderers[key];
   if (!renderer) return;
   if (typeof syncTopbarViewButtons === 'function') syncTopbarViewButtons(key);
+  const isDashboardCompact = key === 'Dashboard' && typeof getDashboardViewMode === 'function' && getDashboardViewMode() === 'compact';
+  content.classList.toggle('dashboard-compact', !!isDashboardCompact);
   content.setAttribute('data-view', key);
   content.innerHTML = renderer();
   if (key === 'Manage Inventory') {
@@ -890,19 +893,24 @@ function toggleSheet(){
 }
 
 function renderAppLogo(){
-  if (!appLogo) return;
+  const logos = [appLogo, document.getElementById('topbarSchoolLogo')].filter(Boolean);
+  if (!logos.length) return;
   const logo = sanitizeSchoolLogoDataUrl(schoolIdentity.logoDataUrl || '');
   if (logo){
-    appLogo.style.backgroundImage = `url("${logo}")`;
-    appLogo.classList.add('has-image');
-    appLogo.textContent = '';
-    appLogo.title = 'School logo';
+    logos.forEach((logoEl) => {
+      logoEl.style.backgroundImage = `url("${logo}")`;
+      logoEl.classList.add('has-image');
+      logoEl.textContent = '';
+      logoEl.title = 'School logo';
+    });
     return;
   }
-  appLogo.style.backgroundImage = '';
-  appLogo.classList.remove('has-image');
-  appLogo.textContent = getSchoolShortLabel(schoolIdentity.schoolName || '');
-  appLogo.title = 'School initials';
+  logos.forEach((logoEl) => {
+    logoEl.style.backgroundImage = '';
+    logoEl.classList.remove('has-image');
+    logoEl.textContent = getSchoolShortLabel(schoolIdentity.schoolName || '');
+    logoEl.title = 'School initials';
+  });
 }
 
 function getCurrentActorProfileKey(){

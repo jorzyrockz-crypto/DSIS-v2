@@ -3,6 +3,29 @@
 Last updated: 2026-02-17
 Main file: `ics_v_3_standalone_index.html`
 
+## Newly Implemented (2026-02-17, dashboard/topbar UX polish + modal/toast routing + release bump prep)
+- Versioning decision for this commit batch:
+  - minor bumped for new feature bundles and patch bumped for grouped fixes
+  - target release set to `1.5.6` (features + stability/UI fix pass)
+- Dashboard onboarding and view behavior:
+  - introduced guided/compact dashboard mode toggle with per-user saved preference
+  - compact mode now hides welcome/onboarding quick-action surfaces and prioritizes KPI widgets
+  - first-time dashboard onboarding card refined with direct start actions and updated CTA labels
+- Inventory workflow focus behavior:
+  - edit actions from ICS/PAR now return focus to `Staged Items` with smoother scroll targeting
+  - staged focus state now uses persistent glow highlight until finalize action completes
+- Setup/Profile flow refinements for offline-first usage:
+  - designation field behavior updated to start blank/editable in initial personnel path
+  - email kept optional for offline/local deployments
+- Topbar/navigation cleanup and density tuning:
+  - added `Supplies` view in top navigation
+  - compacted topbar spacing/gaps, streamlined profile area to avatar-first layout, and reduced header clutter
+  - moved/adjusted dashboard view toggle placement closer to topbar controls
+- Modal/notification behavior polish:
+  - improved modal open/close animations and switched overlays to transition-driven show/hide behavior
+  - Import Center opening via dashboard widget now writes status to Notification Center (no modal toast popup)
+  - Import Center modal positioning updated to centered alignment for consistent presentation
+
 ## Planning Notes (2026-02-17, productization + distribution + sync roadmap)
 - Current product baseline clarification:
   - current v1 runtime is offline-first PWA/web app (service worker + localStorage), not yet Electron-packaged

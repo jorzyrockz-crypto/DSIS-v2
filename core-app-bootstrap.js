@@ -39,7 +39,14 @@ function bootAppWithUserPreferences(){
 
 const LAST_SEEN_APP_VERSION_STORAGE_KEY = 'icsLastSeenAppVersion';
 const RELEASE_NOTES_BY_VERSION = {
-  '1.5.0': [
+  '1.5.6': [
+    'Versioning decision for this commit batch:',
+    'minor bumped for new feature bundles and patch bumped for grouped fixes',
+    'target release set to `1.5.6` (features + stability/UI fix pass)',
+    'Dashboard onboarding and view behavior:',
+    'introduced guided/compact dashboard mode toggle with per-user saved preference',
+    'compact mode now hides welcome/onboarding quick-action surfaces and prioritizes KPI widgets'
+  ],  '1.5.0': [
     'Milestone release focused on developer operations and feedback intelligence.',
     'Added hidden developer-only console with modern dashboard widgets and maintenance actions.',
     'Integrated no-login feedback pipeline and in-app feedback entry with resilient feed loading.',
@@ -240,7 +247,7 @@ async function announceReleaseNotesIfNeeded(){
 }
 
 function initializeReleaseNotesQuickAccess(){
-  const targets = [brandSub, topbarVersionLink].filter(Boolean);
+  const targets = [brandSub, topbarVersionLink, topbarMenuVersion].filter(Boolean);
   if (!targets.length) return;
 
   const openLatestReleaseNotes = async () => {

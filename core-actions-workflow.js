@@ -7,7 +7,7 @@ function toggleActionCenterSelection(icsNo, itemNo, checked, sourceType){
   const key = getActionItemKey(icsNo, itemNo, sourceType);
   if (checked) actionCenterSelectedKeys[key] = { icsNo: icsNo || '', itemNo: itemNo || '', sourceType: sourceType || 'ics' };
   else delete actionCenterSelectedKeys[key];
-  const active = [...navItems].find(n => n.classList.contains('active'))?.dataset?.view;
+  const active = content?.getAttribute('data-view') || [...navItems].find(n => n.classList.contains('active'))?.dataset?.view;
   if (active === 'Action Center') renderView('Action Center');
 }
 

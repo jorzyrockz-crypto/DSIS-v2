@@ -158,6 +158,13 @@ function setStageContext(meta){
   el.title = fullText;
 }
 
+function clearStagedFocusHighlight(){
+  const stagedCard = document.querySelector('.ics-card.staged');
+  if (stagedCard){
+    stagedCard.classList.remove('is-focus-highlight');
+  }
+}
+
 function getCurrentFormMeta(){
   const recordType = getEditingRecordType();
   return {
@@ -256,6 +263,13 @@ function editICS(i){
 
   loadItemsToStage(r.items || []);
   setStageContext({ icsNo: r.icsNo || '', entity: r.entity || '', mode: 'Editing', recordType: 'ics' });
+  const stagedCard = document.querySelector('.ics-card.staged');
+  if (stagedCard){
+    stagedCard.classList.add('is-focus-highlight');
+    const topbarOffset = 110;
+    const targetTop = Math.max(0, window.scrollY + stagedCard.getBoundingClientRect().top - topbarOffset);
+    window.scrollTo({ top: targetTop, behavior: 'smooth' });
+  }
   refreshInputTitles(sheet);
   sheet.classList.add('show');
   requestAnimationFrame(placeSheetNearAddItemButton);
@@ -287,6 +301,13 @@ function editPAR(i){
 
   loadItemsToStage(r.items || []);
   setStageContext({ icsNo: parNo, entity: r.entity || '', mode: 'Editing', recordType: 'par' });
+  const stagedCard = document.querySelector('.ics-card.staged');
+  if (stagedCard){
+    stagedCard.classList.add('is-focus-highlight');
+    const topbarOffset = 110;
+    const targetTop = Math.max(0, window.scrollY + stagedCard.getBoundingClientRect().top - topbarOffset);
+    window.scrollTo({ top: targetTop, behavior: 'smooth' });
+  }
   refreshInputTitles(sheet);
   sheet.classList.add('show');
   requestAnimationFrame(placeSheetNearAddItemButton);

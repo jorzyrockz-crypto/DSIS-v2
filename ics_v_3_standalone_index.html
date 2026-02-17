@@ -17,18 +17,23 @@
   <header class="app-topbar-v2" id="appTopbarV2">
     <div class="topbar-v2-views" aria-label="Topbar V2 views">
       <button class="topbar-v2-view-btn is-primary" type="button" aria-label="Dashboard" data-action="goToView" data-arg1="Dashboard"><i data-lucide="layout-dashboard" aria-hidden="true"></i>Dashboard</button>
+      <button class="topbar-v2-view-btn" type="button" aria-label="Supplies" data-action="goToView" data-arg1="Supplies"><i data-lucide="boxes" aria-hidden="true"></i>Supplies</button>
       <button class="topbar-v2-view-btn" type="button" aria-label="Inventory" data-action="goToView" data-arg1="Manage Inventory"><i data-lucide="package" aria-hidden="true"></i>Inventory</button>
       <button class="topbar-v2-view-btn" type="button" aria-label="Action Center" data-action="goToView" data-arg1="Action Center"><i data-lucide="shield" aria-hidden="true"></i>Action Center</button>
       <button class="topbar-v2-view-btn" type="button" aria-label="Archives" data-action="goToView" data-arg1="Archives"><i data-lucide="archive" aria-hidden="true"></i>Archives</button>
       <button class="topbar-v2-view-btn" id="topbarDeveloperToolsBtn" style="display:none" type="button" aria-label="Developer Tools" data-action="goToView" data-arg1="Developer Tools"><i data-lucide="wrench" aria-hidden="true"></i>Dev</button>
     </div>
     <div class="topbar-v2-left">
+      <div class="logo topbar-school-logo" id="topbarSchoolLogo" aria-label="School logo" title="School logo">SCH</div>
       <div class="brand-copy">
         <span class="brand-title">Digital School Inventory System</span>
-        <span class="brand-sub topbar-version-link" id="topbarVersionLink" role="button" tabindex="0" title="Show What's New">v1.0</span>
       </div>
     </div>
     <div class="right" aria-label="Topbar V2 actions">
+      <div class="topbar-dash-mode-toggle" id="topbarDashModeToggle" role="group" aria-label="Dashboard view mode" style="display:none">
+        <button class="topbar-dash-mode-btn" type="button" data-action="setDashboardViewMode" data-arg1="guided" aria-label="Guided View" title="Guided View"><i data-lucide="layout-dashboard" aria-hidden="true"></i></button>
+        <button class="topbar-dash-mode-btn" type="button" data-action="setDashboardViewMode" data-arg1="compact" aria-label="Compact View" title="Compact View"><i data-lucide="list" aria-hidden="true"></i></button>
+      </div>
       <button class="topbar-v2-search-btn" type="button" title="Search" aria-label="Search" data-tooltip="Ctrl+K" data-action="openSearchOverlay">
         <span class="topbar-v2-search-main">
           <i data-lucide="search" aria-hidden="true"></i>
@@ -79,6 +84,7 @@
           <div class="topbar-menu-meta">
             <p class="topbar-menu-name" id="topbarMenuName">Custodian</p>
             <p class="topbar-menu-email" id="topbarMenuEmail">No email set</p>
+            <p class="topbar-menu-version" id="topbarMenuVersion">Version v1.0</p>
           </div>
         </div>
         <div class="topbar-menu-list">
@@ -310,6 +316,7 @@
     <div class="modal-head">
       <div class="setup-title-row">
         <h3><i data-lucide="school" aria-hidden="true"></i>Setup School Workspace</h3>
+        <span id="setupModeBadge" class="risk-badge ok" style="margin-left:auto">Initial Setup</span>
         <button type="button" class="setup-close-btn modal-close-btn" id="setupCloseBtn" aria-label="Close setup modal"><i data-lucide="x" aria-hidden="true"></i>Close</button>
       </div>
       <p class="modal-sub">Create school identity and first personnel profile for this device.</p>
@@ -366,9 +373,8 @@
               </div>
               <div class="setup-input-shell">
                 <i data-lucide="briefcase-business" aria-hidden="true"></i>
-                <input id="setupProfileDesignation" class="stage-input" list="setupProfileDesignationList" placeholder="Type or select designation" />
+                <input id="setupProfileDesignation" class="stage-input" placeholder="Enter designation" />
               </div>
-              <datalist id="setupProfileDesignationList"></datalist>
             </div>
             <div>
               <div class="setup-field-head">
@@ -387,7 +393,7 @@
             <div>
               <div class="setup-field-head">
                 <label>Email Address</label>
-                <span class="setup-field-meta">Optional</span>
+                <span class="setup-field-meta">Optional for offline use</span>
               </div>
               <div class="setup-input-shell">
                 <i data-lucide="mail" aria-hidden="true"></i>
@@ -584,6 +590,7 @@
                   <label>Default View</label>
                   <select id="profileDefaultView" class="stage-input">
                     <option value="Dashboard">Dashboard</option>
+                    <option value="Supplies">Supplies</option>
                     <option value="Manage Inventory">Manage Inventory</option>
                     <option value="Action Center">Action Center</option>
                     <option value="Archives">Archives</option>
@@ -806,7 +813,7 @@
           <h4>1. Getting Started</h4>
           <ul>
             <li>Login with your School ID and profile.</li>
-            <li>Use top navigation: Dashboard, Inventory, Action Center, Archives.</li>
+            <li>Use top navigation: Dashboard, Supplies, Inventory, Action Center, Archives.</li>
             <li>Open Profile menu for settings, appearance, updates, and sign out.</li>
           </ul>
         </section>

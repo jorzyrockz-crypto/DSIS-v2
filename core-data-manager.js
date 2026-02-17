@@ -683,7 +683,7 @@ function closeDataHubModal(){
   dataHubOverlay.classList.remove('show');
 }
 
-function openDataImportModal(){
+function openDataImportModal(openSource = ''){
   if (!requireAccess('import_json', { label: 'open Import Center' })){
     notify('error', 'Your role cannot open Import Center.');
     return;
@@ -699,7 +699,9 @@ function openDataImportModal(){
   updateDataManagerApplyState();
   const fileName = document.getElementById('dmFileName');
   if (fileName && fileName.textContent === 'No file selected.'){
-    notify('info', 'Choose a JSON file to preview and import.');
+    const openedFromWidget = (openSource || '').toString().toLowerCase() === 'widget';
+    if (openedFromWidget) notifyCenter('info', 'Choose a JSON file to preview and import.');
+    else notify('info', 'Choose a JSON file to preview and import.');
   }
 }
 
@@ -746,7 +748,7 @@ function closeDataExportModal(){
   dataExportOverlay.classList.remove('show');
 }
 
-function openDataManagerModal(defaultMode = 'import'){
+function openDataManagerModal(defaultMode = 'import', openSource = ''){
   const mode = (defaultMode || '').toLowerCase();
   const canImport = hasRoleCapability('import_data');
   const canExport = hasRoleCapability('export_data');
@@ -764,7 +766,7 @@ function openDataManagerModal(defaultMode = 'import'){
     notify('error', 'Your role cannot export data.');
     return;
   }
-  if (mode === 'import') openDataImportModal();
+  if (mode === 'import') openDataImportModal(openSource);
   else if (mode === 'export') openDataExportModal();
   else if (!canImport && canExport) openDataExportModal();
   else openDataHubModal();

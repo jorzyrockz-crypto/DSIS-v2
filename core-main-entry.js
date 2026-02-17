@@ -46,6 +46,7 @@ const topbarUserAvatar = document.getElementById('topbarUserAvatar');
 const topbarMenuAvatar = document.getElementById('topbarMenuAvatar');
 const topbarMenuName = document.getElementById('topbarMenuName');
 const topbarMenuEmail = document.getElementById('topbarMenuEmail');
+const topbarMenuVersion = document.getElementById('topbarMenuVersion');
 const topbarAppearanceMode = document.getElementById('topbarAppearanceMode');
 const appShell = document.querySelector('.app-shell');
 let editingIndex = null;
@@ -89,8 +90,8 @@ let dataManagerState = {
   verification: null,
   migrationRows: []
 };
-const ICS_SCHEMA_VERSION = '1.4.2';
-const APP_UI_VERSION_FALLBACK = '1.4.2';
+const ICS_SCHEMA_VERSION = '1.5.6';
+const APP_UI_VERSION_FALLBACK = '1.5.6';
 window.APP_FEEDBACK_FORM_URL = 'https://forms.gle/xBwdfzq9FaWvK1Wr8';
 window.DEFAULT_DEVELOPER_ACCOUNT = {
   enabled: true,
@@ -103,7 +104,7 @@ window.DEFAULT_DEVELOPER_ACCOUNT = {
 };
 window.APP_GITHUB_REPO = 'ASITSD/DSIS-v2';
 const SIDEBAR_COLLAPSE_STORAGE_KEY = 'icsSidebarCollapsed';
-const PROFILE_VIEWS = ['Dashboard', 'Manage Inventory', 'Action Center', 'Archives'];
+const PROFILE_VIEWS = ['Dashboard', 'Supplies', 'Manage Inventory', 'Action Center', 'Archives'];
 const DEFAULT_DESIGNATIONS = ['Inventory Officer'];
 const ACCENT_THEMES = {
   'playful-sunflower': {
@@ -411,14 +412,26 @@ applyTableDensity();
 
 function setBrandSubVersion(versionText){
   const normalized = String(versionText || '').trim();
+  const displayVersion = normalized ? (/^\d+$/.test(normalized) ? `${normalized}.0` : normalized) : '';
   if (!normalized){
     if (brandSub) brandSub.textContent = 'Digital School Inventory System';
     if (topbarVersionLink) topbarVersionLink.textContent = '';
+    if (topbarMenuVersion){
+      topbarMenuVersion.textContent = '';
+      topbarMenuVersion.setAttribute('role', 'button');
+      topbarMenuVersion.setAttribute('tabindex', '0');
+      topbarMenuVersion.title = 'Show What\'s New';
+    }
     return;
   }
-  const displayVersion = /^\d+$/.test(normalized) ? `${normalized}.0` : normalized;
   if (brandSub) brandSub.textContent = `Digital School Inventory System v${displayVersion}`;
-  if (topbarVersionLink) topbarVersionLink.textContent = `v${displayVersion}`;
+  if (topbarVersionLink) topbarVersionLink.textContent = '';
+  if (topbarMenuVersion){
+    topbarMenuVersion.textContent = `Version v${displayVersion}`;
+    topbarMenuVersion.setAttribute('role', 'button');
+    topbarMenuVersion.setAttribute('tabindex', '0');
+    topbarMenuVersion.title = 'Show What\'s New';
+  }
 }
 
 async function applyBrandSubVersionFromManifest(){
@@ -513,6 +526,16 @@ function syncTopbarViewButtons(activeKey){
       btn.removeAttribute('aria-current');
     }
   });
+  const modeToggle = document.getElementById('topbarDashModeToggle');
+  if (modeToggle){
+    const onDashboard = key === 'Dashboard';
+    modeToggle.style.display = onDashboard ? 'inline-flex' : 'none';
+    const mode = typeof getDashboardViewMode === 'function' ? getDashboardViewMode() : 'guided';
+    modeToggle.querySelectorAll('.topbar-dash-mode-btn').forEach((btn) => {
+      const btnMode = (btn.getAttribute('data-arg1') || '').toString().trim().toLowerCase();
+      btn.classList.toggle('is-active', btnMode === mode);
+    });
+  }
 }
 
 function syncDeveloperToolsAccess(){
@@ -532,20 +555,11 @@ window.syncDeveloperToolsAccess = syncDeveloperToolsAccess;
 
 navItems.forEach(item => item.onclick = () => {
   const key = item.dataset.view;
-  if (!viewRenderers[key]) return;
-  if (key === 'Developer Tools' && !(typeof isDeveloperUser === 'function' && isDeveloperUser())){
-    notify('error', 'Developer Tools is restricted to developer account.');
-    return;
-  }
-
-  navItems.forEach(n => n.classList.remove('active'));
-  item.classList.add('active');
-  syncTopbarViewButtons(key);
-  renderView(key);
+  goToView(key);
 });
 
 syncDeveloperToolsAccess();
-syncTopbarViewButtons((([...navItems].find((n) => n.classList.contains('active')) || {}).dataset || {}).view || 'Dashboard');
+syncTopbarViewButtons(content?.getAttribute('data-view') || ((([...navItems].find((n) => n.classList.contains('active')) || {}).dataset || {}).view || 'Dashboard'));
 
 // ===== FLOATING FORM =====
 

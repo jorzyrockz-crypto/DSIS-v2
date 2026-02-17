@@ -248,5 +248,5 @@ function initDashboardView(){
   }
 
   const emptyHint = document.getElementById('dashEmptyHint');
-  if (emptyHint) emptyHint.style.display = records.length ? 'none' : 'block';
+  if (emptyHint) emptyHint.style.display = (records.length + parRecords.length) ? 'none' : 'block';
 }

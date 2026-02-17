@@ -6,6 +6,7 @@ function resetModalVariantState(){
 
 function showConfirm(title, msg, onConfirm, confirmLabel = 'Confirm'){
   const m = document.getElementById('modal');
+  if (!m) return;
   resetModalVariantState();
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalMsg').textContent = msg;
@@ -14,16 +15,17 @@ function showConfirm(title, msg, onConfirm, confirmLabel = 'Confirm'){
   actions.innerHTML = `
     <button class="btn btn-md btn-secondary modal-btn secondary" data-action="closeModal">Cancel</button>
     <button class="btn btn-md btn-primary modal-btn primary" data-action="runConfirmAction">${confirmLabel}</button>`;
-  m.style.display = 'flex';
+  m.classList.add('show');
 }
 
 function showModal(title, msg){
   const m = document.getElementById('modal');
+  if (!m) return;
   resetModalVariantState();
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalMsg').textContent = msg;
   m.querySelector('.modal-actions').innerHTML = '<button class="btn btn-md btn-primary modal-btn primary" data-action="closeModal">OK</button>';
-  m.style.display = 'flex';
+  m.classList.add('show');
 }
 
 function runConfirmAction(){
@@ -36,5 +38,7 @@ function runConfirmAction(){
 function closeModal(){
   pendingConfirmAction = null;
   resetModalVariantState();
-  document.getElementById('modal').style.display = 'none';
+  const m = document.getElementById('modal');
+  if (!m) return;
+  m.classList.remove('show');
 }

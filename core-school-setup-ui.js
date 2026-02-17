@@ -14,19 +14,25 @@ function updateSchoolLogoHint(){
 }
 
 function applySchoolLogoPreview(dataUrl, preferDraft = false){
-  if (!appLogo) return;
+  const logos = [appLogo, document.getElementById('topbarSchoolLogo')].filter(Boolean);
+  if (!logos.length) return;
   const next = sanitizeSchoolLogoDataUrl(dataUrl || '');
   if (next){
-    appLogo.style.backgroundImage = `url("${next}")`;
-    appLogo.classList.add('has-image');
-    appLogo.textContent = '';
+    logos.forEach((logoEl) => {
+      logoEl.style.backgroundImage = `url("${next}")`;
+      logoEl.classList.add('has-image');
+      logoEl.textContent = '';
+      logoEl.title = 'School logo';
+    });
     return;
   }
   if (preferDraft){
-    appLogo.style.backgroundImage = '';
-    appLogo.classList.remove('has-image');
-    appLogo.textContent = getSchoolShortLabel(schoolIdentity.schoolName || '');
-    appLogo.title = 'School initials';
+    logos.forEach((logoEl) => {
+      logoEl.style.backgroundImage = '';
+      logoEl.classList.remove('has-image');
+      logoEl.textContent = getSchoolShortLabel(schoolIdentity.schoolName || '');
+      logoEl.title = 'School initials';
+    });
     return;
   }
   renderAppLogo();
@@ -100,19 +106,27 @@ function openSetupModal(force = false, mode = 'initial'){
   const title = setupOverlay.querySelector('.modal-head h3');
   const sub = setupOverlay.querySelector('.modal-head .modal-sub');
   const action = setupOverlay.querySelector('.modal-foot .btn.btn-primary');
+  const modeBadge = document.getElementById('setupModeBadge');
   const schoolSectionTitle = setupOverlay.querySelector('.setup-section-school .profile-section-title');
   const schoolSectionSub = setupOverlay.querySelector('.setup-section-school .setup-section-sub');
   const profileSectionTitle = setupOverlay.querySelector('.setup-section-profile .profile-section-title');
   const profileSectionSub = setupOverlay.querySelector('.setup-section-profile .setup-section-sub');
-  const lockSchool = setupMode === 'personnel' && isSchoolIdentityConfigured();
-  setupOverlay.classList.toggle('personnel-mode', lockSchool);
-  if (title) title.innerHTML = lockSchool
+  const isPersonnelFlow = setupMode === 'personnel';
+  // Keep one consistent visual language for setup flows.
+  // Only lock school fields for personnel sign-up flow.
+  const lockSchool = isPersonnelFlow;
+  setupOverlay.classList.add('personnel-mode');
+  if (title) title.innerHTML = isPersonnelFlow
     ? '<i data-lucide="user-plus" aria-hidden="true"></i>Create Personnel Profile'
     : '<i data-lucide="school" aria-hidden="true"></i>Setup School Workspace';
-  if (sub) sub.textContent = lockSchool
+  if (sub) sub.textContent = isPersonnelFlow
     ? 'Add a new staff member to the school directory.'
     : 'Create school identity and first personnel profile for this device.';
-  if (action) action.innerHTML = lockSchool
+  if (modeBadge){
+    modeBadge.textContent = isPersonnelFlow ? 'New Personnel' : 'Initial Setup';
+    modeBadge.className = isPersonnelFlow ? 'risk-badge warn' : 'risk-badge ok';
+  }
+  if (action) action.innerHTML = isPersonnelFlow
     ? '<i data-lucide="user-plus" aria-hidden="true"></i>Create Profile'
     : '<i data-lucide="school" aria-hidden="true"></i>Create School and Continue';
   if (schoolSectionTitle) schoolSectionTitle.innerHTML = lockSchool
@@ -130,10 +144,13 @@ function openSetupModal(force = false, mode = 'initial'){
   if (typeof window.refreshIcons === 'function') window.refreshIcons();
   if (schoolNameEl) schoolNameEl.value = (schoolIdentity.schoolName || '').trim();
   if (schoolIdEl) schoolIdEl.value = normalizeSchoolId(schoolIdentity.schoolId || '');
-  if (schoolNameEl) schoolNameEl.disabled = false;
-  if (schoolIdEl) schoolIdEl.disabled = false;
-  if (nameEl) nameEl.value = currentUser.name || '';
-  setDesignationSelectOptions('setupProfileDesignation', currentUser.designation || '', schoolIdentity.schoolId);
+  if (schoolNameEl) schoolNameEl.disabled = lockSchool;
+  if (schoolIdEl) schoolIdEl.disabled = lockSchool;
+  if (nameEl) nameEl.value = '';
+  if (designationEl){
+    designationEl.value = '';
+    designationEl.removeAttribute('list');
+  }
   if (roleEl) roleEl.value = normalizeRoleKey(currentUser.role || 'encoder');
   if (roleEl){
     const adminOpt = roleEl.querySelector('option[value="admin"]');
@@ -144,11 +161,8 @@ function openSetupModal(force = false, mode = 'initial'){
   if (emailEl) emailEl.value = currentUser.email || '';
   if (passwordEl) passwordEl.value = '';
   if (passwordConfirmEl) passwordConfirmEl.value = '';
-  if (nameEl && lockSchool){
-    nameEl.value = '';
-    nameEl.focus();
-  }
-  if (designationEl && lockSchool) designationEl.value = designationEl.value || '';
+  if (nameEl && lockSchool) nameEl.focus();
+  if (designationEl && lockSchool) designationEl.value = '';
   if (roleEl && lockSchool) roleEl.value = 'encoder';
   if (emailEl && lockSchool) emailEl.value = '';
   setSetupHint(lockSchool ? '' : 'Complete setup to continue.', '');

@@ -22,8 +22,9 @@ function invokeDelegatedAction(action, target, args){
     case 'signOutFromMenu': return typeof signOutFromMenu === 'function' ? signOutFromMenu() : undefined;
     case 'toggleNotificationsPanel': return typeof toggleNotificationsPanel === 'function' ? toggleNotificationsPanel() : undefined;
     case 'goToView': return goToView(args[0]);
+    case 'setDashboardViewMode': return typeof setDashboardViewMode === 'function' ? setDashboardViewMode(args[0]) : undefined;
     case 'dashboardNewICS': return dashboardNewICS();
-    case 'openDataManagerModal': return openDataManagerModal(args[0]);
+    case 'openDataManagerModal': return openDataManagerModal(args[0], args[1]);
     case 'dashboardOpenActions': return dashboardOpenActions();
     case 'dashboardOpenArchives': return dashboardOpenArchives();
     case 'clearInventoryFilter': return clearInventoryFilter();

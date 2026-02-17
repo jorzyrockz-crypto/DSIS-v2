@@ -10,6 +10,7 @@ function getWelcomeGreeting(){
 function getViewSubtitle(view){
   const base = (function(){
     if (view === 'Dashboard') return 'Portfolio overview, action priorities, and lifecycle trends at a glance.';
+    if (view === 'Supplies') return 'Monitor consumables, stock levels, and replenishment priorities across the workspace.';
     if (view === 'Manage Inventory') return 'Encode new ICS entries, stage items, and maintain finalized records in one workspace.';
     if (view === 'Action Center') return 'Review items nearing or past EUL and complete required inspection and disposal actions.';
     if (view === 'Archives') return 'Track archived items with disposal approvals and complete historical inspection metadata.';
@@ -34,6 +35,12 @@ function getViewStateSummary(view){
 
   if (view === 'Dashboard'){
     return `Current state: ${records.length} ICS records, ${parRecords.length} PAR records, ${archives.length} archived items.`;
+  }
+
+  if (view === 'Supplies'){
+    const supplyRecords = parseArray('icsSuppliesRecords');
+    const lowStockCount = supplyRecords.filter((item) => Number(item?.qtyOnHand || 0) <= Number(item?.reorderLevel || 0)).length;
+    return `Current state: ${supplyRecords.length} supply entries, ${lowStockCount} at or below reorder level.`;
   }
 
   if (view === 'Manage Inventory'){

@@ -187,6 +187,7 @@ function finalizeICS(){
   localStorage.setItem('icsRecords', JSON.stringify(records));
   loadICSRecords();
   resetStageItems();
+  if (typeof clearStagedFocusHighlight === 'function') clearStagedFocusHighlight();
   resetFormMode();
   clearFormAlert();
   recordAudit(
@@ -256,6 +257,7 @@ function finalizePAR(){
   localStorage.setItem('parRecords', JSON.stringify(parRecords));
   loadICSRecords();
   resetStageItems();
+  if (typeof clearStagedFocusHighlight === 'function') clearStagedFocusHighlight();
   resetFormMode();
   clearFormAlert();
   recordAudit(
@@ -453,8 +455,9 @@ function autoPopulateICSData(){
     addedPAR: addedPAR.length
   });
   loadICSRecords();
-  if ([...navItems].some(n => n.classList.contains('active') && n.dataset.view === 'Action Center')) initActionsView();
-  if ([...navItems].some(n => n.classList.contains('active') && n.dataset.view === 'Archives')) initArchivesView();
+  const activeView = content?.getAttribute('data-view') || [...navItems].find((n) => n.classList.contains('active'))?.dataset?.view || '';
+  if (activeView === 'Action Center') initActionsView();
+  if (activeView === 'Archives') initArchivesView();
   notify('success', `Stress data generated. ICS (${added.length}): ${added.join(', ')} | PAR (${addedPAR.length}): ${addedPAR.join(', ')}`);
 }
 

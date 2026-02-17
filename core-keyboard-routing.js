@@ -42,7 +42,7 @@ function keymapHas(action, combo){
 }
 
 function activeViewKey(){
-  return [...navItems].find((n) => n.classList.contains('active'))?.dataset?.view || '';
+  return content?.getAttribute('data-view') || [...navItems].find((n) => n.classList.contains('active'))?.dataset?.view || '';
 }
 
 function isTypingContext(target){
