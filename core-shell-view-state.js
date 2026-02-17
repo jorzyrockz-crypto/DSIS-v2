@@ -317,6 +317,118 @@ async function fetchDeveloperFeedbackPayload(){
   throw lastError || new Error('Failed to fetch feedback JSON.');
 }
 
+const DEV_FEEDBACK_STATUS_STORAGE_KEY = 'dsisDeveloperFeedbackStatusMap';
+let developerFeedbackItemIndex = {};
+
+function getDeveloperFeedbackStatusMap(){
+  const parsed = safeParseJSON(localStorage.getItem(DEV_FEEDBACK_STATUS_STORAGE_KEY) || '{}', {});
+  return parsed && typeof parsed === 'object' ? parsed : {};
+}
+
+function saveDeveloperFeedbackStatusMap(map){
+  localStorage.setItem(DEV_FEEDBACK_STATUS_STORAGE_KEY, JSON.stringify(map || {}));
+}
+
+function normalizeDeveloperFeedbackStatus(value){
+  const key = String(value || '').trim().toLowerCase();
+  if (key === 'approved') return 'approved';
+  if (key === 'in_queue') return 'in_queue';
+  if (key === 'resolved') return 'resolved';
+  return 'new';
+}
+
+function resolveDeveloperFeedbackItemKey(row, idx){
+  const base = `${row?.id || ''}|${row?.timestamp || row?.created_at || row?.updated_at || ''}|${row?.summary || row?.title || ''}`;
+  const normalized = base.toLowerCase().replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 96);
+  return normalized || `feedback-${idx + 1}`;
+}
+
+function getDeveloperFeedbackStatusDescriptor(status){
+  const normalized = normalizeDeveloperFeedbackStatus(status);
+  if (normalized === 'approved') return { label: 'Approved', cls: 'approved' };
+  if (normalized === 'in_queue') return { label: 'In Queue', cls: 'queue' };
+  if (normalized === 'resolved') return { label: 'Resolved', cls: 'resolved' };
+  return { label: 'New', cls: 'new' };
+}
+
+function renderDeveloperFeedbackCards(items){
+  developerFeedbackItemIndex = {};
+  const statusMap = getDeveloperFeedbackStatusMap();
+  return items.slice(0, 8).map((row, idx) => {
+    const itemKey = resolveDeveloperFeedbackItemKey(row, idx);
+    const category = escapeHTML((row?.category || 'Uncategorized').toString());
+    const summary = escapeHTML((row?.summary || row?.title || '(No summary)').toString());
+    const details = escapeHTML((row?.details || '').toString());
+    const stamp = formatDeveloperFeedbackTime(row?.timestamp || row?.created_at || row?.updated_at || '');
+    const status = normalizeDeveloperFeedbackStatus(statusMap[itemKey] || 'new');
+    const statusDesc = getDeveloperFeedbackStatusDescriptor(status);
+    developerFeedbackItemIndex[itemKey] = {
+      key: itemKey,
+      category: (row?.category || 'Uncategorized').toString(),
+      summary: (row?.summary || row?.title || '(No summary)').toString(),
+      details: (row?.details || '').toString(),
+      stamp,
+      status
+    };
+    return `
+      <article class="ics-card dev-feedback-card">
+        <header class="dev-feedback-card-head">
+          <div>
+            <strong>#${idx + 1} ${summary}</strong>
+            <div class="card-subtext">${stamp}</div>
+          </div>
+          <div class="dev-feedback-card-badges">
+            <span class="risk-badge ok">${category}</span>
+            <span class="dev-feedback-status ${statusDesc.cls}">${statusDesc.label}</span>
+          </div>
+        </header>
+        ${details ? `<p class="dev-feedback-card-body">${details}</p>` : '<p class="dev-feedback-card-body card-subtext">No extra details provided.</p>'}
+        <div class="dev-feedback-card-actions">
+          <button class="btn btn-sm btn-secondary" data-action="developerSetFeedbackStatus" data-arg1="${itemKey}" data-arg2="in_queue">In Queue</button>
+          <button class="btn btn-sm btn-secondary" data-action="developerSetFeedbackStatus" data-arg1="${itemKey}" data-arg2="approved">Approve</button>
+          <button class="btn btn-sm btn-secondary" data-action="developerSetFeedbackStatus" data-arg1="${itemKey}" data-arg2="resolved">Resolve</button>
+          <button class="btn btn-sm btn-secondary" data-action="developerCopyFeedbackItem" data-arg1="${itemKey}">Copy</button>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
+function developerSetFeedbackStatus(itemKey, nextStatus){
+  if (!(typeof isDeveloperUser === 'function' && isDeveloperUser())) return;
+  const key = String(itemKey || '').trim();
+  if (!key) return;
+  const map = getDeveloperFeedbackStatusMap();
+  map[key] = normalizeDeveloperFeedbackStatus(nextStatus);
+  saveDeveloperFeedbackStatusMap(map);
+  developerRefreshFeedbackPanel();
+  setDeveloperToolsStatus(`Feedback status updated: ${key}`, 'success');
+}
+
+async function developerCopyFeedbackItem(itemKey){
+  if (!(typeof isDeveloperUser === 'function' && isDeveloperUser())) return;
+  const key = String(itemKey || '').trim();
+  const row = developerFeedbackItemIndex[key];
+  if (!row){
+    notify('error', 'Feedback item not found in current view.');
+    return;
+  }
+  const text = [
+    `Category: ${row.category}`,
+    `Status: ${getDeveloperFeedbackStatusDescriptor(row.status).label}`,
+    `Time: ${row.stamp}`,
+    `Summary: ${row.summary}`,
+    row.details ? `Details: ${row.details}` : ''
+  ].filter(Boolean).join('\n');
+  try {
+    await navigator.clipboard.writeText(text);
+    setDeveloperToolsStatus('Feedback item copied to clipboard.', 'success');
+    notify('success', 'Feedback item copied.');
+  } catch (_err){
+    notify('error', 'Unable to copy feedback item in this browser context.');
+  }
+}
+
 async function developerRefreshFeedbackPanel(){
   if (!(typeof isDeveloperUser === 'function' && isDeveloperUser())) return;
   const meta = document.getElementById('developerFeedbackMeta');
@@ -348,22 +460,7 @@ async function developerRefreshFeedbackPanel(){
       list.innerHTML = '<div class="card-subtext">No feedback entries yet.</div>';
       return;
     }
-    list.innerHTML = items.slice(0, 8).map((row, idx) => {
-      const category = escapeHTML((row?.category || 'Uncategorized').toString());
-      const summary = escapeHTML((row?.summary || row?.title || '(No summary)').toString());
-      const details = escapeHTML((row?.details || '').toString());
-      const stamp = formatDeveloperFeedbackTime(row?.timestamp || row?.created_at || row?.updated_at || '');
-      return `
-        <div class="ics-card" style="margin:0;padding:10px">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-            <strong>#${idx + 1} ${summary}</strong>
-            <span class="risk-badge ok">${category}</span>
-          </div>
-          <div class="card-subtext" style="margin-top:4px">${stamp}</div>
-          ${details ? `<div style="margin-top:6px">${details}</div>` : ''}
-        </div>
-      `;
-    }).join('');
+    list.innerHTML = renderDeveloperFeedbackCards(items);
   } catch (err){
     const cached = safeParseJSON(localStorage.getItem('dsisDeveloperFeedbackCache') || 'null', null);
     const cachedItems = Array.isArray(cached?.items) ? cached.items : [];
@@ -371,22 +468,7 @@ async function developerRefreshFeedbackPanel(){
       meta.textContent = `Live fetch failed (${err?.message || 'unknown error'}). Showing cached feedback (${cachedItems.length}).`;
       document.getElementById('devFeedbackCount') && (document.getElementById('devFeedbackCount').textContent = String(cachedItems.length));
       document.getElementById('devFeedbackLastAt') && (document.getElementById('devFeedbackLastAt').textContent = formatDeveloperFeedbackTime(cachedItems[0]?.timestamp || cached?.generated_at));
-      list.innerHTML = cachedItems.slice(0, 8).map((row, idx) => {
-        const category = escapeHTML((row?.category || 'Uncategorized').toString());
-        const summary = escapeHTML((row?.summary || row?.title || '(No summary)').toString());
-        const details = escapeHTML((row?.details || '').toString());
-        const stamp = formatDeveloperFeedbackTime(row?.timestamp || row?.created_at || row?.updated_at || '');
-        return `
-          <div class="ics-card" style="margin:0;padding:10px">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-              <strong>#${idx + 1} ${summary}</strong>
-              <span class="risk-badge ok">${category}</span>
-            </div>
-            <div class="card-subtext" style="margin-top:4px">${stamp}</div>
-            ${details ? `<div style="margin-top:6px">${details}</div>` : ''}
-          </div>
-        `;
-      }).join('');
+      list.innerHTML = renderDeveloperFeedbackCards(cachedItems);
       return;
     }
     const protocolHint = location.protocol === 'file:' ? 'Run app through a local/dev server or deployment (not file://).' : 'Ensure `feedback/feedback.json` is deployed and reachable.';

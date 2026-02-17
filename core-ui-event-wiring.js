@@ -304,6 +304,8 @@ function invokeDelegatedAction(action, target, args){
     case 'developerRefreshDiagnostics': return typeof developerRefreshDiagnostics === 'function' ? developerRefreshDiagnostics() : undefined;
     case 'developerRefreshQuickStats': return typeof developerRefreshQuickStats === 'function' ? developerRefreshQuickStats() : undefined;
     case 'developerRefreshFeedbackPanel': return typeof developerRefreshFeedbackPanel === 'function' ? developerRefreshFeedbackPanel() : undefined;
+    case 'developerSetFeedbackStatus': return typeof developerSetFeedbackStatus === 'function' ? developerSetFeedbackStatus(args[0], args[1]) : undefined;
+    case 'developerCopyFeedbackItem': return typeof developerCopyFeedbackItem === 'function' ? developerCopyFeedbackItem(args[0]) : undefined;
     case 'developerRefreshGitHubStats': return typeof developerRefreshGitHubStats === 'function' ? developerRefreshGitHubStats() : undefined;
     case 'developerRefreshAppUpdateWidgets': return typeof developerRefreshAppUpdateWidgets === 'function' ? developerRefreshAppUpdateWidgets() : undefined;
     case 'developerCopyDiagnostics': return typeof developerCopyDiagnostics === 'function' ? developerCopyDiagnostics() : undefined;

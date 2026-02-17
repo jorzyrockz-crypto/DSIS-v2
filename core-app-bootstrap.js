@@ -416,12 +416,15 @@ function registerPWAServiceWorker(){
   }
 
   function startAutoRefreshCountdown(seconds = 3){
-    let remaining = Math.max(0, Number(seconds) || 0);
+    const total = Math.max(1, Number(seconds) || 1);
+    let remaining = total;
     const tick = () => {
+      const elapsed = total - remaining;
+      const progress = Math.min(100, Math.round(92 + (elapsed / total) * 8));
       const text = remaining > 0
         ? `Update applied successfully. Refreshing in ${remaining}s...`
         : 'Update applied successfully. Refreshing now...';
-      showUpdateProgressModal('Update Applied', text, 100, false);
+      showUpdateProgressModal('Update Applied', text, progress, false);
       if (remaining <= 0){
         setTimeout(() => location.reload(), 80);
         return;
@@ -600,7 +603,7 @@ function registerPWAServiceWorker(){
           const elapsed = Date.now() - (applyProgressStartedAt || Date.now());
           const waitMs = Math.max(0, MIN_APPLY_PROGRESS_VISIBLE_MS - elapsed);
           const finalize = () => {
-            showUpdateProgressModal('Update Applied', 'Finalizing update...', 100, false);
+            showUpdateProgressModal('Update Applied', 'Finalizing update...', 92, false);
             setTimeout(() => startAutoRefreshCountdown(3), 650);
           };
           const visualTarget = Math.max(96, applyProgressCurrent || 0);
