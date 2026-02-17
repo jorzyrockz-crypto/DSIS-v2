@@ -6,7 +6,9 @@ function bootAppWithUserPreferences(){
     applyTableDensity();
     renderUserIdentity();
     if (!renderStartView) return;
-    const startView = PROFILE_VIEWS.includes(currentUser.preferences?.defaultView) ? currentUser.preferences.defaultView : 'Dashboard';
+    const startView = typeof resolveStartViewForUser === 'function'
+      ? resolveStartViewForUser(currentUser)
+      : (PROFILE_VIEWS.includes(currentUser.preferences?.defaultView) ? currentUser.preferences.defaultView : 'Dashboard');
     goToView(startView);
   };
 
