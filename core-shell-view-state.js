@@ -407,8 +407,11 @@ function setDeveloperGitHubStat(id, value){
 }
 
 async function fetchGitHubJson(url){
+  const token = String(localStorage.getItem('dsisGitHubToken') || '').trim();
+  const headers = { Accept: 'application/vnd.github+json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
   const response = await fetch(url, {
-    headers: { Accept: 'application/vnd.github+json' },
+    headers,
     cache: 'no-store'
   });
   if (!response.ok){
@@ -420,14 +423,29 @@ async function fetchGitHubJson(url){
   return response.json();
 }
 
+function resolveDeveloperGitHubRepo(){
+  const fromStorage = String(localStorage.getItem('dsisGitHubRepo') || '').trim();
+  if (fromStorage.includes('/')) return fromStorage;
+  const configured = String(window.APP_GITHUB_REPO || '').trim();
+  if (configured.includes('/')) return configured;
+  const host = String(location.hostname || '').toLowerCase();
+  const path = String(location.pathname || '').replace(/^\/+/, '');
+  if (host.endsWith('.github.io')){
+    const owner = host.split('.github.io')[0];
+    const repo = path.split('/').filter(Boolean)[0] || '';
+    if (owner && repo) return `${owner}/${repo}`;
+  }
+  return '';
+}
+
 async function developerRefreshGitHubStats(){
   if (!(typeof isDeveloperUser === 'function' && isDeveloperUser())) return;
   const meta = document.getElementById('developerGitHubMeta');
   const links = document.getElementById('developerGitHubLinks');
-  const repo = String(window.APP_GITHUB_REPO || '').trim();
+  const repo = resolveDeveloperGitHubRepo();
   if (!meta) return;
   if (!repo || !repo.includes('/')){
-    meta.textContent = 'GitHub repo not configured. Set window.APP_GITHUB_REPO to "owner/repo".';
+    meta.textContent = 'GitHub repo not configured. Set window.APP_GITHUB_REPO (or localStorage dsisGitHubRepo) to "owner/repo".';
     return;
   }
   meta.textContent = `Loading GitHub stats for ${repo}...`;
@@ -462,7 +480,10 @@ async function developerRefreshGitHubStats(){
       `;
     }
   } catch (err){
-    meta.textContent = `Failed to load GitHub stats for ${repo} (${err?.message || 'unknown error'}).`;
+    const tokenHint = String(localStorage.getItem('dsisGitHubToken') || '').trim()
+      ? ''
+      : ' If repo is private, set localStorage key dsisGitHubToken with a GitHub PAT (read-only).';
+    meta.textContent = `Failed to load GitHub stats for ${repo} (${err?.message || 'unknown error'}).${tokenHint}`;
     if (links) links.textContent = '';
   }
 }
@@ -673,14 +694,27 @@ function developerFactoryResetWorkspace(){
   showConfirm(
     'Factory Reset Local Workspace',
     'This will delete all local app data on this device and reload.\nThis cannot be undone.',
-    () => {
-      localStorage.clear();
-      sessionStorage.clear();
-      if ('caches' in window){
-        caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))).finally(() => location.reload());
-      } else {
-        location.reload();
-      }
+    async () => {
+      try {
+        if ('serviceWorker' in navigator){
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((reg) => reg.unregister().catch(() => false)));
+        }
+      } catch (_err){}
+
+      try {
+        if ('caches' in window){
+          const keys = await caches.keys();
+          await Promise.all(keys.map((key) => caches.delete(key)));
+        }
+      } catch (_err){}
+
+      try { localStorage.clear(); } catch (_err){}
+      try { sessionStorage.clear(); } catch (_err){}
+
+      const nextUrl = new URL(location.href);
+      nextUrl.searchParams.set('factory_reset', Date.now().toString());
+      location.replace(nextUrl.toString());
     },
     'Reset Workspace'
   );
