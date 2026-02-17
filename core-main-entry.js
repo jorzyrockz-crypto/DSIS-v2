@@ -89,8 +89,8 @@ let dataManagerState = {
   verification: null,
   migrationRows: []
 };
-const ICS_SCHEMA_VERSION = '1.2.1';
-const APP_UI_VERSION_FALLBACK = '1.2.1';
+const ICS_SCHEMA_VERSION = '1.2.2';
+const APP_UI_VERSION_FALLBACK = '1.2.2';
 const SIDEBAR_COLLAPSE_STORAGE_KEY = 'icsSidebarCollapsed';
 const PROFILE_VIEWS = ['Dashboard', 'Manage Inventory', 'Action Center', 'Archives'];
 const DEFAULT_DESIGNATIONS = ['Inventory Officer'];
@@ -355,6 +355,35 @@ const ACCENT_THEMES = {
     btnDelText: '#fff1f2',
     btnSecondaryBg: '#2a2146',
     btnSecondaryText: '#f8fafc'
+  },
+  'dracula-bloody': {
+    a: '#e11d48',
+    as: '#4a1628',
+    ah: '#fb7185',
+    bg: '#150d14',
+    m: '#2a1620',
+    t: '#fff1f2',
+    tm: '#fecdd3',
+    border: '#7f1d3f',
+    sidebarBg: 'linear-gradient(180deg,#220f19 0%,#180b13 100%)',
+    topbarBg: 'rgba(28,12,20,.92)',
+    iconBtnBg: '#311425',
+    iconBtnText: '#fff1f2',
+    iconBtnBorder: '#7f1d3f',
+    modalBg: '#24101b',
+    modalBorder: '#7f1d3f',
+    modalHeadBg: 'linear-gradient(180deg,#361325 0%,#2a0f1d 100%)',
+    modalHeadBorder: '#9f1239',
+    modalFootBg: 'rgba(36,16,27,.96)',
+    modalFootBorder: '#7f1d3f',
+    btnAddBg: '#4a1628',
+    btnAddText: '#ffe4e6',
+    btnPrimaryBg: '#e11d48',
+    btnPrimaryText: '#fff1f2',
+    btnDelBg: '#5a1a2f',
+    btnDelText: '#ffe4e6',
+    btnSecondaryBg: '#331221',
+    btnSecondaryText: '#fff1f2'
   }
 };
 

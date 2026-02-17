@@ -1,0 +1,9 @@
+{
+  "name": "dsis-v2",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Automated regression tests for DSIS-v2",
+  "scripts": {
+    "test": "node --test tests/**/*.test.js"
+  }
+}

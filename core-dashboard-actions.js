@@ -58,6 +58,7 @@ function clearInventoryFilter(){
 }
 
 function clearActionCenterICSFilter(){
+  actionCenterFilter = 'all';
   actionCenterICSFilter = '';
   actionCenterItemFilter = '';
   actionCenterSourceFilter = '';

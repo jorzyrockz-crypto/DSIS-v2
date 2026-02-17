@@ -25,6 +25,7 @@ function renderDashboardStatusBars(rows){
 
 function initDashboardView(){
   const records = JSON.parse(localStorage.getItem('icsRecords') || '[]');
+  const parRecords = JSON.parse(localStorage.getItem('parRecords') || '[]');
   const archived = getArchivedItems();
   const recent = getAuditLogs().slice().reverse().slice(0, 8);
 
@@ -222,7 +223,7 @@ function initDashboardView(){
       : '<tr><td colspan="5" class="empty-cell">No risk items right now.</td></tr>';
   }
 
-  hydrateRecentIcsActivityCards(records);
+  hydrateRecentIcsActivityCards(records, parRecords);
 
   const dashNoteSync = document.getElementById('dashNoteSync');
   if (dashNoteSync){

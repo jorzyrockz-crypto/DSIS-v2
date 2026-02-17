@@ -85,7 +85,7 @@ ${renderWelcomeBanner('Dashboard')}
 
 <section class="dash-recent-wrap">
   <div class="dash-recent-head">
-    <h3>Recent ICS Activity</h3>
+    <h3>Recent ICS/PAR Activity</h3>
     <button class="btn btn-sm btn-secondary" data-action="goToView" data-arg1="Manage Inventory"><i data-lucide="list" aria-hidden="true"></i>Open list</button>
   </div>
   <div class="dash-recent-cards" id="dashRecentIcsRows"></div>

@@ -200,11 +200,12 @@ function initArchivesView(){
     const sourceType = (a?.source?.sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
     const sourceNo = (a?.source?.icsNo || '').toString();
     const sourceDisplay = `${sourceType === 'par' ? 'PAR' : 'ICS'}-${sourceNo}`;
+    const sourceNoClass = sourceType === 'par' ? 'source-no-par' : 'source-no-ics';
     return `
     <tr>
       <td>${idx + 1}</td>
       <td>${(a.archivedAt || '').slice(0,10)}</td>
-      <td><button class="ics-link-btn" data-action="openArchivedItemHistory" data-arg1="${actionIdx}">${sourceDisplay}</button></td>
+      <td><button class="ics-link-btn source-no-link ${sourceNoClass}" data-action="openArchivedItemHistory" data-arg1="${actionIdx}">${sourceDisplay}</button></td>
       <td>${a.item?.desc || ''}</td>
       <td>${a.item?.itemNo || ''}</td>
       <td style="text-align:center">${a.item?.eul ?? ''}</td>
@@ -338,9 +339,10 @@ function renderEULPage(){
     const safeItemNo = escapeHTML((row.itemNo || '').replace(/"/g, '&quot;'));
     const detailsAction = isPARSource ? 'openPARDetailsByIndex' : 'openICSDetailsByKey';
     const detailsArg1 = isPARSource ? String(Number(row.sourceIndex) || 0) : safeSourceNo;
+    const sourceNoClass = isPARSource ? 'source-no-par' : 'source-no-ics';
     return `<tr class="${isTargeted ? 'targeted-row' : ''}">
       <td>${idx + 1}</td>
-      <td><button class="ics-link-btn" data-action="${detailsAction}" data-arg1="${detailsArg1}" data-arg2="${isPARSource ? '' : safeItemNo}">${escapeHTML(row.sourceNoDisplay || row.icsNo || '')}</button></td>
+      <td><button class="ics-link-btn source-no-link ${sourceNoClass}" data-action="${detailsAction}" data-arg1="${detailsArg1}" data-arg2="${isPARSource ? '' : safeItemNo}">${escapeHTML(row.sourceNoDisplay || row.icsNo || '')}</button></td>
       <td>${row.desc}</td>
       <td style="text-align:center">${row.eulDays === '' ? '' : row.eulDays}</td>
       <td style="text-align:center"><span class="${row.cls}">${row.status}</span></td>

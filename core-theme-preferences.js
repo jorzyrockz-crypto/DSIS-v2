@@ -44,6 +44,8 @@ function applyThemeAccent(accent){
   document.documentElement.style.setProperty('--t', theme.t);
   document.documentElement.style.setProperty('--tm', theme.tm);
   document.documentElement.style.setProperty('--border', theme.border);
+  document.documentElement.style.setProperty('--surface', isDark ? 'rgba(255,255,255,.05)' : '#ffffff');
+  document.documentElement.style.setProperty('--surface-soft', isDark ? 'rgba(255,255,255,.08)' : '#f8fbff');
   document.documentElement.style.setProperty('--sidebar-bg', theme.sidebarBg);
   document.documentElement.style.setProperty('--topbar-bg', theme.topbarBg);
   document.documentElement.style.setProperty('--icon-btn-bg', theme.iconBtnBg);

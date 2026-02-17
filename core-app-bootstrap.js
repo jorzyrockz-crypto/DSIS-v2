@@ -37,6 +37,12 @@ function bootAppWithUserPreferences(){
 
 const LAST_SEEN_APP_VERSION_STORAGE_KEY = 'icsLastSeenAppVersion';
 const RELEASE_NOTES_BY_VERSION = {
+  '1.2.2': [
+    'Patch release for stability and UI consistency updates.',
+    'Fixed Action Center target filter reset behavior to return to full EUL list.',
+    'Improved ICS/PAR visual consistency with source-aware Recent Activity card styling.',
+    'Added workflow/spacing polish updates and theme refinements.'
+  ],
   '1.2.1': [
     'Patched modal/UI consistency updates across Data Hub, Import/Export, and archived history views.',
     'Improved archived inspection logs table fitting and readability for all columns.',

@@ -171,6 +171,14 @@ body[data-theme="dracula"][data-theme-variant="dracula-nocturne"]{
     var(--bg-bottom-glow),
     #130f1f;
 }
+body[data-theme="dracula"][data-theme-variant="dracula-bloody"]{
+  --bg-bottom-glow:radial-gradient(1350px 520px at 50% 112%, rgba(225,29,72,.56) 0%, rgba(225,29,72,0) 76%);
+  background:
+    radial-gradient(1600px 760px at 0% -10%, #be123c 0%, rgba(190,18,60,0) 72%),
+    radial-gradient(1380px 700px at 100% -5%, #7f1d3f 0%, rgba(127,29,63,0) 64%),
+    var(--bg-bottom-glow),
+    #150d14;
+}
 body[data-theme="crimson-black"] .app-sidebar,
 body[data-theme="crimson-black"] .app-topbar,
 body[data-theme="crimson-black"] .app-topbar-v2-wrap,
@@ -3189,6 +3197,14 @@ body[data-theme="dracula-nocturne"] .dm-hub-btn:hover{
   border-color:#fda4af;
   background:linear-gradient(180deg,#fff6f7 0%,#ffeef1 100%);
 }
+.dash-recent-card.source-ics{
+  border-color:#93c5fd;
+  background:linear-gradient(180deg,#f5f9ff 0%,#eaf3ff 100%);
+}
+.dash-recent-card.source-par{
+  border-color:#fdba74;
+  background:linear-gradient(180deg,#fff8ef 0%,#ffefdc 100%);
+}
 .dash-recent-card-top{
   display:flex;
   align-items:center;
@@ -3273,6 +3289,14 @@ body[data-theme="dracula-nocturne"] .dm-hub-btn:hover{
   background:#ede9fe;
   color:#7c3aed;
 }
+.dash-recent-pill.source-ics{
+  background:#dbeafe;
+  color:#1d4ed8;
+}
+.dash-recent-pill.source-par{
+  background:#ffedd5;
+  color:#c2410c;
+}
 .dash-recent-pill.ok{
   background:#dcfce7;
   color:#059669;
@@ -3285,8 +3309,21 @@ body[data-theme="dracula-nocturne"] .dm-hub-btn:hover{
   width:12px;
   height:12px;
 }
-.dash-recent-card-grid{
+.dash-recent-card-details{
   margin-top:12px;
+  max-height:0;
+  opacity:0;
+  overflow:hidden;
+  transform:translateY(-4px);
+  transition:max-height .28s ease, opacity .18s ease, transform .2s ease;
+}
+.dash-recent-card:hover .dash-recent-card-details,
+.dash-recent-card:focus-within .dash-recent-card-details{
+  max-height:280px;
+  opacity:1;
+  transform:translateY(0);
+}
+.dash-recent-card-grid{
   display:grid;
   gap:10px;
 }
@@ -3457,6 +3494,7 @@ body[data-theme="dracula-nocturne"] .dm-hub-btn:hover{
   .dash-compliance-card,
   .dash-recent-card,
   .dash-note-card,
+  .dash-recent-card-details,
   .dash-action-card .ico{
     transition:none;
   }
@@ -3474,6 +3512,12 @@ body[data-theme="dracula-nocturne"] .dm-hub-btn:hover{
   .dash-action-card:focus-within .ico{
     transform:none;
     box-shadow:none;
+  }
+  .dash-recent-card:hover .dash-recent-card-details,
+  .dash-recent-card:focus-within .dash-recent-card-details{
+    max-height:none;
+    opacity:1;
+    transform:none;
   }
 }
 @media (max-width:1200px){
@@ -3505,6 +3549,12 @@ body[data-theme="dracula-nocturne"] .dm-hub-btn:hover{
     grid-column:1 / -1;
     grid-row:auto;
   }
+  .dash-recent-card-details{
+    max-height:none;
+    opacity:1;
+    overflow:visible;
+    transform:none;
+  }
 }
 @media (max-width:640px){
   .dash-topbar{
@@ -3522,6 +3572,14 @@ body[data-theme="dracula-nocturne"] .dm-hub-btn:hover{
     grid-template-columns:1fr;
   }
   .dash-recent-cards{grid-template-columns:1fr}
+}
+@media (hover:none){
+  .dash-recent-card-details{
+    max-height:none;
+    opacity:1;
+    overflow:visible;
+    transform:none;
+  }
 }
 .dash-rev{
   font-family:"Trebuchet MS","Verdana","Tahoma",sans-serif;
@@ -4363,6 +4421,99 @@ body[data-theme="dracula-nocturne"] .dm-hub-btn:hover{
 .icsd-items-full .detail-table-wrap{
   max-height:340px;
 }
+.ics-details-modal{
+  width:min(980px,94vw);
+}
+.ics-details-modal .modal-head{
+  padding:10px 12px 9px;
+}
+.ics-details-modal .modal-body{
+  padding:8px 12px 7px;
+}
+.ics-details-modal .icsd-shell{
+  gap:8px;
+}
+.ics-details-modal .icsd-head{
+  padding-bottom:8px;
+}
+.ics-details-modal .icsd-grid{
+  gap:10px;
+}
+.ics-details-modal .icsd-col{
+  gap:10px;
+}
+.ics-details-modal .icsd-card{
+  border-radius:12px;
+  padding:9px;
+}
+.ics-details-modal .icsd-card-title{
+  font-size:14px;
+  margin-bottom:6px;
+}
+.ics-details-modal .icsd-summary-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+}
+.ics-details-modal .icsd-kv{
+  padding:7px 8px;
+}
+.ics-details-modal .icsd-kv .k{
+  font-size:9px;
+}
+.ics-details-modal .icsd-kv .v{
+  margin-top:3px;
+  font-size:12.5px;
+}
+.ics-details-modal .icsd-table-meta{
+  margin-top:6px;
+  font-size:11px;
+}
+.ics-details-modal .icsd-mini-pill{
+  font-size:10px;
+  padding:1px 8px;
+}
+.ics-details-modal .icsd-activity-card{
+  padding:8px;
+  margin-bottom:6px;
+}
+.ics-details-modal .icsd-activity-meta,
+.ics-details-modal .icsd-activity-summary{
+  font-size:10.5px;
+}
+.ics-details-modal .icsd-empty-box{
+  padding:10px;
+  font-size:12px;
+}
+.ics-details-modal .icsd-card .detail-table-wrap{
+  max-height:210px;
+}
+.ics-details-modal .icsd-items-full .detail-table-wrap{
+  max-height:280px;
+}
+.ics-details-modal .icsd-card .detail-table{
+  font-size:11.5px;
+}
+.ics-details-modal .icsd-card .detail-table th,
+.ics-details-modal .icsd-card .detail-table td{
+  padding:6px 7px;
+}
+.ics-details-modal .icsd-card .ics-items-table th:nth-child(1),
+.ics-details-modal .icsd-card .ics-items-table td:nth-child(1){
+  min-width:150px;
+}
+.ics-details-modal .icsd-card .ics-items-table th:nth-child(2),
+.ics-details-modal .icsd-card .ics-items-table td:nth-child(2){
+  min-width:112px;
+}
+.ics-details-modal .icsd-card .ics-items-table th:nth-child(8),
+.ics-details-modal .icsd-card .ics-items-table td:nth-child(8),
+.ics-details-modal .icsd-card .ics-items-table th:nth-child(9),
+.ics-details-modal .icsd-card .ics-items-table td:nth-child(9){
+  min-width:100px;
+}
+.ics-details-modal .icsd-items-full{
+  padding:9px;
+}
 .ics-history-modal{
   width:min(920px,96vw);
 }
@@ -4820,6 +4971,9 @@ body[data-theme="dracula-nocturne"] .dm-hub-btn:hover{
 @media (max-width: 1024px){
   .ics-details-modal{
     width:min(98vw,920px);
+  }
+  .ics-details-modal .icsd-summary-grid{
+    grid-template-columns:1fr 1fr;
   }
   .ics-details-content .ics-items-table th:nth-child(2),
   .ics-details-content .ics-items-table td:nth-child(2){
@@ -5398,6 +5552,9 @@ body[data-theme="dracula-nocturne"] .dm-hub-btn:hover{
 .main[data-view="Manage Inventory"]{
   gap:30px;
 }
+.main[data-view="Archives"]{
+  gap:30px;
+}
 
 /* ICS STAGED ITEMS CARD */
 .ics-card{
@@ -5661,6 +5818,15 @@ body[data-theme="dracula-nocturne"] .dm-hub-btn:hover{
 }
 .records .actions-eul-table td:nth-child(2){
   white-space:nowrap;
+}
+.records .source-no-link{
+  font-weight:800;
+}
+.records .source-no-link.source-no-ics{
+  color:#1d4ed8;
+}
+.records .source-no-link.source-no-par{
+  color:#b45309;
 }
 .records .actions-eul-table td:nth-child(8){
   white-space:normal;
@@ -6511,6 +6677,9 @@ body[data-density="compact"] .stage-input{padding:3px 5px;font-size:11px}
 .theme-preview-btn[data-theme="dracula-nocturne"] .theme-swatches i:nth-child(1){background:#8b5cf6}
 .theme-preview-btn[data-theme="dracula-nocturne"] .theme-swatches i:nth-child(2){background:#c4b5fd}
 .theme-preview-btn[data-theme="dracula-nocturne"] .theme-swatches i:nth-child(3){background:#130f1f}
+.theme-preview-btn[data-theme="dracula-bloody"] .theme-swatches i:nth-child(1){background:#e11d48}
+.theme-preview-btn[data-theme="dracula-bloody"] .theme-swatches i:nth-child(2){background:#fb7185}
+.theme-preview-btn[data-theme="dracula-bloody"] .theme-swatches i:nth-child(3){background:#150d14}
 .theme-preview-btn:focus-visible{
   outline:2px solid var(--a);
   outline-offset:1px;
@@ -6965,10 +7134,22 @@ body[data-theme="dracula"] .records .actions-eul-table tbody tr.targeted-row td:
   background:#2f254b;
   box-shadow:inset 3px 0 0 #a663cc;
 }
+body[data-theme="dracula"] .records .source-no-link.source-no-ics{
+  color:#93c5fd;
+}
+body[data-theme="dracula"] .records .source-no-link.source-no-par{
+  color:#fdba74;
+}
 body[data-theme="crimson-black"] .records .actions-eul-table tbody tr.targeted-row,
 body[data-theme="crimson-black"] .records .actions-eul-table tbody tr.targeted-row td:first-child{
   background:#2a1a24;
   box-shadow:inset 3px 0 0 #fb7185;
+}
+body[data-theme="crimson-black"] .records .source-no-link.source-no-ics{
+  color:#93c5fd;
+}
+body[data-theme="crimson-black"] .records .source-no-link.source-no-par{
+  color:#fdba74;
 }
 body[data-theme="dracula"] .stage-input[readonly]{background:rgba(0,0,0,.32)}
 body[data-theme="crimson-black"] .stage-input[readonly]{background:rgba(0,0,0,.34)}
@@ -7091,6 +7272,16 @@ body[data-theme="crimson-black"] .dash-recent-card.tone-risk{
   border-color:#fda4af;
   background:linear-gradient(180deg,#fff6f7 0%,#ffeef1 100%);
 }
+body[data-theme="dracula"] .dash-recent-card.source-ics,
+body[data-theme="crimson-black"] .dash-recent-card.source-ics{
+  border-color:#60a5fa;
+  background:linear-gradient(180deg,#e8f0ff 0%,#dbeafe 100%);
+}
+body[data-theme="dracula"] .dash-recent-card.source-par,
+body[data-theme="crimson-black"] .dash-recent-card.source-par{
+  border-color:#f59e0b;
+  background:linear-gradient(180deg,#fff1e2 0%,#ffe4c7 100%);
+}
 body[data-theme="dracula"] .dash-recent-card .ics-link-btn{
   color:#2563eb;
 }
@@ -7140,6 +7331,18 @@ body[data-theme="crimson-black"] .dash-recent-pill.status-new{
   background:rgba(237,233,254,.9);
   border:1px solid rgba(167,139,250,.55);
   color:#4c1d95;
+}
+body[data-theme="dracula"] .dash-recent-pill.source-ics,
+body[data-theme="crimson-black"] .dash-recent-pill.source-ics{
+  background:rgba(219,234,254,.9);
+  border:1px solid rgba(96,165,250,.55);
+  color:#1e3a8a;
+}
+body[data-theme="dracula"] .dash-recent-pill.source-par,
+body[data-theme="crimson-black"] .dash-recent-pill.source-par{
+  background:rgba(255,237,213,.92);
+  border:1px solid rgba(251,146,60,.55);
+  color:#7c2d12;
 }
 body[data-theme="dracula"] .dash-recent-pill.ok,
 body[data-theme="crimson-black"] .dash-recent-pill.ok{
@@ -8666,6 +8869,7 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
                   <button type="button" class="theme-preview-btn" data-theme="crimson-black"><span class="theme-name">Crimson Black</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
                   <button type="button" class="theme-preview-btn" data-theme="dracula"><span class="theme-name">Dracula</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
                   <button type="button" class="theme-preview-btn" data-theme="dracula-nocturne"><span class="theme-name">Dracula Nocturne</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
+                  <button type="button" class="theme-preview-btn" data-theme="dracula-bloody"><span class="theme-name">Bloody Dracula</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
                 </div>
               </div>
             </div>

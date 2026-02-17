@@ -280,6 +280,7 @@ function invokeDelegatedAction(action, target, args){
     case 'printWasteReportBuilderSelection': return printWasteReportBuilderSelection();
     case 'exitWmrBatchBuilderMode': return exitWmrBatchBuilderMode();
     case 'openICSDetailsByKey': return openICSDetailsByKey(args[0], args[1]);
+    case 'openPARDetailsByKey': return openPARDetailsByKey(args[0], args[1]);
     case 'openICSDetailsByIndex': return openICSDetailsByIndex(args[0]);
     case 'openPARDetailsByIndex': return openPARDetailsByIndex(args[0]);
     case 'openPastEULForItem': return openPastEULForItem(args[0], args[1], args[2]);
