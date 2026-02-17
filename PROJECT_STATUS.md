@@ -3,6 +3,35 @@
 Last updated: 2026-02-17
 Main file: `ics_v_3_standalone_index.html`
 
+## Newly Implemented (2026-02-17, developer console expansion + feedback/GitHub/update observability + UX hardening)
+- Developer Console and access control:
+  - added hidden `Developer Tools` navigation entries (sidebar + topbar), visible only to developer identity
+  - added developer account seed with login password gate and developer-default landing route
+  - restricted direct navigation to `Developer Tools` for non-developer users
+- Dev page redesign and toolset expansion:
+  - redesigned Dev page into modern dashboard layout (hero, widgets, split panels, maintenance area, diagnostics block)
+  - added quick stats widgets, GitHub stats panel, app-update telemetry panel, and feedback moderation panel
+  - added feedback workflow actions per entry: `In Queue`, `Approve`, `Resolve`, and `Copy`
+  - feedback item status now persists locally via `dsisDeveloperFeedbackStatusMap`
+- Feedback ingestion and rendering reliability:
+  - added no-login feedback ingestion workflow (Google Form CSV -> `feedback/feedback.json`)
+  - wired in-app `Send Feedback` menu action to open configured Google Form
+  - improved Dev feedback loader with multi-path fetch, offline/cache fallback, and clearer failure hints
+  - updated sync workflow triggers to include push events for feedback config/script/workflow changes
+- PWA update and reset UX:
+  - improved update progress UX with cinematic animation and visible fill during final countdown
+  - made progress colors theme-aware for better dark-theme visibility
+  - added profile menu `Check Update` badge state sync when pending update exists
+  - hardened factory reset to unregister SW, clear caches/storage, and reload with cache-bust query
+  - updated SW fetch strategy for feedback JSON to network-first with cached fallback
+- Theming and readability:
+  - extracted main HTML stylesheet into `styles/main.css` and continued modular CSS updates
+  - improved dark-theme readability for Personnel setup modal (`dracula` + `crimson-black`) by overriding low-contrast hardcoded light tokens
+- Versioning and release prep:
+  - current runtime/schema/manifest aligned at `1.4.1`
+  - SW cache baseline advanced to `dsis-v1-pwa-v11`
+  - added release note map entries for `1.4.1` and milestone candidate `1.5.0`
+
 ## Milestone Update (v1.5.0 candidate, 2026-02-17)
 - Developer Ops & Access:
   - added hidden `Developer Tools` page (sidebar/topbar) visible only to developer identity
