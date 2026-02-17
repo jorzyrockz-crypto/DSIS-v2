@@ -37,6 +37,12 @@ function bootAppWithUserPreferences(){
 
 const LAST_SEEN_APP_VERSION_STORAGE_KEY = 'icsLastSeenAppVersion';
 const RELEASE_NOTES_BY_VERSION = {
+  '1.3.1': [
+    'Refined release focused on UX polish and operational workflows.',
+    'Modularized main app styles into an external stylesheet for cleaner maintenance.',
+    'Enhanced PWA update flow with cinematic progress animation and smoother apply feedback.',
+    'Added Profile menu update badge state wiring and no-login feedback sync pipeline scaffolding.'
+  ],
   '1.2.2': [
     'Patch release for stability and UI consistency updates.',
     'Fixed Action Center target filter reset behavior to return to full EUL list.',

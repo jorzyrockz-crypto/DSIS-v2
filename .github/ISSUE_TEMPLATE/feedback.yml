@@ -1,0 +1,66 @@
+name: User Feedback
+description: Share bugs, ideas, and UX feedback for DSIS.
+title: "[Feedback]: "
+labels:
+  - feedback
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: Select the closest feedback type.
+      options:
+        - Bug
+        - UX / UI
+        - Feature Request
+        - Performance
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Short description of the feedback.
+      placeholder: Example - PWA update banner does not appear after deploy.
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: Steps, expected result, and actual result.
+      placeholder: |
+        Steps:
+        1. Open app
+        2. Click ...
+        Expected:
+        ...
+        Actual:
+        ...
+    validations:
+      required: true
+
+  - type: input
+    id: app_version
+    attributes:
+      label: App Version
+      description: Version shown in app (if known).
+      placeholder: "1.2.2"
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      description: Browser + version.
+      placeholder: "Chrome 132 on Windows 11"
+
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Consent
+      options:
+        - label: I agree this feedback can be stored in a public JSON file in this repository.
+          required: true

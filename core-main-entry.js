@@ -89,8 +89,8 @@ let dataManagerState = {
   verification: null,
   migrationRows: []
 };
-const ICS_SCHEMA_VERSION = '1.2.2';
-const APP_UI_VERSION_FALLBACK = '1.2.2';
+const ICS_SCHEMA_VERSION = '1.3.1';
+const APP_UI_VERSION_FALLBACK = '1.3.1';
 const SIDEBAR_COLLAPSE_STORAGE_KEY = 'icsSidebarCollapsed';
 const PROFILE_VIEWS = ['Dashboard', 'Manage Inventory', 'Action Center', 'Archives'];
 const DEFAULT_DESIGNATIONS = ['Inventory Officer'];

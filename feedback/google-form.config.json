@@ -1,0 +1,14 @@
+{
+  "source": "google_form_csv",
+  "csvUrl": "PASTE_YOUR_GOOGLE_SHEET_CSV_URL_HERE",
+  "maxItems": 500,
+  "fieldMap": {
+    "timestamp": "Timestamp",
+    "category": "Category",
+    "summary": "Summary",
+    "details": "Details",
+    "app_version": "App Version",
+    "browser": "Browser",
+    "contact": "Contact (optional)"
+  }
+}
