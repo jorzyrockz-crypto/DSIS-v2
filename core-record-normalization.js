@@ -388,7 +388,12 @@ function validateAndNormalizeICSRecord(rawRecord, options = {}){
   };
 
   if (!record.icsNo) errors.push('Missing ICS No.');
-  if (record.icsNo && !/^\d{4}-\d{2}-\d{3}$/.test(record.icsNo)) warnings.push('ICS No. format is not YYYY-MM-XXX.');
+  if (record.icsNo){
+    const year = Number((record.icsNo.match(/^(\d{4})-/) || [])[1] || '');
+    if (Number.isFinite(year) && year >= 2026 && !/^\d{4}-\d{2}-\d{3}$/.test(record.icsNo)){
+      warnings.push('ICS No. format is not YYYY-MM-XXX for 2026+ records.');
+    }
+  }
   if (!record.entity) errors.push('Missing entity.');
   if (strict && !record.fund) errors.push('Missing fund cluster.');
   if (!record.issuedDate) errors.push('Missing issued date.');

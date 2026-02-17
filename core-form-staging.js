@@ -1,9 +1,21 @@
 function isValidICSNo(v){
-  return /^\d{4}-\d{2}-\d{3}$/.test((v || '').trim());
+  const value = (v || '').trim();
+  const m = value.match(/^(\d{4})-\d{2}-(\d{1,4})$/);
+  if (!m) return false;
+  const year = Number(m[1]);
+  if (!Number.isFinite(year)) return false;
+  // Enforce new strict format starting 2026 onward.
+  if (year >= 2026) return /^\d{4}-\d{2}-\d{3}$/.test(value);
+  // Legacy formats remain valid for older years.
+  return /^\d{4}-\d{2}-\d{1,4}$/.test(value);
 }
 
 function normalizeNewICSNoValue(v){
   const value = (v || '').trim();
+  const yearMatch = value.match(/^(\d{4})-/);
+  const year = Number(yearMatch?.[1] || '');
+  // Only auto-pad sequence for 2026+ format enforcement.
+  if (!Number.isFinite(year) || year < 2026) return value;
   // Backfill 1-2 digit sequence to 3 digits only when YYYY-MM- prefix is complete.
   const twoDigitSeq = value.match(/^(\d{4}-\d{2}-)(\d{2})$/);
   if (twoDigitSeq) return `${twoDigitSeq[1]}0${twoDigitSeq[2]}`;
@@ -13,10 +25,14 @@ function normalizeNewICSNoValue(v){
 }
 
 function formatICSNoInput(value){
-  const digits = (value || '').replace(/\D/g, '').slice(0, 9);
+  const rawDigits = (value || '').replace(/\D/g, '');
+  const yearNum = Number(rawDigits.slice(0, 4));
+  // 2026+ uses YYYY-MM-XXX (9 digits); older years allow legacy up to 4-digit sequence.
+  const maxDigits = Number.isFinite(yearNum) && yearNum >= 2026 ? 9 : 10;
+  const digits = rawDigits.slice(0, maxDigits);
   const year = digits.slice(0, 4);
   const month = digits.slice(4, 6);
-  const seq = digits.slice(6, 9);
+  const seq = digits.slice(6);
   if (digits.length <= 4) return year;
   if (digits.length <= 6) return `${year}-${month}`;
   return `${year}-${month}-${seq}`;
@@ -29,7 +45,7 @@ function prepareNewICS(){
   clearForm();
   const icsInput = document.getElementById('icsNo');
   icsInput.value = '';
-  icsInput.placeholder = 'YYYY-MM-XXX';
+  icsInput.placeholder = 'YYYY-MM-XXX (2026+)';
   syncFormEditModeUI();
   validateForm();
 }
@@ -127,8 +143,8 @@ function syncFormEditModeUI(){
     recordNoLabelEl.textContent = isPAREdit ? 'PAR NO.' : 'ICS NO.';
   }
   if (recordNoInput){
-    recordNoInput.placeholder = isPAREdit ? 'YYYY-MM-XXXX' : 'YYYY-MM-XXX';
-    recordNoInput.maxLength = isPAREdit ? 12 : 11;
+    recordNoInput.placeholder = isPAREdit ? 'YYYY-MM-XXXX' : 'YYYY-MM-XXX (2026+)';
+    recordNoInput.maxLength = 12;
   }
   syncInventoryFinalizeButtons();
 }
@@ -191,9 +207,13 @@ function validateFormForStaging(){
       document.getElementById('icsNo').value = normalizedICSNo;
     }
     icsNo = normalizedICSNo;
-    if (!/^\d{4}-\d{2}-/.test(normalizedICSNo) || !isValidICSNo(normalizedICSNo)){
-      showFormAlert('Invalid ICS No. Use format YYYY-MM-XXX.', 'error');
-      notify('error', 'Invalid ICS No. Use format YYYY-MM-XXX.');
+    if (!isValidICSNo(normalizedICSNo)){
+      const year = Number((normalizedICSNo.match(/^(\d{4})-/) || [])[1] || '');
+      const msg = Number.isFinite(year) && year >= 2026
+        ? 'Invalid ICS No. For 2026 and above, use format YYYY-MM-XXX.'
+        : 'Invalid ICS No. Use YYYY-MM plus sequence (legacy allowed before 2026).';
+      showFormAlert(msg, 'error');
+      notify('error', msg);
       validateForm();
       return null;
     }
