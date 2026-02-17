@@ -1,10 +1,11 @@
-const CACHE_VERSION = 'dsis-v1-pwa-v9';
+const CACHE_VERSION = 'dsis-v1-pwa-v10';
 const APP_SHELL = './ics_v_3_standalone_index.html';
 const PRECACHE = [
   './',
   './index.html',
   './ics_v_3_standalone_index.html',
   './styles/main.css',
+  './feedback/feedback.json',
   './lucide.min.js',
   './core-storage-security.js',
   './core-shared-utils.js',

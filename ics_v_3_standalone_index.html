@@ -20,6 +20,7 @@
       <button class="topbar-v2-view-btn" type="button" aria-label="Inventory" data-action="goToView" data-arg1="Manage Inventory"><i data-lucide="package" aria-hidden="true"></i>Inventory</button>
       <button class="topbar-v2-view-btn" type="button" aria-label="Action Center" data-action="goToView" data-arg1="Action Center"><i data-lucide="shield" aria-hidden="true"></i>Action Center</button>
       <button class="topbar-v2-view-btn" type="button" aria-label="Archives" data-action="goToView" data-arg1="Archives"><i data-lucide="archive" aria-hidden="true"></i>Archives</button>
+      <button class="topbar-v2-view-btn" id="topbarDeveloperToolsBtn" style="display:none" type="button" aria-label="Developer Tools" data-action="goToView" data-arg1="Developer Tools"><i data-lucide="wrench" aria-hidden="true"></i>Dev</button>
     </div>
     <div class="topbar-v2-left">
       <div class="brand-copy">
@@ -101,6 +102,9 @@
           <button class="topbar-menu-item" type="button" data-action="openHelpFromMenu">
             <span class="topbar-menu-item-left"><i data-lucide="life-buoy"></i><span>Help & Documentation</span></span>
           </button>
+          <button class="topbar-menu-item" type="button" data-action="openFeedbackFromMenu">
+            <span class="topbar-menu-item-left"><i data-lucide="message-square"></i><span>Send Feedback</span></span>
+          </button>
           <button class="topbar-menu-item" type="button" data-action="toggleAppearanceFromMenu">
             <span class="topbar-menu-item-left"><i data-lucide="sun-medium"></i><span>Appearance</span></span>
             <span class="topbar-menu-badge mode" id="topbarAppearanceMode">Light</span>
@@ -131,6 +135,7 @@
       <div class="item item-new-ics" id="bottomNewIcsBtn"><span class="nav-ico"><i data-lucide="plus" aria-hidden="true"></i></span><span>New ICS</span></div>
       <div class="item" data-view="Action Center"><span class="nav-ico"><i data-lucide="shield" aria-hidden="true"></i></span><span>Action Center</span></div>
       <div class="item" data-view="Archives"><span class="nav-ico"><i data-lucide="archive" aria-hidden="true"></i></span><span>Archives</span></div>
+      <div class="item" id="sidebarDeveloperToolsItem" data-view="Developer Tools" style="display:none"><span class="nav-ico"><i data-lucide="wrench" aria-hidden="true"></i></span><span>Developer Tools</span></div>
     </nav>
     <div class="sidebar-foot">
       <div class="sidebar-collapse-row">
@@ -416,6 +421,10 @@
         <select id="loginProfileSelect" class="stage-input">
           <option value="">Select profile</option>
         </select>
+        <div id="loginDeveloperPasswordWrap" style="display:none;margin-top:6px">
+          <label class="field-label"><i data-lucide="key" aria-hidden="true"></i>Developer Password</label>
+          <input id="loginDeveloperPassword" class="stage-input" type="password" placeholder="Enter developer password" autocomplete="current-password" />
+        </div>
         <label class="login-remember" style="display:flex;align-items:center;gap:8px;margin-top:6px">
           <input id="loginRememberDevice" type="checkbox" checked />
           <span>Remember this device</span>

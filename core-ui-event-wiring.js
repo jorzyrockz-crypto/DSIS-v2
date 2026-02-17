@@ -135,6 +135,10 @@ function initializeUIEventWiring(){
     renderLoginProfileOptions();
   });
   document.getElementById('loginProfileSelect')?.addEventListener('change', () => {
+    if (typeof updateLoginDeveloperPasswordVisibility === 'function'){
+      const profileSelect = document.getElementById('loginProfileSelect');
+      updateLoginDeveloperPasswordVisibility(profileSelect?.value || '');
+    }
     setLoginHint('Press Login to continue.', '');
   });
   document.querySelectorAll('#profileThemePreview .theme-preview-btn').forEach((btn) => {
@@ -252,6 +256,7 @@ function invokeDelegatedAction(action, target, args){
     case 'installAppFromMenu': return typeof installAppFromMenu === 'function' ? installAppFromMenu() : undefined;
     case 'checkUpdateFromMenu': return typeof checkUpdateFromMenu === 'function' ? checkUpdateFromMenu() : undefined;
     case 'openHelpFromMenu': return typeof openHelpFromMenu === 'function' ? openHelpFromMenu() : undefined;
+    case 'openFeedbackFromMenu': return typeof openFeedbackFromMenu === 'function' ? openFeedbackFromMenu() : undefined;
     case 'toggleAppearanceFromMenu': return typeof toggleAppearanceFromMenu === 'function' ? toggleAppearanceFromMenu() : undefined;
     case 'signOutFromMenu': return typeof signOutFromMenu === 'function' ? signOutFromMenu() : undefined;
     case 'toggleNotificationsPanel': return typeof toggleNotificationsPanel === 'function' ? toggleNotificationsPanel() : undefined;
@@ -296,6 +301,17 @@ function invokeDelegatedAction(action, target, args){
     case 'openArchivedItemHistory': return openArchivedItemHistory(args[0]);
     case 'unarchiveItem': return unarchiveItem(args[0]);
     case 'openInspectionHistory': return openInspectionHistory(args[0], args[1], args[2]);
+    case 'developerRefreshDiagnostics': return typeof developerRefreshDiagnostics === 'function' ? developerRefreshDiagnostics() : undefined;
+    case 'developerRefreshQuickStats': return typeof developerRefreshQuickStats === 'function' ? developerRefreshQuickStats() : undefined;
+    case 'developerRefreshFeedbackPanel': return typeof developerRefreshFeedbackPanel === 'function' ? developerRefreshFeedbackPanel() : undefined;
+    case 'developerRefreshGitHubStats': return typeof developerRefreshGitHubStats === 'function' ? developerRefreshGitHubStats() : undefined;
+    case 'developerRefreshAppUpdateWidgets': return typeof developerRefreshAppUpdateWidgets === 'function' ? developerRefreshAppUpdateWidgets() : undefined;
+    case 'developerCopyDiagnostics': return typeof developerCopyDiagnostics === 'function' ? developerCopyDiagnostics() : undefined;
+    case 'developerExportWorkspaceSnapshot': return typeof developerExportWorkspaceSnapshot === 'function' ? developerExportWorkspaceSnapshot() : undefined;
+    case 'developerImportWorkspaceSnapshot': return typeof developerImportWorkspaceSnapshot === 'function' ? developerImportWorkspaceSnapshot() : undefined;
+    case 'developerRunCheckUpdate': return typeof developerRunCheckUpdate === 'function' ? developerRunCheckUpdate() : undefined;
+    case 'developerClearPwaCaches': return typeof developerClearPwaCaches === 'function' ? developerClearPwaCaches() : undefined;
+    case 'developerFactoryResetWorkspace': return typeof developerFactoryResetWorkspace === 'function' ? developerFactoryResetWorkspace() : undefined;
     case 'activateSearchResult': return activateSearchResult(args[0]);
     case 'icsDetailsEditFromTitle': return icsDetailsEditFromTitle();
     case 'openICSRecordHistoryModal': return openICSRecordHistoryModal();

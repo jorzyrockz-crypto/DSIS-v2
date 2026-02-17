@@ -37,6 +37,12 @@ function bootAppWithUserPreferences(){
 
 const LAST_SEEN_APP_VERSION_STORAGE_KEY = 'icsLastSeenAppVersion';
 const RELEASE_NOTES_BY_VERSION = {
+  '1.4.1': [
+    'Developer-console focused release with expanded operational visibility.',
+    'Added hidden Developer Tools page with access controls for developer account only.',
+    'Introduced modern Dev dashboard sections for Feedback, GitHub Stats, and App Update widgets.',
+    'Improved feedback ingestion robustness with fallback loading behavior and PWA cache inclusion.'
+  ],
   '1.3.1': [
     'Refined release focused on UX polish and operational workflows.',
     'Modularized main app styles into an external stylesheet for cleaner maintenance.',
@@ -331,10 +337,10 @@ function registerPWAServiceWorker(){
       messageEl.innerHTML = `
         <div data-update-progress="root" style="display:grid;gap:8px">
           <div data-update-progress="status"></div>
-          <div style="height:10px;background:#e2e8f0;border:1px solid #cbd5e1;border-radius:999px;overflow:hidden">
-            <div data-update-progress="bar" style="height:100%;width:0%;background:linear-gradient(90deg,#2563eb,#0ea5e9)"></div>
+          <div style="height:10px;background:var(--m,#e2e8f0);border:1px solid var(--border,#cbd5e1);border-radius:999px;overflow:hidden">
+            <div data-update-progress="bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--a,#2563eb),var(--par-accent,#22d3ee));box-shadow:0 0 0 1px rgba(255,255,255,.22) inset,0 0 12px rgba(37,99,235,.35)"></div>
           </div>
-          <div data-update-progress="percent" style="font-size:12px;color:#64748b">0%</div>
+          <div data-update-progress="percent" style="font-size:12px;color:var(--tm,#64748b)">0%</div>
         </div>
       `;
       root = messageEl.querySelector('[data-update-progress="root"]');

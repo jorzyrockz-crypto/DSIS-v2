@@ -1,14 +1,14 @@
 {
   "source": "google_form_csv",
-  "csvUrl": "PASTE_YOUR_GOOGLE_SHEET_CSV_URL_HERE",
+  "csvUrl": "https://docs.google.com/spreadsheets/d/1eZE4PWjFf9D9VIUyXrod1BCP5Y3rt46gOx43jOzRVlA/export?format=csv&gid=1858183141",
   "maxItems": 500,
   "fieldMap": {
     "timestamp": "Timestamp",
-    "category": "Category",
-    "summary": "Summary",
-    "details": "Details",
-    "app_version": "App Version",
-    "browser": "Browser",
-    "contact": "Contact (optional)"
+    "category": "Feedback Type",
+    "summary": "Feedback",
+    "details": "Suggestions for improvement",
+    "app_version": "",
+    "browser": "",
+    "contact": "Email"
   }
 }

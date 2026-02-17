@@ -89,8 +89,19 @@ let dataManagerState = {
   verification: null,
   migrationRows: []
 };
-const ICS_SCHEMA_VERSION = '1.3.1';
-const APP_UI_VERSION_FALLBACK = '1.3.1';
+const ICS_SCHEMA_VERSION = '1.4.1';
+const APP_UI_VERSION_FALLBACK = '1.4.1';
+window.APP_FEEDBACK_FORM_URL = 'https://forms.gle/xBwdfzq9FaWvK1Wr8';
+window.DEFAULT_DEVELOPER_ACCOUNT = {
+  enabled: true,
+  profileKey: 'dev-admin',
+  name: 'Developer',
+  designation: 'System Developer',
+  role: 'Admin',
+  email: 'developer@local.dsis',
+  password: 'dev1234'
+};
+window.APP_GITHUB_REPO = 'ASITSD/DSIS-v2';
 const SIDEBAR_COLLAPSE_STORAGE_KEY = 'icsSidebarCollapsed';
 const PROFILE_VIEWS = ['Dashboard', 'Manage Inventory', 'Action Center', 'Archives'];
 const DEFAULT_DESIGNATIONS = ['Inventory Officer'];
@@ -504,9 +515,28 @@ function syncTopbarViewButtons(activeKey){
   });
 }
 
+function syncDeveloperToolsAccess(){
+  const isDev = typeof isDeveloperUser === 'function' ? isDeveloperUser() : false;
+  const sidebarDevItem = document.getElementById('sidebarDeveloperToolsItem');
+  const topbarDevBtn = document.getElementById('topbarDeveloperToolsBtn');
+  if (sidebarDevItem) sidebarDevItem.style.display = isDev ? '' : 'none';
+  if (topbarDevBtn) topbarDevBtn.style.display = isDev ? '' : 'none';
+  if (typeof window.refreshIcons === 'function') window.refreshIcons();
+  const activeItem = [...navItems].find((item) => item.classList.contains('active'));
+  if (!isDev && activeItem?.dataset?.view === 'Developer Tools'){
+    const fallback = [...navItems].find((item) => item.dataset.view === 'Dashboard');
+    fallback?.click();
+  }
+}
+window.syncDeveloperToolsAccess = syncDeveloperToolsAccess;
+
 navItems.forEach(item => item.onclick = () => {
   const key = item.dataset.view;
   if (!viewRenderers[key]) return;
+  if (key === 'Developer Tools' && !(typeof isDeveloperUser === 'function' && isDeveloperUser())){
+    notify('error', 'Developer Tools is restricted to developer account.');
+    return;
+  }
 
   navItems.forEach(n => n.classList.remove('active'));
   item.classList.add('active');
@@ -514,6 +544,7 @@ navItems.forEach(item => item.onclick = () => {
   renderView(key);
 });
 
+syncDeveloperToolsAccess();
 syncTopbarViewButtons((([...navItems].find((n) => n.classList.contains('active')) || {}).dataset || {}).view || 'Dashboard');
 
 // ===== FLOATING FORM =====

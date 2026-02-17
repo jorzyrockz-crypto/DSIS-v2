@@ -562,6 +562,28 @@ function openHelpFromMenu(){
   openHelpDocsModal();
 }
 
+function openFeedbackFromMenu(){
+  closeTopbarProfileMenu();
+  const configuredUrl = String(localStorage.getItem('dsisFeedbackFormUrl') || window.APP_FEEDBACK_FORM_URL || '').trim();
+  if (!configuredUrl || configuredUrl.includes('YOUR_FORM_ID')){
+    showModal(
+      'Send Feedback',
+      'Feedback form is not configured yet.\nSet window.APP_FEEDBACK_FORM_URL in core-main-entry.js or localStorage key "dsisFeedbackFormUrl".'
+    );
+    return;
+  }
+  const popup = window.open(
+    configuredUrl,
+    'dsisFeedbackWindow',
+    'popup=yes,width=980,height=760,resizable=yes,scrollbars=yes'
+  );
+  if (popup){
+    popup.focus();
+    return;
+  }
+  window.open(configuredUrl, '_blank', 'noopener,noreferrer');
+}
+
 function toggleAppearanceFromMenu(){
   const current = resolveCurrentThemeAccent();
   const next = isDarkThemeAccent(current) ? 'elegant-white' : 'dracula';
@@ -627,9 +649,79 @@ function saveSchoolProfilesMap(map){
   localStorage.setItem(SCHOOL_PROFILES_STORAGE_KEY, JSON.stringify(map || {}));
 }
 
+function getDefaultDeveloperAccountConfig(){
+  const raw = window.DEFAULT_DEVELOPER_ACCOUNT;
+  if (!raw || typeof raw !== 'object') return null;
+  if (raw.enabled === false) return null;
+  return {
+    profileKey: String(raw.profileKey || 'dev-admin').trim() || 'dev-admin',
+    name: String(raw.name || 'Developer').trim() || 'Developer',
+    designation: String(raw.designation || 'System Developer').trim() || 'System Developer',
+    role: String(raw.role || 'Admin').trim() || 'Admin',
+    email: String(raw.email || 'developer@local.dsis').trim() || 'developer@local.dsis',
+    password: String(raw.password || '').trim()
+  };
+}
+
+function isDeveloperUser(){
+  const config = getDefaultDeveloperAccountConfig();
+  if (!config) return false;
+  const activeKey = String(currentUser?.profileKey || sessionState?.profileKey || '').trim().toLowerCase();
+  const activeEmail = String(currentUser?.email || '').trim().toLowerCase();
+  return activeKey === config.profileKey.toLowerCase() || (!!activeEmail && activeEmail === config.email.toLowerCase());
+}
+
+function requiresDeveloperPasswordForProfile(profileKey){
+  const config = getDefaultDeveloperAccountConfig();
+  if (!config || !config.password) return false;
+  return String(profileKey || '').trim().toLowerCase() === config.profileKey.toLowerCase();
+}
+
+function updateLoginDeveloperPasswordVisibility(profileKey = ''){
+  const wrap = document.getElementById('loginDeveloperPasswordWrap');
+  const input = document.getElementById('loginDeveloperPassword');
+  if (!wrap || !input) return;
+  const shouldShow = requiresDeveloperPasswordForProfile(profileKey);
+  wrap.style.display = shouldShow ? 'block' : 'none';
+  if (!shouldShow) input.value = '';
+}
+
+function ensureDefaultDeveloperProfileForSchool(schoolId){
+  const sid = normalizeSchoolId(schoolId || '');
+  if (!sid) return false;
+  const config = getDefaultDeveloperAccountConfig();
+  if (!config) return false;
+  const map = loadSchoolProfilesMap();
+  const list = Array.isArray(map[sid]) ? map[sid].map((entry) => normalizeUser(entry)) : [];
+  const exists = list.some((entry) => {
+    const keyMatch = (entry.profileKey || '').trim().toLowerCase() === config.profileKey.toLowerCase();
+    const emailMatch = (entry.email || '').trim().toLowerCase() === config.email.toLowerCase();
+    return keyMatch || emailMatch;
+  });
+  if (exists) return false;
+  const profile = normalizeUser({
+    profileKey: config.profileKey,
+    name: config.name,
+    designation: config.designation,
+    role: config.role,
+    email: config.email,
+    lastLogin: '',
+    preferences: {
+      tableDensity: 'comfortable',
+      themeAccent: 'elegant-white',
+      defaultView: 'Dashboard'
+    }
+  });
+  list.push(profile);
+  map[sid] = list;
+  saveSchoolProfilesMap(map);
+  return true;
+}
+
 function getProfilesForSchool(schoolId){
   const key = normalizeSchoolId(schoolId || '');
   if (!key) return [];
+  ensureDefaultDeveloperProfileForSchool(key);
   const map = loadSchoolProfilesMap();
   const list = Array.isArray(map[key]) ? map[key] : [];
   return list.map((entry) => normalizeUser(entry));
@@ -739,6 +831,7 @@ function renderLoginProfileOptions(){
     return `<option value="${escapeHTML(entry.profileKey)}">${escapeHTML(label)}</option>`;
   }).join('');
   loginBtn.disabled = profiles.length === 0;
+  updateLoginDeveloperPasswordVisibility(select.value || '');
   if (!schoolId){
     setLoginHint('Enter School ID to load profiles.', '');
   } else if (!profiles.length){
@@ -760,6 +853,7 @@ function openLoginModal(force = false){
     rememberEl.checked = saved.remember !== false;
   }
   renderLoginProfileOptions();
+  updateLoginDeveloperPasswordVisibility('');
   loginOverlay.classList.add('show');
   if (force){
     sessionState.loggedIn = false;
@@ -784,6 +878,7 @@ function submitLogin(){
   const schoolInput = document.getElementById('loginSchoolId');
   const select = document.getElementById('loginProfileSelect');
   const rememberEl = document.getElementById('loginRememberDevice');
+  const developerPasswordEl = document.getElementById('loginDeveloperPassword');
   const schoolId = normalizeSchoolId(schoolInput?.value || '');
   const selectedKey = (select?.value || '').trim();
   const remember = !!rememberEl?.checked;
@@ -802,6 +897,21 @@ function submitLogin(){
   if (!selected){
     setLoginHint('Select a valid profile.', 'error');
     return;
+  }
+  if (requiresDeveloperPasswordForProfile(selectedKey)){
+    const expectedPassword = getDefaultDeveloperAccountConfig()?.password || '';
+    const inputPassword = String(developerPasswordEl?.value || '').trim();
+    if (!inputPassword){
+      setLoginHint('Enter developer password.', 'error');
+      developerPasswordEl?.focus();
+      return;
+    }
+    if (inputPassword !== expectedPassword){
+      setLoginHint('Developer password is incorrect.', 'error');
+      if (developerPasswordEl) developerPasswordEl.value = '';
+      developerPasswordEl?.focus();
+      return;
+    }
   }
   currentUser = normalizeUser({
     ...selected,
@@ -876,5 +986,6 @@ function renderUserIdentity(){
   renderUserAvatar(sidebarUserAvatar, currentUser.name, currentUser.avatar);
   renderTopbarProfileAvatar(topbarUserAvatar, currentUser.topbarAvatarDataUrl || '', currentUser.name, currentUser.avatar);
   updateTopbarProfileMenuIdentity();
+  if (typeof window.syncDeveloperToolsAccess === 'function') window.syncDeveloperToolsAccess();
   renderAppLogo();
 }
