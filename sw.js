@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'dsis-v1-pwa-v10';
+const CACHE_VERSION = 'dsis-v1-pwa-v11';
 const APP_SHELL = './ics_v_3_standalone_index.html';
 const PRECACHE = [
   './',
@@ -73,6 +73,23 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  if (url.pathname.endsWith('/feedback/feedback.json') || url.pathname === '/feedback/feedback.json'){
+    event.respondWith((async () => {
+      try {
+        const network = await fetch(request, { cache: 'no-store' });
+        const cache = await caches.open(CACHE_VERSION);
+        cache.put(request, network.clone());
+        return network;
+      } catch {
+        const cached = await caches.match(request);
+        return cached || new Response('{"generated_at":null,"source":"google_form_csv","csv_url":"","count":0,"items":[]}', {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    })());
+    return;
+  }
 
   if (request.mode === 'navigate') {
     event.respondWith((async () => {

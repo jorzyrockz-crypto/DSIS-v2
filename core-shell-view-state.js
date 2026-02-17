@@ -246,6 +246,8 @@ function renderDeveloperToolsView(){
             <div class="ics-card devtools-widget"><div class="card-subtext">Pending Update</div><div class="devtools-widget-value" id="devUpdatePending">-</div></div>
             <div class="ics-card devtools-widget"><div class="card-subtext">Cached Versions</div><div class="devtools-widget-meta" id="devUpdateCaches">-</div></div>
             <div class="ics-card devtools-widget"><div class="card-subtext">Display Mode</div><div class="devtools-widget-meta" id="devUpdateDisplayMode">-</div></div>
+            <div class="ics-card devtools-widget"><div class="card-subtext">Active SW</div><div class="devtools-widget-meta" id="devUpdateActiveSw">-</div></div>
+            <div class="ics-card devtools-widget"><div class="card-subtext">Waiting SW</div><div class="devtools-widget-meta" id="devUpdateWaitingSw">-</div></div>
           </div>
         </div>
       </div>
@@ -494,6 +496,21 @@ async function developerRefreshAppUpdateWidgets(){
     const el = document.getElementById(id);
     if (el) el.textContent = String(value);
   };
+  const getShortSwLabel = (worker) => {
+    if (!worker) return 'none';
+    const script = (worker.scriptURL || '').split('/').pop() || 'sw.js';
+    const state = worker.state || 'unknown';
+    return `${script} (${state})`;
+  };
+  const hashTextShort = (text) => {
+    const src = String(text || '');
+    let hash = 2166136261;
+    for (let i = 0; i < src.length; i += 1){
+      hash ^= src.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0');
+  };
   const meta = document.getElementById('developerUpdateMeta');
   if (meta) meta.textContent = 'Loading app update telemetry...';
 
@@ -502,6 +519,8 @@ async function developerRefreshAppUpdateWidgets(){
   let swRegistered = 'No';
   let pendingUpdate = 'No';
   let cachesText = '-';
+  let activeSwText = '-';
+  let waitingSwText = '-';
   const displayMode = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
     ? 'standalone'
     : 'browser';
@@ -523,6 +542,8 @@ async function developerRefreshAppUpdateWidgets(){
         const hasInstalling = !!reg.installing;
         const badgePending = String(localStorage.getItem('dsisPwaUpdateBadgeState') || '') === '1';
         pendingUpdate = hasWaiting || hasInstalling || badgePending ? 'Yes' : 'No';
+        activeSwText = getShortSwLabel(reg.active);
+        waitingSwText = getShortSwLabel(reg.waiting || reg.installing);
       }
     }
   } catch (_err){
@@ -544,8 +565,18 @@ async function developerRefreshAppUpdateWidgets(){
   setText('devUpdatePending', pendingUpdate);
   setText('devUpdateCaches', cachesText);
   setText('devUpdateDisplayMode', displayMode);
+  setText('devUpdateActiveSw', activeSwText);
+  setText('devUpdateWaitingSw', waitingSwText);
+  let swFingerprint = 'n/a';
+  try {
+    const swResponse = await fetch('./sw.js', { cache: 'no-store' });
+    if (swResponse.ok){
+      const swText = await swResponse.text();
+      swFingerprint = hashTextShort(swText);
+    }
+  } catch (_err){}
   if (meta){
-    meta.textContent = `Last refresh: ${new Date().toLocaleString()} | Update-ready badge state: ${String(localStorage.getItem('dsisPwaUpdateBadgeState') || '0')}`;
+    meta.textContent = `Last refresh: ${new Date().toLocaleString()} | Update-ready badge state: ${String(localStorage.getItem('dsisPwaUpdateBadgeState') || '0')} | sw.js fp: ${swFingerprint}`;
   }
 }
 
