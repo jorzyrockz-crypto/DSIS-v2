@@ -39,6 +39,12 @@ function bootAppWithUserPreferences(){
 
 const LAST_SEEN_APP_VERSION_STORAGE_KEY = 'icsLastSeenAppVersion';
 const RELEASE_NOTES_BY_VERSION = {
+  '1.5.0': [
+    'Milestone release focused on developer operations and feedback intelligence.',
+    'Added hidden developer-only console with modern dashboard widgets and maintenance actions.',
+    'Integrated no-login feedback pipeline and in-app feedback entry with resilient feed loading.',
+    'Expanded update observability with App Update widgets, pending-update badge, and cinematic progress flow.'
+  ],
   '1.4.1': [
     'Developer-console focused release with expanded operational visibility.',
     'Added hidden Developer Tools page with access controls for developer account only.',

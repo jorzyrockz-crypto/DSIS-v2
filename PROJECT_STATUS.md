@@ -3,6 +3,28 @@
 Last updated: 2026-02-17
 Main file: `ics_v_3_standalone_index.html`
 
+## Milestone Update (v1.5.0 candidate, 2026-02-17)
+- Developer Ops & Access:
+  - added hidden `Developer Tools` page (sidebar/topbar) visible only to developer identity
+  - introduced developer account seed with password gate for `dev-admin` login flow
+  - developer account now defaults to `Developer Tools` landing page after login/restore
+- Developer Console Modernization:
+  - redesigned Dev page into modern dashboard layout with hero, widget grid, split analytics panels, and maintenance section
+  - added quick local stats widgets (ICS/PAR/archive/audit counts + feedback recency)
+  - added diagnostics utilities (copy/export/import workspace snapshot, diagnostics JSON view)
+- Feedback Intelligence:
+  - wired in-app `Send Feedback` menu action to feedback form popup flow
+  - implemented no-login feedback ingestion pipeline (Google Form CSV -> `feedback/feedback.json`)
+  - added Dev Feedback panel with robust loading (multi-path fetch + cached fallback + clearer failure hints)
+- Update & Release Observability:
+  - added App Update widgets (runtime/fallback version, SW registration, pending-update state, cache keys, display mode)
+  - improved update progress UX with cinematic animation + theme-aware progress colors
+  - profile menu `Check Update` now shows pending update badge state
+- Platform & Delivery Hygiene:
+  - extracted main HTML inline styles into `styles/main.css`
+  - updated service worker precache coverage for new assets/data endpoints including feedback JSON
+  - version progression prepared for release cadence (`1.4.1` current, `1.5.0` milestone notes ready)
+
 ## Newly Implemented (2026-02-17, patch bump + modal consistency/fit/contrast fixes)
 - Versioning:
   - manifest version bumped to `1.2.1` (`manifest.webmanifest`)
