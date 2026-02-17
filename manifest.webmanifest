@@ -1,7 +1,7 @@
 {
   "name": "DSIS V1",
   "short_name": "DSIS V1",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Offline-ready inventory custody system for schools.",
   "start_url": "./ics_v_3_standalone_index.html",
   "scope": "./",

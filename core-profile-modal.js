@@ -208,6 +208,8 @@ function openProfileModal(){
   const density = document.getElementById('profileDensity');
   const accent = document.getElementById('profileAccent');
   const defaultView = document.getElementById('profileDefaultView');
+  const passwordEl = document.getElementById('profilePassword');
+  const passwordConfirmEl = document.getElementById('profilePasswordConfirm');
   profilePreviewOriginalTheme = normalizeThemeAccentKey(currentUser.preferences?.themeAccent || 'elegant-white');
   if (name) name.value = currentUser.name || '';
   if (avatarTypeEl) avatarTypeEl.value = currentUser.avatar || 'initials';
@@ -223,6 +225,8 @@ function openProfileModal(){
   if (density) density.value = currentUser.preferences?.tableDensity || 'comfortable';
   if (accent) accent.value = normalizeThemeAccentKey(currentUser.preferences?.themeAccent || 'elegant-white');
   if (defaultView) defaultView.value = currentUser.preferences?.defaultView || 'Dashboard';
+  if (passwordEl) passwordEl.value = '';
+  if (passwordConfirmEl) passwordConfirmEl.value = '';
   const lastLogin = document.getElementById('profileLastLogin');
   const profileKeyReadOnly = document.getElementById('profileKeyReadonly');
   const profileSessionReadOnly = document.getElementById('profileSessionReadonly');
@@ -317,6 +321,8 @@ function saveProfileSettings(){
   const densityEl = document.getElementById('profileDensity');
   const accentEl = document.getElementById('profileAccent');
   const defaultViewEl = document.getElementById('profileDefaultView');
+  const passwordEl = document.getElementById('profilePassword');
+  const passwordConfirmEl = document.getElementById('profilePasswordConfirm');
   clearFieldErrors(profileOverlay);
 
   const name = (nameEl?.value || '').trim();
@@ -332,6 +338,8 @@ function saveProfileSettings(){
   const density = (densityEl?.value || 'comfortable').toLowerCase();
   const accent = normalizeThemeAccentKey(accentEl?.value || 'elegant-white');
   const defaultView = defaultViewEl?.value || 'Dashboard';
+  const password = normalizeProfilePassword(passwordEl?.value || '');
+  const confirmPassword = normalizeProfilePassword(passwordConfirmEl?.value || '');
 
   let invalid = false;
   let firstInvalidTab = '';
@@ -381,6 +389,23 @@ function saveProfileSettings(){
       return;
     }
   }
+  if (password || confirmPassword){
+    if (password.length < 4){
+      setProfileSettingsTab('security', true);
+      setFieldError(passwordEl, true);
+      notify('error', 'Password must be at least 4 characters.');
+      passwordEl?.focus();
+      return;
+    }
+    if (password !== confirmPassword){
+      setProfileSettingsTab('security', true);
+      setFieldError(passwordEl, true);
+      setFieldError(passwordConfirmEl, true);
+      notify('error', 'Password and Confirm Password do not match.');
+      passwordConfirmEl?.focus();
+      return;
+    }
+  }
 
   currentUser = normalizeUser({
     ...currentUser,
@@ -390,6 +415,7 @@ function saveProfileSettings(){
     designation,
     role: normalizedRole,
     email,
+    authPassword: password ? password : normalizeProfilePassword(currentUser.authPassword || ''),
     lastLogin: new Date().toISOString(),
     preferences: {
       ...currentUser.preferences,

@@ -3,6 +3,73 @@
 Last updated: 2026-02-17
 Main file: `ics_v_3_standalone_index.html`
 
+## Planning Notes (2026-02-17, productization + distribution + sync roadmap)
+- Current product baseline clarification:
+  - current v1 runtime is offline-first PWA/web app (service worker + localStorage), not yet Electron-packaged
+- Commercial packaging recommendation:
+  - ship offline desktop installer first (Electron/Tauri wrapper) as primary sale/distribution format
+  - keep offline-first local data behavior as core requirement for school environments
+  - introduce cloud/sync as optional paid add-on after stable desktop rollout
+- Update strategy recommendation:
+  - support in-app update checks and apply flow (manual confirm path retained)
+  - maintain signed installer fallback update path for offline/limited-connectivity schools
+  - use staged release channels (`stable`/`beta`) and versioned schema migration safeguards
+- Licensing recommendation for desktop build:
+  - per-school license key model with activation limits/device seats
+  - local signed license token cache for offline validation
+  - periodic online revalidation with grace period for no-internet operations
+  - admin deactivate/transfer path for device replacement scenarios
+- Sync recommendation (fast MVP, same style as feedback workflow):
+  - implement `Push Sync`/`Pull Sync` against a remote GitHub-hosted JSON package
+  - configure sync via local settings (`repo`, `path`, `token`) and log actions to audit trail
+  - include overwrite confirmation + backup-before-pull safety
+  - start with last-write-wins, then add conflict resolution UI in later version
+- Auth recommendation:
+  - Google login is feasible but online-dependent and requires OAuth setup
+  - for current offline/shared-device deployments, keep local profile password login as default
+  - optional hybrid path: local login default + online Google sign-in when available
+- Version 1 priorities (recommended order):
+  1. Electron packaging baseline (Windows-first installer)
+  2. Data safety hardening (auto backup/restore + migration guards)
+  3. Licensing MVP (activation + offline signed cache)
+  4. Update pipeline (in-app check/apply + signed releases)
+  5. Shared-computer security hardening (per-user password/reset/session lock)
+  6. Regression and QA pack for critical workflows
+  7. Distribution readiness (branding/legal/support/release notes)
+  8. Optional manual sync add-on (`Push/Pull`) for multi-computer schools
+- Version 2 direction summary:
+  - V2.0 foundation/regression gate
+  - V2.1 manual sync MVP (GitHub JSON push/pull)
+  - V2.2 shared-computer security hardening completion
+  - V2.3 conflict-aware multi-user merge handling
+  - V2.4 desktop distribution maturity
+  - V2.5 optional migration to proper managed backend for real-time multi-tenant sync
+
+## Newly Implemented (2026-02-17, shared-computer account hardening: per-user passwords)
+- Added per-profile password support for shared-device usage:
+  - user model now includes per-profile `authPassword` and persists across school profile map records
+  - login now enforces selected profile password when configured (developer profile still supports configured developer password path)
+  - login hint/visibility now reflects whether selected profile requires password input
+- Setup and personnel creation now require password creation:
+  - setup form includes `Password` + `Confirm Password` inputs for first profile and additional personnel
+  - validation enforces minimum length (`4`) and confirmation match
+- Profile settings now supports password rotation:
+  - Security tab includes optional `New Password` + `Confirm Password`
+  - leaving fields blank preserves existing password; provided values are validated and saved
+- Delivery/update alignment:
+  - runtime/schema/manifest patch bumped to `1.4.2`
+  - service worker cache baseline advanced to `dsis-v1-pwa-v14`
+
+## Newly Implemented (2026-02-17, modular refactor continuation: UI event wiring extraction)
+- Modular extraction continued for UI bootstrap wiring:
+  - extracted delegated event routing (`parseDelegatedArg`, `invokeDelegatedAction`, `initializeDelegatedActionRouting`) from `core-ui-event-wiring.js` into new `core-delegated-action-routing.js`
+  - extracted modal scroll-shadow handler (`initializeModalScrollShadows`) into new `core-modal-scroll-shadows.js`
+  - trimmed `core-ui-event-wiring.js` to direct UI listener registration and module orchestration only
+- Runtime wiring and offline cache alignment:
+  - inserted new script modules in HTML load order before `core-ui-event-wiring.js`
+  - updated service worker precache list to include new modules
+  - advanced SW cache baseline to `dsis-v1-pwa-v12`
+
 ## Newly Implemented (2026-02-17, developer console expansion + feedback/GitHub/update observability + UX hardening)
 - Developer Console and access control:
   - added hidden `Developer Tools` navigation entries (sidebar + topbar), visible only to developer identity
@@ -985,4 +1052,4 @@ Main file: `ics_v_3_standalone_index.html`
   - Improved ICS Records readability (ICS ellipsis+tooltip, wider ICS column, wrapped Entity text).
 
 ## Resume Prompt (Copy for New Chat)
-Use `PROJECT_STATUS.md` as baseline and continue from current fully modularized multi-file runtime. Current baseline includes centralized access control guards, immutable per-record lineage timeline with hash checks, device/session-attributed audits, and extracted modules (`core-storage-security.js`, `core-lineage-audit.js`, `core-data-manager.js`, `core-records-workflow.js`, `core-actions-workflow.js`, `core-profile-session.js`, `core-theme-preferences.js`, `core-school-setup-ui.js`, `core-profile-modal.js`, `core-shell-init.js`, `core-dashboard-view.js`, `core-dashboard-render.js`, `core-inventory-view-render.js`, `core-actions-view-render.js`, `core-archives-view-render.js`, `core-dashboard-actions.js`, `core-dashboard-metrics.js`, `core-app-bootstrap.js`, `core-keyboard-routing.js`, `core-notifications.js`, `core-ui-event-wiring.js`, `core-modal-system.js`, `core-shell-view-state.js`, `core-main-entry.js`). Next priority: packaging/licensing, then formal schema migration map and regression checks.
+Use `PROJECT_STATUS.md` as baseline and continue from current fully modularized multi-file runtime. Current baseline includes centralized access control guards, immutable per-record lineage timeline with hash checks, device/session-attributed audits, and extracted modules (`core-storage-security.js`, `core-lineage-audit.js`, `core-data-manager.js`, `core-records-workflow.js`, `core-actions-workflow.js`, `core-profile-session.js`, `core-theme-preferences.js`, `core-school-setup-ui.js`, `core-profile-modal.js`, `core-shell-init.js`, `core-dashboard-view.js`, `core-dashboard-render.js`, `core-inventory-view-render.js`, `core-actions-view-render.js`, `core-archives-view-render.js`, `core-dashboard-actions.js`, `core-dashboard-metrics.js`, `core-app-bootstrap.js`, `core-keyboard-routing.js`, `core-notifications.js`, `core-delegated-action-routing.js`, `core-modal-scroll-shadows.js`, `core-ui-event-wiring.js`, `core-modal-system.js`, `core-shell-view-state.js`, `core-main-entry.js`). Next priority: packaging/licensing, then formal schema migration map and regression checks.

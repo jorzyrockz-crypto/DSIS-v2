@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'dsis-v1-pwa-v11';
+const CACHE_VERSION = 'dsis-v1-pwa-v14';
 const APP_SHELL = './ics_v_3_standalone_index.html';
 const PRECACHE = [
   './',
@@ -28,6 +28,8 @@ const PRECACHE = [
   './core-app-bootstrap.js',
   './core-keyboard-routing.js',
   './core-notifications.js',
+  './core-delegated-action-routing.js',
+  './core-modal-scroll-shadows.js',
   './core-ui-event-wiring.js',
   './core-modal-system.js',
   './core-shell-init.js',

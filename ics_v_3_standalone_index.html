@@ -394,6 +394,25 @@
                 <input id="setupProfileEmail" class="stage-input" placeholder="name@institution.edu.ph" />
               </div>
             </div>
+            <div>
+              <div class="setup-field-head">
+                <label>Password</label>
+                <span class="setup-field-meta">Minimum 4 chars</span>
+              </div>
+              <div class="setup-input-shell">
+                <i data-lucide="lock" aria-hidden="true"></i>
+                <input id="setupProfilePassword" class="stage-input" type="password" placeholder="Set account password" autocomplete="new-password" />
+              </div>
+            </div>
+            <div>
+              <div class="setup-field-head">
+                <label>Confirm Password</label>
+              </div>
+              <div class="setup-input-shell">
+                <i data-lucide="lock-keyhole" aria-hidden="true"></i>
+                <input id="setupProfilePasswordConfirm" class="stage-input" type="password" placeholder="Confirm password" autocomplete="new-password" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -422,8 +441,8 @@
           <option value="">Select profile</option>
         </select>
         <div id="loginDeveloperPasswordWrap" style="display:none;margin-top:6px">
-          <label class="field-label"><i data-lucide="key" aria-hidden="true"></i>Developer Password</label>
-          <input id="loginDeveloperPassword" class="stage-input" type="password" placeholder="Enter developer password" autocomplete="current-password" />
+          <label class="field-label"><i data-lucide="key" aria-hidden="true"></i>Password</label>
+          <input id="loginDeveloperPassword" class="stage-input" type="password" placeholder="Enter password" autocomplete="current-password" />
         </div>
         <label class="login-remember" style="display:flex;align-items:center;gap:8px;margin-top:6px">
           <input id="loginRememberDevice" type="checkbox" checked />
@@ -607,6 +626,14 @@
                 <div>
                   <label>Current Session</label>
                   <div class="profile-readonly" id="profileSessionReadonly">Not logged in</div>
+                </div>
+                <div>
+                  <label>New Password</label>
+                  <input id="profilePassword" class="stage-input" type="password" placeholder="Leave blank to keep current password" autocomplete="new-password" />
+                </div>
+                <div>
+                  <label>Confirm Password</label>
+                  <input id="profilePasswordConfirm" class="stage-input" type="password" placeholder="Confirm new password" autocomplete="new-password" />
                 </div>
                 <div class="full">
                   <label>History Trace</label>
@@ -1079,6 +1106,8 @@
 <script src="./core-app-bootstrap.js"></script>
 <script src="./core-keyboard-routing.js"></script>
 <script src="./core-notifications.js"></script>
+<script src="./core-delegated-action-routing.js"></script>
+<script src="./core-modal-scroll-shadows.js"></script>
 <script src="./core-ui-event-wiring.js"></script>
 <script src="./core-modal-system.js"></script>
 <script src="./core-shell-init.js"></script>

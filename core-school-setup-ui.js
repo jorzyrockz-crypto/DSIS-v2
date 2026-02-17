@@ -95,6 +95,8 @@ function openSetupModal(force = false, mode = 'initial'){
   const designationEl = document.getElementById('setupProfileDesignation');
   const roleEl = document.getElementById('setupProfileRole');
   const emailEl = document.getElementById('setupProfileEmail');
+  const passwordEl = document.getElementById('setupProfilePassword');
+  const passwordConfirmEl = document.getElementById('setupProfilePasswordConfirm');
   const title = setupOverlay.querySelector('.modal-head h3');
   const sub = setupOverlay.querySelector('.modal-head .modal-sub');
   const action = setupOverlay.querySelector('.modal-foot .btn.btn-primary');
@@ -140,6 +142,8 @@ function openSetupModal(force = false, mode = 'initial'){
     if (!lockSchool && !roleEl.value) roleEl.value = 'admin';
   }
   if (emailEl) emailEl.value = currentUser.email || '';
+  if (passwordEl) passwordEl.value = '';
+  if (passwordConfirmEl) passwordConfirmEl.value = '';
   if (nameEl && lockSchool){
     nameEl.value = '';
     nameEl.focus();
@@ -177,6 +181,8 @@ function submitInitialSetup(){
   const designationEl = document.getElementById('setupProfileDesignation');
   const roleEl = document.getElementById('setupProfileRole');
   const emailEl = document.getElementById('setupProfileEmail');
+  const passwordEl = document.getElementById('setupProfilePassword');
+  const passwordConfirmEl = document.getElementById('setupProfilePasswordConfirm');
 
   const schoolName = (schoolNameEl?.value || '').trim();
   const schoolId = normalizeSchoolId(schoolIdEl?.value || '');
@@ -185,6 +191,8 @@ function submitInitialSetup(){
   const roleKey = normalizeRoleKey(roleEl?.value || 'encoder');
   const role = normalizeRoleLabel(roleKey);
   const email = (emailEl?.value || '').trim();
+  const password = normalizeProfilePassword(passwordEl?.value || '');
+  const confirmPassword = normalizeProfilePassword(passwordConfirmEl?.value || '');
 
   if (!schoolName){
     setSetupHint('School Name is required.', 'error');
@@ -220,6 +228,16 @@ function submitInitialSetup(){
     emailEl?.focus();
     return;
   }
+  if (password.length < 4){
+    setSetupHint('Password must be at least 4 characters.', 'error');
+    passwordEl?.focus();
+    return;
+  }
+  if (password !== confirmPassword){
+    setSetupHint('Password and Confirm Password do not match.', 'error');
+    passwordConfirmEl?.focus();
+    return;
+  }
 
   schoolIdentity = normalizeSchoolIdentity({ schoolName, schoolId });
   saveSchoolIdentity();
@@ -232,6 +250,7 @@ function submitInitialSetup(){
     designation,
     role,
     email,
+    authPassword: password,
     lastLogin: new Date().toISOString()
   });
   saveCurrentUser();

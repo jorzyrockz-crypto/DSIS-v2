@@ -14,6 +14,10 @@ function sanitizeProfileAvatarDataUrl(value){
   return ok ? raw : '';
 }
 
+function normalizeProfilePassword(value){
+  return (value || '').toString().trim().slice(0, 120);
+}
+
 function createDefaultUser(){
   return {
     profileKey: '',
@@ -21,6 +25,7 @@ function createDefaultUser(){
     designation: 'Inventory Officer',
     role: 'Encoder',
     email: '',
+    authPassword: '',
     phone: '',
     bio: '',
     avatar: 'initials',
@@ -51,12 +56,14 @@ function normalizeUser(user){
     ? (src.avatar || '').toString().trim().toLowerCase()
     : 'initials';
   const topbarAvatarDataUrl = sanitizeProfileAvatarDataUrl(src.topbarAvatarDataUrl || src.profileImageDataUrl || '');
+  const authPassword = normalizeProfilePassword(src.authPassword || '');
   return {
     profileKey,
     name: (src.name || base.name).toString().trim() || base.name,
     designation,
     role: roleLabel,
     email: (src.email || '').toString().trim(),
+    authPassword,
     phone: (src.phone || '').toString().trim(),
     bio: (src.bio || '').toString().trim(),
     avatar,
@@ -688,11 +695,23 @@ function requiresDeveloperPasswordForProfile(profileKey){
   return String(profileKey || '').trim().toLowerCase() === config.profileKey.toLowerCase();
 }
 
+function resolveProfileExpectedPassword(profile){
+  if (!profile || typeof profile !== 'object') return '';
+  const profileKey = String(profile.profileKey || '').trim();
+  if (requiresDeveloperPasswordForProfile(profileKey)){
+    return normalizeProfilePassword(getDefaultDeveloperAccountConfig()?.password || '');
+  }
+  return normalizeProfilePassword(profile.authPassword || '');
+}
+
 function updateLoginDeveloperPasswordVisibility(profileKey = ''){
   const wrap = document.getElementById('loginDeveloperPasswordWrap');
   const input = document.getElementById('loginDeveloperPassword');
+  const schoolInput = document.getElementById('loginSchoolId');
   if (!wrap || !input) return;
-  const shouldShow = requiresDeveloperPasswordForProfile(profileKey);
+  const schoolId = normalizeSchoolId(schoolInput?.value || schoolIdentity?.schoolId || '');
+  const selected = getProfilesForSchool(schoolId).find((entry) => (entry.profileKey || '').trim() === String(profileKey || '').trim());
+  const shouldShow = !!resolveProfileExpectedPassword(selected);
   wrap.style.display = shouldShow ? 'block' : 'none';
   if (!shouldShow) input.value = '';
 }
@@ -716,6 +735,7 @@ function ensureDefaultDeveloperProfileForSchool(schoolId){
     designation: config.designation,
     role: config.role,
     email: config.email,
+    authPassword: config.password,
     lastLogin: '',
     preferences: {
       tableDensity: 'comfortable',
@@ -848,14 +868,32 @@ function renderLoginProfileOptions(){
   } else if (!profiles.length){
     setLoginHint('No profiles found for this School ID. Click New Personnel to create one.', 'error');
   } else {
-    setLoginHint(`Found ${profiles.length} profile(s). Select one and login.`, '');
+    const selected = profiles.find((entry) => (entry.profileKey || '').trim() === String(select.value || '').trim());
+    const requiresPassword = !!resolveProfileExpectedPassword(selected);
+    setLoginHint(`Found ${profiles.length} profile(s). Select one and login.${requiresPassword ? ' Password required.' : ''}`, '');
   }
+}
+
+function refreshLoginSelectedProfileHint(){
+  const schoolInput = document.getElementById('loginSchoolId');
+  const select = document.getElementById('loginProfileSelect');
+  if (!schoolInput || !select) return;
+  const schoolId = normalizeSchoolId(schoolInput.value || '');
+  const profiles = getProfilesForSchool(schoolId);
+  const selected = profiles.find((entry) => (entry.profileKey || '').trim() === String(select.value || '').trim());
+  if (!selected){
+    setLoginHint('Select a profile to continue.', '');
+    return;
+  }
+  const requiresPassword = !!resolveProfileExpectedPassword(selected);
+  setLoginHint(`Selected: ${selected.name || selected.profileKey}.${requiresPassword ? ' Password required.' : ''}`, '');
 }
 
 function openLoginModal(force = false){
   if (!loginOverlay) return;
   const schoolInput = document.getElementById('loginSchoolId');
   const rememberEl = document.getElementById('loginRememberDevice');
+  const passEl = document.getElementById('loginDeveloperPassword');
   if (schoolInput){
     schoolInput.value = normalizeSchoolId(schoolIdentity.schoolId || '');
   }
@@ -863,6 +901,7 @@ function openLoginModal(force = false){
     const saved = loadSavedSession();
     rememberEl.checked = saved.remember !== false;
   }
+  if (passEl) passEl.value = '';
   renderLoginProfileOptions();
   updateLoginDeveloperPasswordVisibility('');
   loginOverlay.classList.add('show');
@@ -909,16 +948,16 @@ function submitLogin(){
     setLoginHint('Select a valid profile.', 'error');
     return;
   }
-  if (requiresDeveloperPasswordForProfile(selectedKey)){
-    const expectedPassword = getDefaultDeveloperAccountConfig()?.password || '';
+  const expectedPassword = resolveProfileExpectedPassword(selected);
+  if (expectedPassword){
     const inputPassword = String(developerPasswordEl?.value || '').trim();
     if (!inputPassword){
-      setLoginHint('Enter developer password.', 'error');
+      setLoginHint('Enter password.', 'error');
       developerPasswordEl?.focus();
       return;
     }
     if (inputPassword !== expectedPassword){
-      setLoginHint('Developer password is incorrect.', 'error');
+      setLoginHint('Password is incorrect.', 'error');
       if (developerPasswordEl) developerPasswordEl.value = '';
       developerPasswordEl?.focus();
       return;

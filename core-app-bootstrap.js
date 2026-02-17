@@ -45,6 +45,12 @@ const RELEASE_NOTES_BY_VERSION = {
     'Integrated no-login feedback pipeline and in-app feedback entry with resilient feed loading.',
     'Expanded update observability with App Update widgets, pending-update badge, and cinematic progress flow.'
   ],
+  '1.4.2': [
+    'Shared-computer security patch with per-profile password support.',
+    'Added password creation in setup/new personnel and password verification during login.',
+    'Enabled optional password rotation from Profile Settings > Security tab.',
+    'Improved login prompts to reflect when selected profiles require password.'
+  ],
   '1.4.1': [
     'Developer-console focused release with expanded operational visibility.',
     'Added hidden Developer Tools page with access controls for developer account only.',
