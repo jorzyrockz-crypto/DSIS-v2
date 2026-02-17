@@ -5,6 +5,12 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const swFile = path.join(__dirname, '..', 'sw.js');
+const swSource = fs.readFileSync(swFile, 'utf8');
+const cacheVersionMatch = swSource.match(/const CACHE_VERSION = '([^']+)'/);
+if (!cacheVersionMatch){
+  throw new Error('Could not parse CACHE_VERSION from sw.js');
+}
+const currentCacheVersion = cacheVersionMatch[1];
 
 function bootServiceWorkerMocks(){
   const listeners = {};
@@ -41,7 +47,7 @@ function bootServiceWorkerMocks(){
         put: () => {}
       };
     },
-    keys: async () => ['dsis-v1-pwa-v5', 'dsis-v1-pwa-v6'],
+    keys: async () => ['legacy-cache', currentCacheVersion],
     delete: async (key) => {
       calls.cacheDeletes.push(key);
       return true;
@@ -58,8 +64,7 @@ function bootServiceWorkerMocks(){
     URL
   };
 
-  const src = fs.readFileSync(swFile, 'utf8');
-  vm.runInNewContext(src, context);
+  vm.runInNewContext(swSource, context);
   return { listeners, calls };
 }
 
@@ -102,6 +107,6 @@ test('activate clears stale caches and claims clients', async () => {
   });
   await activatePromise;
 
-  assert.deepEqual(calls.cacheDeletes, ['dsis-v1-pwa-v5']);
+  assert.deepEqual(calls.cacheDeletes, ['legacy-cache']);
   assert.equal(calls.claim, 1);
 });

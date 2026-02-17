@@ -129,6 +129,7 @@ function isDarkThemeAccent(accent){
 }
 
 const AUDIT_LAST_SEEN_AT_STORAGE_KEY = 'dsisAuditLogsLastSeenAt';
+const UPDATE_MENU_BADGE_STORAGE_KEY = 'dsisPwaUpdateBadgeState';
 
 function getAuditLastSeenAtMs(){
   const raw = localStorage.getItem(AUDIT_LAST_SEEN_AT_STORAGE_KEY) || '';
@@ -175,6 +176,22 @@ function refreshAuditLogsMenuBadge(){
   badge.textContent = `${count > 99 ? '99+' : count} New`;
 }
 
+function isUpdateMenuBadgeActive(){
+  return String(localStorage.getItem(UPDATE_MENU_BADGE_STORAGE_KEY) || '') === '1';
+}
+
+function setUpdateMenuBadgeActive(active){
+  localStorage.setItem(UPDATE_MENU_BADGE_STORAGE_KEY, active ? '1' : '0');
+}
+
+function refreshCheckUpdateMenuBadge(){
+  const badge = document.getElementById('checkUpdateMenuBadge');
+  if (!badge) return;
+  const hasPendingUpdate = isUpdateMenuBadgeActive();
+  badge.style.display = hasPendingUpdate ? 'inline-flex' : 'none';
+  badge.textContent = hasPendingUpdate ? 'New' : '';
+}
+
 function updateTopbarProfileMenuIdentity(){
   if (topbarMenuName) topbarMenuName.textContent = currentUser?.name || 'Custodian';
   if (topbarMenuEmail){
@@ -186,6 +203,7 @@ function updateTopbarProfileMenuIdentity(){
     topbarAppearanceMode.textContent = isDarkThemeAccent(resolveCurrentThemeAccent()) ? 'Dark' : 'Light';
   }
   refreshAuditLogsMenuBadge();
+  refreshCheckUpdateMenuBadge();
 }
 
 function closeTopbarProfileMenu(){
@@ -533,6 +551,11 @@ function printHelpDocsModal(){
 }
 
 window.refreshAuditLogsMenuBadge = refreshAuditLogsMenuBadge;
+window.refreshCheckUpdateMenuBadge = refreshCheckUpdateMenuBadge;
+window.setCheckUpdateMenuBadgeState = function(active){
+  setUpdateMenuBadgeActive(Boolean(active));
+  refreshCheckUpdateMenuBadge();
+};
 
 function openHelpFromMenu(){
   closeTopbarProfileMenu();

@@ -296,6 +296,19 @@ function registerPWAServiceWorker(){
   let applyProgressTimer = null;
   let applyProgressFailSafeTimer = null;
   const UPDATE_READY_NOTIF_KEY = 'dsisLastUpdateReadyNotifiedVersion';
+  const UPDATE_MENU_BADGE_STORAGE_KEY = 'dsisPwaUpdateBadgeState';
+
+  function syncUpdateMenuBadgeState(){
+    const hasPendingUpdate = Boolean(pendingUpdateWorker || pwaRegistration?.waiting);
+    try {
+      localStorage.setItem(UPDATE_MENU_BADGE_STORAGE_KEY, hasPendingUpdate ? '1' : '0');
+    } catch (_err){
+      // Ignore storage failures and still try to refresh in-memory UI state.
+    }
+    if (typeof window.refreshCheckUpdateMenuBadge === 'function'){
+      window.refreshCheckUpdateMenuBadge();
+    }
+  }
 
   function showUpdateProgressModal(title, statusText, percent, allowClose = false){
     const modal = document.getElementById('modal');
@@ -402,11 +415,13 @@ function registerPWAServiceWorker(){
       updateAppBtn.disabled = false;
       updateAppBtn.textContent = 'Apply Update';
       updateAppBtn.title = 'A new version is ready. Click to apply update.';
+      syncUpdateMenuBadgeState();
       return;
     }
     updateAppBtn.disabled = false;
     updateAppBtn.textContent = 'Check Update';
     updateAppBtn.title = 'Check for latest app version.';
+    syncUpdateMenuBadgeState();
   }
 
   function waitForWorkerInstalled(worker){
@@ -558,6 +573,7 @@ function registerPWAServiceWorker(){
       console.warn('Service worker registration failed:', err);
     }
     updateAppUpdateButtonState();
+    syncUpdateMenuBadgeState();
     updateInstallAppButtonState();
   });
 }
