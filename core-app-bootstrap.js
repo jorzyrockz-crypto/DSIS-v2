@@ -295,8 +295,11 @@ function registerPWAServiceWorker(){
   let pendingUpdateWorker = null;
   let applyProgressTimer = null;
   let applyProgressFailSafeTimer = null;
+  let applyProgressStartedAt = 0;
+  let applyProgressCurrent = 0;
   const UPDATE_READY_NOTIF_KEY = 'dsisLastUpdateReadyNotifiedVersion';
   const UPDATE_MENU_BADGE_STORAGE_KEY = 'dsisPwaUpdateBadgeState';
+  const MIN_APPLY_PROGRESS_VISIBLE_MS = 2800;
 
   function syncUpdateMenuBadgeState(){
     const hasPendingUpdate = Boolean(pendingUpdateWorker || pwaRegistration?.waiting);
@@ -317,15 +320,34 @@ function registerPWAServiceWorker(){
     if (!modal || !titleEl || !messageEl) return;
     const clamped = Math.max(0, Math.min(100, Math.round(percent)));
     titleEl.textContent = title;
-    messageEl.innerHTML = `
-      <div style="display:grid;gap:8px">
-        <div>${statusText}</div>
-        <div style="height:10px;background:#e2e8f0;border:1px solid #cbd5e1;border-radius:999px;overflow:hidden">
-          <div style="height:100%;width:${clamped}%;background:linear-gradient(90deg,#2563eb,#0ea5e9);transition:width .25s ease"></div>
+    let root = messageEl.querySelector('[data-update-progress="root"]');
+    if (!root){
+      messageEl.innerHTML = `
+        <div data-update-progress="root" style="display:grid;gap:8px">
+          <div data-update-progress="status"></div>
+          <div style="height:10px;background:#e2e8f0;border:1px solid #cbd5e1;border-radius:999px;overflow:hidden">
+            <div data-update-progress="bar" style="height:100%;width:0%;background:linear-gradient(90deg,#2563eb,#0ea5e9)"></div>
+          </div>
+          <div data-update-progress="percent" style="font-size:12px;color:#64748b">0%</div>
         </div>
-        <div style="font-size:12px;color:#64748b">${clamped}%</div>
-      </div>
-    `;
+      `;
+      root = messageEl.querySelector('[data-update-progress="root"]');
+    }
+    const statusEl = root?.querySelector('[data-update-progress="status"]');
+    const barEl = root?.querySelector('[data-update-progress="bar"]');
+    const percentEl = root?.querySelector('[data-update-progress="percent"]');
+    if (statusEl) statusEl.textContent = statusText;
+    if (percentEl) percentEl.textContent = `${clamped}%`;
+    if (barEl){
+      const previous = Number(barEl.getAttribute('data-progress') || 0);
+      const delta = Math.abs(clamped - previous);
+      const durationMs = Math.max(420, Math.min(1400, Math.round(delta * 36)));
+      barEl.style.transition = `width ${durationMs}ms cubic-bezier(0.22, 1, 0.36, 1)`;
+      barEl.setAttribute('data-progress', String(clamped));
+      requestAnimationFrame(() => {
+        barEl.style.width = `${clamped}%`;
+      });
+    }
     const actions = modal.querySelector('.modal-actions');
     if (actions){
       actions.innerHTML = allowClose
@@ -348,6 +370,8 @@ function registerPWAServiceWorker(){
 
   function startApplyProgressAnimation(){
     stopApplyProgressAnimation();
+    applyProgressStartedAt = Date.now();
+    applyProgressCurrent = 8;
     let progress = 8;
     showUpdateProgressModal('Applying Update', 'Applying update...', progress, false);
     applyProgressFailSafeTimer = setTimeout(() => {
@@ -358,13 +382,17 @@ function registerPWAServiceWorker(){
       updateAppUpdateButtonState();
     }, 45000);
     applyProgressTimer = setInterval(() => {
-      progress = Math.min(95, progress + Math.max(1, Math.round(Math.random() * 8)));
-      showUpdateProgressModal('Applying Update', 'Applying update...', progress, false);
+      progress = Math.min(95, progress + Math.max(1, Math.round(Math.random() * 5)));
+      applyProgressCurrent = progress;
+      const stageText = progress < 35
+        ? 'Preparing update package...'
+        : (progress < 70 ? 'Applying core modules...' : 'Optimizing local cache...');
+      showUpdateProgressModal('Applying Update', stageText, progress, false);
       if (progress >= 95){
         clearInterval(applyProgressTimer);
         applyProgressTimer = null;
       }
-    }, 320);
+    }, 460);
   }
 
   function startAutoRefreshCountdown(seconds = 3){
@@ -549,7 +577,19 @@ function registerPWAServiceWorker(){
         if (manualUpdateRequested){
           manualUpdateRequested = false;
           stopApplyProgressAnimation();
-          startAutoRefreshCountdown(3);
+          const elapsed = Date.now() - (applyProgressStartedAt || Date.now());
+          const waitMs = Math.max(0, MIN_APPLY_PROGRESS_VISIBLE_MS - elapsed);
+          const finalize = () => {
+            showUpdateProgressModal('Update Applied', 'Finalizing update...', 100, false);
+            setTimeout(() => startAutoRefreshCountdown(3), 650);
+          };
+          const visualTarget = Math.max(96, applyProgressCurrent || 0);
+          showUpdateProgressModal('Applying Update', 'Finalizing update...', visualTarget, false);
+          if (waitMs > 0){
+            setTimeout(finalize, waitMs);
+          } else {
+            finalize();
+          }
           return;
         }
       });
