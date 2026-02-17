@@ -671,6 +671,17 @@ function isDeveloperUser(){
   return activeKey === config.profileKey.toLowerCase() || (!!activeEmail && activeEmail === config.email.toLowerCase());
 }
 
+function resolveStartViewForUser(user){
+  const config = getDefaultDeveloperAccountConfig();
+  const profileKey = String(user?.profileKey || '').trim().toLowerCase();
+  const email = String(user?.email || '').trim().toLowerCase();
+  const isDevIdentity = !!config
+    && (profileKey === config.profileKey.toLowerCase() || (!!email && email === config.email.toLowerCase()));
+  if (isDevIdentity) return 'Developer Tools';
+  const preferred = String(user?.preferences?.defaultView || '').trim();
+  return PROFILE_VIEWS.includes(preferred) ? preferred : 'Dashboard';
+}
+
 function requiresDeveloperPasswordForProfile(profileKey){
   const config = getDefaultDeveloperAccountConfig();
   if (!config || !config.password) return false;
@@ -801,7 +812,7 @@ function tryRestoreRememberedSession(){
   applyTableDensity();
   sessionState = { loggedIn: true, schoolId: saved.schoolId, profileKey: saved.profileKey, remember: true, sessionId: createSessionId() };
   saveSavedSession();
-  const startView = PROFILE_VIEWS.includes(currentUser.preferences?.defaultView) ? currentUser.preferences.defaultView : 'Dashboard';
+  const startView = resolveStartViewForUser(currentUser);
   goToView(startView);
   renderUserIdentity();
   renderAppLogo();
@@ -925,7 +936,7 @@ function submitLogin(){
   applyTableDensity();
   sessionState = { loggedIn: true, schoolId, profileKey: currentUser.profileKey, remember, sessionId: createSessionId() };
   saveSavedSession();
-  const startView = PROFILE_VIEWS.includes(currentUser.preferences?.defaultView) ? currentUser.preferences.defaultView : 'Dashboard';
+  const startView = resolveStartViewForUser(currentUser);
   goToView(startView);
   renderUserIdentity();
   setLoginHint(`Logged in as ${currentUser.name}.`, 'success');
