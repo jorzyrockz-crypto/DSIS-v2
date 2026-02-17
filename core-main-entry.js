@@ -26,6 +26,7 @@ const sidebarUserName = document.getElementById('sidebarUserName');
 const sidebarUserRole = document.getElementById('sidebarUserRole');
 const appLogo = document.getElementById('appLogo');
 const brandSub = document.getElementById('brandSub');
+const topbarVersionLink = document.getElementById('topbarVersionLink');
 const setupOverlay = document.getElementById('setupOverlay');
 const loginOverlay = document.getElementById('loginOverlay');
 const profileOverlay = document.getElementById('profileOverlay');
@@ -48,6 +49,7 @@ const topbarMenuEmail = document.getElementById('topbarMenuEmail');
 const topbarAppearanceMode = document.getElementById('topbarAppearanceMode');
 const appShell = document.querySelector('.app-shell');
 let editingIndex = null;
+let editingRecordType = 'ics';
 let notifications = JSON.parse(localStorage.getItem('icsNotifications') || '[]');
 let stageDescToUnits = {};
 let pendingConfirmAction = null;
@@ -59,6 +61,7 @@ const eulPageSize = 10;
 let actionCenterFilter = 'all';
 let actionCenterICSFilter = '';
 let actionCenterItemFilter = '';
+let actionCenterSourceFilter = '';
 let actionCenterSelectedKeys = {};
 let inventoryFilter = 'all';
 let archivesFilterIcs = '';
@@ -86,8 +89,8 @@ let dataManagerState = {
   verification: null,
   migrationRows: []
 };
-const ICS_SCHEMA_VERSION = '1.0.0';
-const APP_UI_VERSION_FALLBACK = '1';
+const ICS_SCHEMA_VERSION = '1.2.1';
+const APP_UI_VERSION_FALLBACK = '1.2.1';
 const SIDEBAR_COLLAPSE_STORAGE_KEY = 'icsSidebarCollapsed';
 const PROFILE_VIEWS = ['Dashboard', 'Manage Inventory', 'Action Center', 'Archives'];
 const DEFAULT_DESIGNATIONS = ['Inventory Officer'];
@@ -323,6 +326,35 @@ const ACCENT_THEMES = {
     btnDelText: '#fbfbfb',
     btnSecondaryBg: '#2f2440',
     btnSecondaryText: '#fbfbfb'
+  },
+  'dracula-nocturne': {
+    a: '#8b5cf6',
+    as: '#35265a',
+    ah: '#c4b5fd',
+    bg: '#130f1f',
+    m: '#241c38',
+    t: '#f8fafc',
+    tm: '#d6ccef',
+    border: '#5b4a86',
+    sidebarBg: 'linear-gradient(180deg,#1b1630 0%,#151126 100%)',
+    topbarBg: 'rgba(20,16,34,.92)',
+    iconBtnBg: '#261f3f',
+    iconBtnText: '#f5f3ff',
+    iconBtnBorder: '#5b4a86',
+    modalBg: '#1b1530',
+    modalBorder: '#5b4a86',
+    modalHeadBg: 'linear-gradient(180deg,#241a40 0%,#1c1433 100%)',
+    modalHeadBorder: '#5b4a86',
+    modalFootBg: 'rgba(27,21,48,.96)',
+    modalFootBorder: '#5b4a86',
+    btnAddBg: '#3a2d63',
+    btnAddText: '#f5f3ff',
+    btnPrimaryBg: '#8b5cf6',
+    btnPrimaryText: '#ffffff',
+    btnDelBg: '#5f3550',
+    btnDelText: '#fff1f2',
+    btnSecondaryBg: '#2a2146',
+    btnSecondaryText: '#f8fafc'
   }
 };
 
@@ -338,8 +370,15 @@ if (currentUser?.preferences && currentUser.preferences.themeAccent !== resolved
 applyTableDensity();
 
 function setBrandSubVersion(versionText){
-  if (!brandSub) return;
-  brandSub.textContent = 'Digital School Inventory System v1.0';
+  const normalized = String(versionText || '').trim();
+  if (!normalized){
+    if (brandSub) brandSub.textContent = 'Digital School Inventory System';
+    if (topbarVersionLink) topbarVersionLink.textContent = '';
+    return;
+  }
+  const displayVersion = /^\d+$/.test(normalized) ? `${normalized}.0` : normalized;
+  if (brandSub) brandSub.textContent = `Digital School Inventory System v${displayVersion}`;
+  if (topbarVersionLink) topbarVersionLink.textContent = `v${displayVersion}`;
 }
 
 async function applyBrandSubVersionFromManifest(){
@@ -423,14 +462,30 @@ initializeSidebarCollapsedState();
 // ===== VIEWS =====
 
 // ===== NAVIGATION =====
+function syncTopbarViewButtons(activeKey){
+  const key = (activeKey || '').toString();
+  document.querySelectorAll('.topbar-v2-view-btn[data-action="goToView"]').forEach((btn) => {
+    const isActive = (btn.dataset.arg1 || '') === key;
+    btn.classList.toggle('is-primary', isActive);
+    if (isActive){
+      btn.setAttribute('aria-current', 'page');
+    } else {
+      btn.removeAttribute('aria-current');
+    }
+  });
+}
+
 navItems.forEach(item => item.onclick = () => {
   const key = item.dataset.view;
   if (!viewRenderers[key]) return;
 
   navItems.forEach(n => n.classList.remove('active'));
   item.classList.add('active');
+  syncTopbarViewButtons(key);
   renderView(key);
 });
+
+syncTopbarViewButtons((([...navItems].find((n) => n.classList.contains('active')) || {}).dataset || {}).view || 'Dashboard');
 
 // ===== FLOATING FORM =====
 

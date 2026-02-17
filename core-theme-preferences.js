@@ -28,8 +28,13 @@ function normalizeThemeAccentKey(accent){
 function applyThemeAccent(accent){
   const key = normalizeThemeAccentKey(accent);
   const theme = ACCENT_THEMES[key];
-  const isDark = key === 'dracula' || key === 'crimson-black';
-  if (document.body) document.body.dataset.theme = key;
+  const isDraculaFamily = key === 'dracula' || key.startsWith('dracula-');
+  const isDark = isDraculaFamily || key === 'crimson-black';
+  if (document.body){
+    document.body.dataset.theme = isDraculaFamily ? 'dracula' : key;
+    if (key !== 'dracula' && isDraculaFamily) document.body.dataset.themeVariant = key;
+    else delete document.body.dataset.themeVariant;
+  }
   syncThemeColorMeta(theme.a);
   document.documentElement.style.setProperty('--a', theme.a);
   document.documentElement.style.setProperty('--as', theme.as);

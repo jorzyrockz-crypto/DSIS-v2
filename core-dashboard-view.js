@@ -29,15 +29,16 @@ function getViewStateSummary(view){
     }
   };
   const records = parseArray('icsRecords');
+  const parRecords = parseArray('parRecords');
   const archives = parseArray('icsArchivedItems');
 
   if (view === 'Dashboard'){
-    return `Current state: ${records.length} ICS records, ${archives.length} archived items.`;
+    return `Current state: ${records.length} ICS records, ${parRecords.length} PAR records, ${archives.length} archived items.`;
   }
 
   if (view === 'Manage Inventory'){
     const scope = inventoryFilter === 'missing' ? 'Missing Data filter active' : 'All records view';
-    return `Current state: ${records.length} finalized ICS records. ${scope}.`;
+    return `Current state: ${records.length} finalized ICS records and ${parRecords.length} finalized PAR records. ${scope}.`;
   }
 
   if (view === 'Action Center'){
@@ -52,15 +53,24 @@ function getViewStateSummary(view){
           else if (result.code === 'near') near += 1;
         });
       });
+      parRecords.forEach((r) => {
+        (Array.isArray(r.items) ? r.items : []).forEach((it) => {
+          const result = classify(r, it);
+          if (result.code === 'past') past += 1;
+          else if (result.code === 'near') near += 1;
+        });
+      });
     }
     const mode = actionCenterFilter === 'near'
       ? 'Filter: Due < 3m'
       : actionCenterFilter === 'past'
         ? 'Filter: Past EUL'
         : 'Filter: All due/past';
-    const scope = actionCenterICSFilter
-      ? ` Scope ICS: ${actionCenterICSFilter}${actionCenterItemFilter ? `, Item: ${actionCenterItemFilter}` : ''}.`
-      : '';
+    const scopeParts = [];
+    if (actionCenterSourceFilter) scopeParts.push(`Source: ${(actionCenterSourceFilter || '').toUpperCase()}`);
+    if (actionCenterICSFilter) scopeParts.push(`Record: ${actionCenterICSFilter}`);
+    if (actionCenterItemFilter) scopeParts.push(`Item: ${actionCenterItemFilter}`);
+    const scope = scopeParts.length ? ` Scope ${scopeParts.join(', ')}.` : '';
     return `Current state: ${past} past EUL, ${near} due < 3m. ${mode}.${scope}`;
   }
 

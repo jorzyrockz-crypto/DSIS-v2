@@ -113,11 +113,14 @@ function saveICSFromForm(){
   if (!requireAccess('save_staged_ics', { label: 'saving ICS draft/staged data' })) return;
   const icsNo = validateFormForStaging();
   if (!icsNo) return;
+  const activeType = (editingRecordType === 'par') ? 'par' : 'ics';
+  const recordCode = activeType === 'par' ? 'PAR' : 'ICS';
 
   setStageContext({
     icsNo,
     entity: document.getElementById('entityName').value.trim(),
-    mode: editingIndex !== null ? 'Editing' : 'Draft'
+    mode: editingIndex !== null ? 'Editing' : 'Draft',
+    recordType: activeType
   });
 
   if (getStageRows().length === 0){
@@ -125,12 +128,16 @@ function saveICSFromForm(){
   }
 
   sheet.classList.remove('show');
-  showFormAlert(`ICS ${icsNo} is active in Staged Items. Encode items, then click Finalize.`, 'info');
-  notify('info', `ICS ${icsNo} is now active in Staged Items. Encode items, then click Finalize ICS Data.`);
+  showFormAlert(`${recordCode} ${icsNo} is active in Staged Items. Encode items, then click Finalize.`, 'info');
+  notify('info', `${recordCode} ${icsNo} is now active in Staged Items. Encode items, then click Finalize ${recordCode} Data.`);
 }
 
 function finalizeICS(){
   if (!requireAccess('finalize_ics', { label: 'finalizing ICS records' })) return;
+  if (editingIndex !== null && editingRecordType === 'par'){
+    notify('error', 'Finalize ICS is disabled while editing a PAR record.');
+    return;
+  }
   const icsNo = validateFormForStaging();
   if (!icsNo) return;
 
@@ -190,20 +197,91 @@ function finalizeICS(){
   notify('success', wasEditing ? `ICS ${icsNo} updated.` : `ICS ${icsNo} added.`);
 }
 
+function finalizePAR(){
+  if (!requireAccess('finalize_ics', { label: 'finalizing PAR records' })) return;
+  if (editingIndex !== null && editingRecordType !== 'par'){
+    notify('error', 'Finalize PAR is disabled while editing an ICS record.');
+    return;
+  }
+  const parNo = validateFormForStaging();
+  if (!parNo) return;
+
+  if (getStageRows().length === 0){
+    showFormAlert('No staged items to finalize. Add at least one item row.', 'error');
+    notify('error', 'No staged items to finalize. Add at least one item row.');
+    return;
+  }
+
+  const duplicateItemNos = markDuplicateItemNoRows();
+  if (duplicateItemNos.length){
+    const labels = duplicateItemNos.map((d) => d.value);
+    showFormAlert(`Duplicate Item No. found: ${labels.join(', ')}`, 'error');
+    notify('error', `Duplicate Item No. found: ${labels.join(', ')}`);
+    return;
+  }
+
+  const parRecords = JSON.parse(localStorage.getItem('parRecords') || '[]');
+  const duplicate = parRecords.findIndex((r, idx) => {
+    if (editingIndex !== null && editingRecordType === 'par' && idx === editingIndex) return false;
+    return ((r.parNo || r.icsNo || '').toString().trim() === parNo);
+  });
+  if (duplicate !== -1){
+    const duplicateRecord = parRecords[duplicate];
+    showFormAlert(`Duplicate PAR found: ${parNo}`, 'error');
+    notify('error', `Duplicate PAR found: ${parNo}.`);
+    showFormAlert(
+      `Duplicate PAR ${parNo} exists in PAR Records (#${duplicate + 1}) for ${duplicateRecord.entity || 'Unknown Entity'}.`,
+      'error'
+    );
+    return;
+  }
+
+  const draftRecord = collectICSRecord();
+  const validated = validateAndNormalizeICSRecord(draftRecord, { strict: true });
+  if (!validated.ok){
+    const firstError = validated.errors[0] || 'Validation failed.';
+    showFormAlert(`Cannot finalize PAR: ${firstError}`, 'error');
+    notify('error', `Cannot finalize PAR: ${firstError}`);
+    return;
+  }
+
+  const wasEditing = editingIndex !== null && editingRecordType === 'par';
+  const record = attachRecordStatusMeta(validated.record, wasEditing ? 'updated' : 'new');
+  record.parNo = record.icsNo || parNo;
+  if (wasEditing){
+    parRecords[editingIndex] = record;
+  } else {
+    parRecords.push(record);
+  }
+  localStorage.setItem('parRecords', JSON.stringify(parRecords));
+  loadICSRecords();
+  resetStageItems();
+  resetFormMode();
+  clearFormAlert();
+  recordAudit(
+    wasEditing ? 'update' : 'add',
+    `${wasEditing ? 'Updated' : 'Added'} PAR ${record.parNo || parNo}`,
+    buildRecordLineageAuditMeta(record, { recordParNo: record.parNo || parNo })
+  );
+  notify('success', wasEditing ? `PAR ${record.parNo || parNo} updated.` : `PAR ${record.parNo || parNo} added.`);
+}
+
 function confirmAutoPopulateICS(){
   if (!requireAccess('auto_populate_records')) return;
   showConfirm(
     'Auto-Populate Stress Data',
-    'Generate and add 3 complete ICS records for stress testing?',
+    'Generate and add 3 complete ICS records and 3 complete PAR records for stress testing?',
     autoPopulateICSData,
-    'Generate 3'
+    'Generate 6'
   );
 }
 
 function autoPopulateICSData(){
   if (!requireAccess('auto_populate_records')) return;
   const records = JSON.parse(localStorage.getItem('icsRecords') || '[]');
+  const parRecords = JSON.parse(localStorage.getItem('parRecords') || '[]');
   const existingNo = new Set(records.map(r => (r.icsNo || '').toLowerCase()));
+  const existingParNo = new Set(parRecords.map(r => (r.parNo || r.icsNo || '').toLowerCase()));
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -215,6 +293,14 @@ function autoPopulateICSData(){
     if (!m) return;
     const n = Number(m[1]);
     if (Number.isFinite(n)) nextSeq = Math.max(nextSeq, n + 1);
+  });
+  let nextParSeq = 1;
+  parRecords.forEach((r) => {
+    const parNo = (r.parNo || r.icsNo || '').toString();
+    const m = parNo.match(new RegExp(`^${prefix}-(\\d{4})$`));
+    if (!m) return;
+    const n = Number(m[1]);
+    if (Number.isFinite(n)) nextParSeq = Math.max(nextParSeq, n + 1);
   });
 
   const entities = [
@@ -253,6 +339,7 @@ function autoPopulateICSData(){
   };
 
   const added = [];
+  const addedPAR = [];
   for (let i = 0; i < 3; i++){
     let icsNo = `${prefix}-${String(nextSeq).padStart(3, '0')}`;
     while (existingNo.has(icsNo.toLowerCase())){
@@ -305,12 +392,70 @@ function autoPopulateICSData(){
     added.push(`${record.icsNo} (${tag})`);
   }
 
+  for (let i = 0; i < 3; i++){
+    let parNo = `${prefix}-${String(nextParSeq).padStart(4, '0')}`;
+    while (existingParNo.has(parNo.toLowerCase())){
+      nextParSeq += 1;
+      parNo = `${prefix}-${String(nextParSeq).padStart(4, '0')}`;
+    }
+    existingParNo.add(parNo.toLowerCase());
+    nextParSeq += 1;
+
+    const issuedBy = issuedPeople[i % issuedPeople.length];
+    const receivedBy = receivedPeople[(i + 1) % receivedPeople.length];
+    const entity = entities[(i + 1) % entities.length];
+    const fund = funds[(i + 1) % funds.length];
+    const profile = profileByIndex[i % profileByIndex.length];
+    const issuedDate = shiftMonths(now, -(profile.issuedMonthsAgo + 1)).toISOString().slice(0,10);
+
+    const items = itemSeeds.slice(i, i + 3).map((seed, k) => {
+      const qty = Number(seed.qty);
+      const unitCost = Number(seed.unitCost);
+      const total = qty * unitCost;
+      return {
+        desc: seed.desc,
+        itemNo: `${parNo}-${String(k + 1).padStart(2, '0')}`,
+        qty,
+        qtyText: String(qty),
+        unit: seed.unit,
+        unitCost,
+        total,
+        eul: profile.itemEUL
+      };
+    });
+
+    const totalValue = items.reduce((sum, it) => sum + (Number(it.total) || 0), 0);
+    const record = {
+      icsNo: parNo,
+      parNo,
+      entity,
+      fund,
+      issuedDate,
+      accountable: receivedBy.name,
+      signatories: {
+        issuedBy: { name: issuedBy.name, position: issuedBy.position, date: issuedDate },
+        receivedBy: { name: receivedBy.name, position: receivedBy.position, date: issuedDate }
+      },
+      eul: profile.label === 'past' ? 'Expired' : 'Active',
+      totalValue: totalValue.toFixed(2),
+      items
+    };
+    parRecords.push(attachRecordStatusMeta(record, 'new'));
+    const tag = profile.label === 'near' ? 'Due < 3m' : (profile.label === 'past' ? 'Past EUL' : 'Within EUL');
+    addedPAR.push(`${record.parNo} (${tag})`);
+  }
+
   localStorage.setItem('icsRecords', JSON.stringify(records));
-  recordAudit('seed', `Auto-populated records: ${added.join(', ')}`);
+  localStorage.setItem('parRecords', JSON.stringify(parRecords));
+  recordAudit('seed', `Auto-populated ICS: ${added.join(', ')} | PAR: ${addedPAR.join(', ')}`, {
+    recordType: 'mixed',
+    addedICS: added.length,
+    addedPAR: addedPAR.length
+  });
   loadICSRecords();
   if ([...navItems].some(n => n.classList.contains('active') && n.dataset.view === 'Action Center')) initActionsView();
   if ([...navItems].some(n => n.classList.contains('active') && n.dataset.view === 'Archives')) initArchivesView();
-  notify('success', `Stress data generated: ${added.join(', ')}`);
+  notify('success', `Stress data generated. ICS (${added.length}): ${added.join(', ')} | PAR (${addedPAR.length}): ${addedPAR.join(', ')}`);
 }
 
 

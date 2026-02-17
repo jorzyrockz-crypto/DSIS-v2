@@ -1,28 +1,29 @@
 function renderActionsView(){
   const filterLabel = actionCenterFilter === 'near' ? 'Due < 3m only' : (actionCenterFilter === 'past' ? 'Past EUL only' : 'All due and past EUL items');
-  const icsScope = actionCenterICSFilter ? ` <span class="risk-badge ok">ICS: ${escapeHTML(actionCenterICSFilter)}</span>` : '';
+  const sourceScope = actionCenterSourceFilter ? ` <span class="risk-badge ok">Source: ${escapeHTML((actionCenterSourceFilter || '').toUpperCase())}</span>` : '';
+  const icsScope = actionCenterICSFilter ? ` <span class="risk-badge ok">Record: ${escapeHTML(actionCenterICSFilter)}</span>` : '';
   const itemScope = actionCenterItemFilter ? ` <span class="risk-badge warn">Item: ${escapeHTML(actionCenterItemFilter)}</span>` : '';
-  const clearBtn = (actionCenterICSFilter || actionCenterItemFilter) ? ` <button class="btn btn-sm btn-secondary" data-action="clearActionCenterICSFilter">Clear Target Filter</button>` : '';
+  const clearBtn = (actionCenterSourceFilter || actionCenterICSFilter || actionCenterItemFilter) ? ` <button class="btn btn-sm btn-secondary" data-action="clearActionCenterICSFilter">Clear Target Filter</button>` : '';
   return `
 ${renderWelcomeBanner('Action Center')}
 <div class="ics-card records">
   <div class="ics-card-head"><span class="card-title">EUL Action Center <span class="card-badge records">ACTIONS</span></span></div>
-  <p class="card-subtext">Only items with status <strong>Due &lt; 3m</strong> or <strong>Past EUL</strong> are shown below. Filter: <strong>${filterLabel}</strong>.${icsScope}${itemScope}${clearBtn}</p>
+  <p class="card-subtext">Only items with status <strong>Due &lt; 3m</strong> or <strong>Past EUL</strong> are shown below. Filter: <strong>${filterLabel}</strong>.${sourceScope}${icsScope}${itemScope}${clearBtn}</p>
   <div class="records-table-wrap actions-eul-wrap">
     <table class="ics-table actions-eul-table">
       <colgroup>
-        <col style="width:3%">
-        <col style="width:9%">
-        <col style="width:24%">
-        <col style="width:8%">
-        <col style="width:11%">
-        <col style="width:11%">
-        <col style="width:14%">
-        <col style="width:20%">
+        <col class="c-ac-idx">
+        <col class="c-ac-record">
+        <col class="c-ac-desc">
+        <col class="c-ac-euldays">
+        <col class="c-ac-eulstatus">
+        <col class="c-ac-inspection">
+        <col class="c-ac-remarks">
+        <col class="c-ac-actions">
       </colgroup>
       <thead>
         <tr>
-          <th>#</th><th>ICS No.</th><th>Description</th><th style="text-align:center">EUL (Days)</th><th style="text-align:center">EUL Status</th><th style="text-align:center">Inspection</th><th>Remarks</th><th style="text-align:center">Actions</th>
+          <th>#</th><th>ICS/PAR No.</th><th>Description</th><th style="text-align:center">EUL (Days)</th><th style="text-align:center">EUL Status</th><th style="text-align:center">Inspection</th><th>Remarks</th><th style="text-align:center">Actions</th>
         </tr>
       </thead>
       <tbody id="eulBody"></tbody>
@@ -72,7 +73,7 @@ ${renderWelcomeBanner('Action Center')}
   <div class="actions-modal modal-lg inspection-history-modal">
     <div class="modal-head inspection-history-head">
       <h3 class="inspection-history-title">Inspection History</h3>
-      <button class="inspection-history-close" data-action="closeInspectionHistory">Close</button>
+      <button class="inspection-history-close modal-close-btn" data-action="closeInspectionHistory"><i data-lucide="x" aria-hidden="true"></i>Close</button>
     </div>
     <div class="modal-body" id="inspectionHistoryBody"></div>
   </div>

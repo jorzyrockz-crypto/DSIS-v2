@@ -24,6 +24,9 @@ function recordAudit(type, detail, extra = null){
   });
   setAuditLogs(logs);
   renderProfileRecentDataActivity();
+  if (typeof window.refreshAuditLogsMenuBadge === 'function'){
+    window.refreshAuditLogsMenuBadge();
+  }
 }
 
 function stripRecordLineage(record){

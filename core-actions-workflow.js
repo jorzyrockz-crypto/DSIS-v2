@@ -1,11 +1,11 @@
-function getActionItemKey(icsNo, itemNo){
-  return `${icsNo || ''}||${itemNo || ''}`;
+function getActionItemKey(icsNo, itemNo, sourceType){
+  return `${sourceType || 'ics'}||${icsNo || ''}||${itemNo || ''}`;
 }
 
-function toggleActionCenterSelection(icsNo, itemNo, checked){
+function toggleActionCenterSelection(icsNo, itemNo, checked, sourceType){
   if (!requireAccess('archive_items', { label: 'select Action Center items for batch actions' })) return;
-  const key = getActionItemKey(icsNo, itemNo);
-  if (checked) actionCenterSelectedKeys[key] = { icsNo: icsNo || '', itemNo: itemNo || '' };
+  const key = getActionItemKey(icsNo, itemNo, sourceType);
+  if (checked) actionCenterSelectedKeys[key] = { icsNo: icsNo || '', itemNo: itemNo || '', sourceType: sourceType || 'ics' };
   else delete actionCenterSelectedKeys[key];
   const active = [...navItems].find(n => n.classList.contains('active'))?.dataset?.view;
   if (active === 'Action Center') renderView('Action Center');
@@ -18,7 +18,7 @@ function openBatchWasteReportFromActionCenter(){
     notify('error', 'No Action Center items are available in the current scope.');
     return;
   }
-  const eligible = scopedTargets.filter((x) => hasDisposalSituation(x.icsNo, x.itemNo));
+  const eligible = scopedTargets.filter((x) => hasDisposalSituation(x.icsNo, x.itemNo, x.sourceType));
   if (!eligible.length){
     notify('error', 'No disposal-ready items found in the current Action Center scope.');
     return;
@@ -30,8 +30,8 @@ function openBatchWasteReportFromActionCenter(){
   openWasteReportModalForTargets(eligible, '');
 }
 
-function hasDisposalSituation(icsNo, itemNo){
-  const ref = findItemRef(icsNo, itemNo);
+function hasDisposalSituation(icsNo, itemNo, sourceType){
+  const ref = findItemRef(icsNo, itemNo, sourceType || 'ics');
   if (!ref) return false;
   const item = ref.records?.[ref.rIdx]?.items?.[ref.iIdx];
   const logs = Array.isArray(item?.inspections) ? item.inspections : [];
@@ -48,9 +48,12 @@ function getScopedActionCenterRows(){
     : actionCenterFilter === 'past'
       ? eulActionRows.filter((r) => r.code === 'past')
       : eulActionRows;
-  const scoped = actionCenterICSFilter
-    ? rows.filter((r) => normalizeICSKey(r.icsNo || '') === normalizeICSKey(actionCenterICSFilter))
+  const bySource = actionCenterSourceFilter
+    ? rows.filter((r) => ((r.sourceType || 'ics').toString().toLowerCase() === actionCenterSourceFilter))
     : rows;
+  const scoped = actionCenterICSFilter
+    ? bySource.filter((r) => normalizeICSKey(r.icsNo || '') === normalizeICSKey(actionCenterICSFilter))
+    : bySource;
   return actionCenterItemFilter
     ? scoped.filter((r) => normalizeICSKey(r.itemNo || '') === normalizeICSKey(actionCenterItemFilter))
     : scoped;
@@ -59,10 +62,10 @@ function getScopedActionCenterRows(){
 function getScopedActionCenterBatchTargets(){
   const seen = {};
   return getScopedActionCenterRows().reduce((out, row) => {
-    const key = getActionItemKey(row.icsNo, row.itemNo);
+    const key = getActionItemKey(row.icsNo, row.itemNo, row.sourceType);
     if (seen[key]) return out;
     seen[key] = true;
-    out.push({ icsNo: row.icsNo || '', itemNo: row.itemNo || '' });
+    out.push({ icsNo: row.icsNo || '', itemNo: row.itemNo || '', sourceType: row.sourceType || 'ics' });
     return out;
   }, []);
 }
@@ -72,7 +75,7 @@ function getBatchWmrEligibleCount(){
   if (!targets.length) return 0;
   let count = 0;
   targets.forEach((t) => {
-    if (hasDisposalSituation(t.icsNo, t.itemNo)) count += 1;
+    if (hasDisposalSituation(t.icsNo, t.itemNo, t.sourceType)) count += 1;
   });
   return count;
 }
@@ -210,10 +213,20 @@ function unarchiveItem(index){
   const archived = getArchivedItems();
   const entry = archived[index];
   if (!entry) return;
-  const records = JSON.parse(localStorage.getItem('icsRecords') || '[]');
-  const targetIdx = records.findIndex(r => (r.icsNo || '') === (entry.source?.icsNo || ''));
+  const sourceType = (entry?.source?.sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
+  const storageKey = sourceType === 'par' ? 'parRecords' : 'icsRecords';
+  const sourceNo = sourceType === 'par'
+    ? ((entry.source?.parNo || entry.source?.icsNo || '').toString())
+    : ((entry.source?.icsNo || '').toString());
+  const records = JSON.parse(localStorage.getItem(storageKey) || '[]');
+  const targetIdx = records.findIndex((r) => {
+    const recordNo = sourceType === 'par'
+      ? ((r.parNo || r.icsNo || '').toString())
+      : ((r.icsNo || '').toString());
+    return recordNo === sourceNo;
+  });
   if (targetIdx === -1){
-    notify('error', `Cannot unarchive. Source ICS ${entry.source?.icsNo || ''} was not found.`);
+    notify('error', `Cannot unarchive. Source ${(sourceType === 'par' ? 'PAR' : 'ICS')} ${sourceNo || ''} was not found.`);
     return;
   }
 
@@ -222,7 +235,7 @@ function unarchiveItem(index){
   const itemNo = (entry.item?.itemNo || '').trim().toLowerCase();
   const duplicate = target.items.some(it => (it.itemNo || '').trim().toLowerCase() === itemNo && itemNo);
   if (duplicate){
-    notify('error', `Cannot unarchive. Item No. ${entry.item?.itemNo || ''} already exists in ICS ${target.icsNo}.`);
+    notify('error', `Cannot unarchive. Item No. ${entry.item?.itemNo || ''} already exists in ${(sourceType === 'par' ? 'PAR' : 'ICS')} ${(sourceType === 'par' ? (target.parNo || target.icsNo || '') : (target.icsNo || ''))}.`);
     return;
   }
 
@@ -233,29 +246,35 @@ function unarchiveItem(index){
     `unarchive:${entry.item?.itemNo || 'item'}`
   );
   archived.splice(index, 1);
-  localStorage.setItem('icsRecords', JSON.stringify(records));
+  localStorage.setItem(storageKey, JSON.stringify(records));
   setArchivedItems(archived);
   recordAudit(
     'unarchive',
-    `Unarchived item ${entry.item?.itemNo || ''} back to ${target.icsNo}.`,
-    buildRecordLineageAuditMeta(records[targetIdx], { itemNo: entry.item?.itemNo || '' })
+    `Unarchived item ${entry.item?.itemNo || ''} back to ${(sourceType === 'par' ? (target.parNo || target.icsNo || '') : (target.icsNo || ''))}.`,
+    buildRecordLineageAuditMeta(records[targetIdx], {
+      sourceType,
+      itemNo: entry.item?.itemNo || '',
+      recordParNo: sourceType === 'par' ? (target.parNo || target.icsNo || '') : ''
+    })
   );
-  notify('success', `Unarchived item ${entry.item?.itemNo || ''} back to ${target.icsNo}.`);
+  notify('success', `Unarchived item ${entry.item?.itemNo || ''} back to ${(sourceType === 'par' ? (target.parNo || target.icsNo || '') : (target.icsNo || ''))}.`);
 
   initArchivesView();
   initActionsView();
   loadICSRecords();
+  loadPARRecords();
 }
 
 
-function onInspectionChange(sel, icsNo, itemNo){
+function onInspectionChange(sel, icsNo, itemNo, sourceType){
   if (!requireAccess('archive_items', { label: 'record inspection results' })){
     if (sel) sel.value = '';
     return;
   }
+  const resolvedSourceType = (sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
   if (!sel || !sel.value) return;
   if (sel.value === 'serviceable'){
-    const ref = findItemRef(icsNo, itemNo);
+    const ref = findItemRef(icsNo, itemNo, resolvedSourceType);
     if (!ref) return;
     const it = ref.records[ref.rIdx].items[ref.iIdx];
     it.inspections = Array.isArray(it.inspections) ? it.inspections : [];
@@ -270,13 +289,13 @@ function onInspectionChange(sel, icsNo, itemNo){
       'inspection',
       `serviceable:${itemNo || 'item'}`
     );
-    localStorage.setItem('icsRecords', JSON.stringify(ref.records));
+    localStorage.setItem(ref.storageKey || 'icsRecords', JSON.stringify(ref.records));
     notify('info', `Inspection saved (Serviceable) for ${itemNo}`);
     initActionsView();
     return;
   }
   if (sel.value === 'unserviceable'){
-    pendingInspection = { icsNo, itemNo };
+    pendingInspection = { icsNo, itemNo, sourceType: resolvedSourceType };
     sel.value = '';
     let overlay = document.getElementById('inspectionOverlay');
     let reasonEl = document.getElementById('inspReason');
@@ -392,7 +411,7 @@ function saveInspectionCore(openArchiveAfter){
     notify('error', 'Inspection reason and date are required.');
     return false;
   }
-  const ref = findItemRef(pendingInspection.icsNo, pendingInspection.itemNo);
+  const ref = findItemRef(pendingInspection.icsNo, pendingInspection.itemNo, pendingInspection.sourceType || 'ics');
   if (!ref) return false;
   const it = ref.records[ref.rIdx].items[ref.iIdx];
   it.inspections = Array.isArray(it.inspections) ? it.inspections : [];
@@ -410,8 +429,8 @@ function saveInspectionCore(openArchiveAfter){
     'inspection',
     `unserviceable:${it.itemNo || pendingInspection.itemNo || 'item'}`
   );
-  localStorage.setItem('icsRecords', JSON.stringify(ref.records));
-  const target = { icsNo: pendingInspection.icsNo, itemNo: pendingInspection.itemNo };
+  localStorage.setItem(ref.storageKey || 'icsRecords', JSON.stringify(ref.records));
+  const target = { icsNo: pendingInspection.icsNo, itemNo: pendingInspection.itemNo, sourceType: pendingInspection.sourceType || 'ics' };
   pendingInspection = null;
   document.getElementById('inspReason').value = '';
   document.getElementById('inspDate').value = '';
@@ -425,9 +444,9 @@ function saveInspectionCore(openArchiveAfter){
   closeInspectionModal();
   notify('success', `Inspection saved (Unserviceable) for ${it.itemNo || 'item'}`);
   if (openArchiveAfter && isDisposalInspectionReason(reason)){
-    openWasteReportModal(target.icsNo, target.itemNo, 'archive', 'inspection');
+    openWasteReportModal(target.icsNo, target.itemNo, 'archive', 'inspection', target.sourceType || 'ics');
   } else if (openArchiveAfter){
-    openArchiveModal(target.icsNo, target.itemNo);
+    openArchiveModal(target.icsNo, target.itemNo, target.sourceType);
   } else {
     initActionsView();
   }
@@ -482,7 +501,7 @@ function formatInspectionHistoryDateTime(value){
   return String(value);
 }
 
-function openInspectionHistory(icsNo, itemNo){
+function openInspectionHistory(icsNo, itemNo, sourceType){
   let body = document.getElementById('inspectionHistoryBody');
   let overlay = document.getElementById('inspectionHistoryOverlay');
   if (!body || !overlay){
@@ -492,7 +511,7 @@ function openInspectionHistory(icsNo, itemNo){
         <div class="actions-modal modal-lg inspection-history-modal">
           <div class="modal-head inspection-history-head">
             <h3 class="inspection-history-title">Inspection History</h3>
-            <button class="inspection-history-close" data-action="closeInspectionHistory">Close</button>
+            <button class="inspection-history-close modal-close-btn" data-action="closeInspectionHistory"><i data-lucide="x" aria-hidden="true"></i>Close</button>
           </div>
           <div class="modal-body" id="inspectionHistoryBody"></div>
         </div>
@@ -504,7 +523,8 @@ function openInspectionHistory(icsNo, itemNo){
     if (!body || !overlay) return;
     if (typeof window.refreshIcons === 'function') window.refreshIcons();
   }
-  const ref = findItemRef(icsNo, itemNo);
+  const resolvedSourceType = (sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
+  const ref = findItemRef(icsNo, itemNo, resolvedSourceType);
   if (!ref){
     body.innerHTML = '<div class="inspection-history-empty">No inspection history found.</div>';
     overlay.classList.add('show');
@@ -518,9 +538,9 @@ function openInspectionHistory(icsNo, itemNo){
     const statusRaw = (log.status || '').toString().trim().toLowerCase();
     const statusLabel = statusRaw ? `${statusRaw.charAt(0).toUpperCase()}${statusRaw.slice(1)}` : '-';
     const statusClass = statusRaw === 'serviceable' ? 'ok' : (statusRaw === 'unserviceable' ? 'danger' : '');
-    const canPrint = hasWasteReport && statusRaw === 'unserviceable';
+    const canPrint = resolvedSourceType === 'ics' && hasWasteReport && statusRaw === 'unserviceable';
     const actionCell = canPrint
-      ? `<button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Print Waste Report" aria-label="Print Waste Report" data-action="printWasteMaterialsReport" data-arg1="${escapeHTML(icsNo || '')}" data-arg2="${escapeHTML(itemNo || '')}" ${canArchive ? '' : 'disabled'}><i data-lucide="printer" aria-hidden="true"></i></button>`
+      ? `<button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Print Waste Report" aria-label="Print Waste Report" data-action="printWasteMaterialsReport" data-arg1="${escapeHTML(icsNo || '')}" data-arg2="${escapeHTML(itemNo || '')}" data-arg3="${escapeHTML(resolvedSourceType)}" ${canArchive ? '' : 'disabled'}><i data-lucide="printer" aria-hidden="true"></i></button>`
       : '-';
     const recordedBy = normalizeProfileKeyValue(log.recordedByProfileKey || log.recordedBy || log.by || '');
     const reportPreparedBy = normalizeProfileKeyValue(log.reportPreparedByProfileKey || '');
@@ -586,9 +606,10 @@ function closeInspectionHistory(){
   if (overlay) overlay.classList.remove('show');
 }
 
-function openArchiveModal(icsNo, itemNo){
+function openArchiveModal(icsNo, itemNo, sourceType){
   if (!requireAccess('archive_items', { label: 'open archive modal' })) return;
-  const ref = findItemRef(icsNo, itemNo);
+  const resolvedSourceType = (sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
+  const ref = findItemRef(icsNo, itemNo, resolvedSourceType);
   if (!ref){
     notify('error', 'Item not found for archive.');
     return;
@@ -605,7 +626,7 @@ function openArchiveModal(icsNo, itemNo){
     notify('error', 'Archive requires latest inspection as Unserviceable with Remarks.');
     return;
   }
-  pendingArchiveTarget = { icsNo, itemNo };
+  pendingArchiveTarget = { icsNo, itemNo, sourceType: resolvedSourceType };
   const overlay = document.getElementById('archiveOverlay');
   clearFieldErrors(overlay || document);
   if (overlay) overlay.classList.add('show');
@@ -618,7 +639,7 @@ function closeArchiveModal(returnToInspection){
   if (overlay) overlay.classList.remove('show');
   clearFieldErrors(overlay || document);
   if (returnToInspection && target){
-    pendingInspection = { icsNo: target.icsNo, itemNo: target.itemNo };
+    pendingInspection = { icsNo: target.icsNo, itemNo: target.itemNo, sourceType: target.sourceType || 'ics' };
     const inspOverlay = document.getElementById('inspectionOverlay');
     if (inspOverlay) inspOverlay.classList.add('show');
     updateInspectionArchiveButtonState();
@@ -640,7 +661,7 @@ function confirmArchiveItem(){
   const referenceNo = (document.getElementById('archiveReferenceNo')?.value || '').trim();
   const remarks = (document.getElementById('archiveRemarks')?.value || '').trim();
 
-  const ref = findItemRef(pendingArchiveTarget.icsNo, pendingArchiveTarget.itemNo);
+  const ref = findItemRef(pendingArchiveTarget.icsNo, pendingArchiveTarget.itemNo, pendingArchiveTarget.sourceType || 'ics');
   if (!ref){
     notify('error', 'Item not found for archive.');
     closeArchiveModal();
@@ -649,13 +670,17 @@ function confirmArchiveItem(){
 
   const sourceRecord = ref.records[ref.rIdx];
   const item = sourceRecord.items[ref.iIdx];
+  const sourceType = (pendingArchiveTarget?.sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
+  const sourceNo = sourceType === 'par'
+    ? ((sourceRecord.parNo || sourceRecord.icsNo || pendingArchiveTarget.icsNo || '').toString())
+    : ((sourceRecord.icsNo || pendingArchiveTarget.icsNo || '').toString());
   const lastInsp = Array.isArray(item.inspections)
     ? [...item.inspections].reverse().find((x) => (x.status || '').toLowerCase() === 'unserviceable')
     : null;
   if (lastInsp && isDisposalInspectionReason(lastInsp.reason) && !(item.wasteReport && item.wasteReport.preparedAt)){
     notify('error', 'Complete Waste Materials Report metadata before archiving this disposal item.');
     closeArchiveModal();
-    openWasteReportModal(sourceRecord.icsNo || '', item.itemNo || '', 'archive', 'inspection');
+    openWasteReportModal(sourceNo, item.itemNo || '', 'archive', 'inspection', sourceType);
     return;
   }
   const actorProfileKey = getCurrentActorProfileKey();
@@ -664,7 +689,9 @@ function confirmArchiveItem(){
     archivedAt: new Date().toISOString(),
     archivedByProfileKey: actorProfileKey,
     source: {
-      icsNo: sourceRecord.icsNo || '',
+      sourceType,
+      icsNo: sourceNo,
+      parNo: sourceType === 'par' ? sourceNo : '',
       entity: sourceRecord.entity || '',
       fund: sourceRecord.fund || '',
       issuedDate: sourceRecord.issuedDate || ''
@@ -687,7 +714,7 @@ function confirmArchiveItem(){
     'archive',
     `archive:${item.itemNo || 'item'}`
   );
-  localStorage.setItem('icsRecords', JSON.stringify(ref.records));
+  localStorage.setItem(ref.storageKey || 'icsRecords', JSON.stringify(ref.records));
 
   document.getElementById('archiveApprovalStatus').value = '';
   document.getElementById('archiveApprovedBy').value = '';
@@ -697,17 +724,22 @@ function confirmArchiveItem(){
   closeArchiveModal();
   recordAudit(
     'archive',
-    `Archived item ${item.itemNo || ''} from ${sourceRecord.icsNo || ''}.`,
-    buildRecordLineageAuditMeta(ref.records[ref.rIdx], { itemNo: item.itemNo || '' })
+    `Archived item ${item.itemNo || ''} from ${(sourceType === 'par' ? `PAR ${sourceNo}` : `ICS ${sourceNo}`)}.`,
+    buildRecordLineageAuditMeta(ref.records[ref.rIdx], {
+      sourceType,
+      itemNo: item.itemNo || '',
+      recordParNo: sourceType === 'par' ? sourceNo : ''
+    })
   );
   notify('success', `Item ${item.itemNo || ''} archived.`);
   initActionsView();
   loadICSRecords();
+  loadPARRecords();
   if ([...navItems].some(n => n.classList.contains('active') && n.dataset.view === 'Archives')) initArchivesView();
 }
 
-function openWasteReportModal(icsNo, itemNo, nextAction, returnModal){
-  openWasteReportModalForTargets([{ icsNo, itemNo }], nextAction || '', returnModal || '');
+function openWasteReportModal(icsNo, itemNo, nextAction, returnModal, sourceType = 'ics'){
+  openWasteReportModalForTargets([{ icsNo, itemNo, sourceType }], nextAction || '', returnModal || '');
 }
 
 function setWmrDatalistOptions(id, values){
@@ -833,9 +865,11 @@ function renderWmrBatchPrintBuilderRows(focusNext = false){
   const selectedRows = selected.map((x, i) => {
     const item = x.entry.item || {};
     const wr = item.wasteReport || {};
+    const sourceType = (x.entry?.source?.sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
+    const sourceDisplay = `${sourceType === 'par' ? 'PAR' : 'ICS'}-${x.entry?.source?.icsNo || ''}`;
     return `<tr data-wmr-selected-index="${x.idx}">
       <td data-label="#">${i + 1}</td>
-      <td data-label="ICS No.">${escapeHTML(x.entry.source?.icsNo || '')}</td>
+      <td data-label="ICS/PAR No.">${escapeHTML(sourceDisplay)}</td>
       <td data-label="Item No.">${escapeHTML(item.itemNo || '')}</td>
       <td data-label="Description">${escapeHTML(item.desc || '')}</td>
       <td data-label="Qty">${escapeHTML((item.qtyText || item.qty || '').toString())}</td>
@@ -850,8 +884,8 @@ function renderWmrBatchPrintBuilderRows(focusNext = false){
   const nextNo = selected.length + 1;
   const inputRow = `<tr class="wmr-batch-input-row">
     <td data-label="#">${nextNo}</td>
-    <td data-label="ICS No."><span class="card-subtext">Auto</span></td>
-    <td data-label="Item No."><input class="stage-input wmr-batch-item-input" list="wmrBatchItemSuggestList" placeholder="Enter Item No. (or ICS/ItemNo)" /></td>
+    <td data-label="ICS/PAR No."><span class="card-subtext">Auto</span></td>
+    <td data-label="Item No."><input class="stage-input wmr-batch-item-input" list="wmrBatchItemSuggestList" placeholder="Enter Item No. (or RecordNo/ItemNo)" /></td>
     <td data-label="Description"><span class="card-subtext">Match from Archived Disposal Items</span></td>
     <td data-label="Qty">&nbsp;</td>
     <td data-label="Unit">&nbsp;</td>
@@ -887,7 +921,7 @@ function resolveWmrBatchPrintMatch(query){
     matches = candidates.filter((x) => normalizeICSKey(x.entry?.item?.itemNo || '') === itemPart);
   }
   if (!matches.length) return { error: `No archived WMR item matched "${q}".` };
-  if (matches.length > 1) return { error: `Multiple matches for "${q}". Use ICS/ItemNo format.` };
+  if (matches.length > 1) return { error: `Multiple matches for "${q}". Use RecordNo/ItemNo format.` };
   return { match: matches[0] };
 }
 
@@ -955,8 +989,9 @@ function printWasteReportBuilderSelection(){
   }
   const base = entries[0];
   const entitySet = new Set(entries.map((e) => (e?.source?.entity || '').trim()).filter(Boolean));
+  const sourceSet = new Set(entries.map((e) => `${((e?.source?.sourceType || 'ics').toString().toLowerCase() === 'par' ? 'PAR' : 'ICS')}-${(e?.source?.icsNo || '').toString()}`));
   const record = {
-    icsNo: entries.length === 1 ? (base?.source?.icsNo || '') : 'MULTIPLE ICS',
+    icsNo: entries.length === 1 ? (base?.source?.icsNo || '') : `MULTIPLE RECORDS (${sourceSet.size})`,
     entity: entitySet.size <= 1 ? (base?.source?.entity || '') : 'Multiple Entities',
     fund: base?.source?.fund || '',
     issuedDate: base?.source?.issuedDate || '',
@@ -978,21 +1013,38 @@ function openWasteReportModalForTargets(targets, nextAction, returnModal){
   wmrBatchPrintArchivedIndexes = [];
   syncWmrBatchBuilderButtons();
   const rows = [];
-  const icsSet = new Set();
+  const sourceSet = new Set();
   (targets || []).forEach((t) => {
-    const ref = findItemRef(t.icsNo, t.itemNo);
+    const sourceType = (t?.sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
+    const ref = findItemRef(t.icsNo, t.itemNo, sourceType);
     if (!ref) return;
     const record = ref.records[ref.rIdx];
     const item = record.items[ref.iIdx];
-    rows.push({ record, item, icsNo: record.icsNo || '', itemNo: item.itemNo || '' });
-    icsSet.add(record.icsNo || '');
+    const sourceNo = sourceType === 'par'
+      ? ((record.parNo || record.icsNo || '').toString())
+      : ((record.icsNo || '').toString());
+    rows.push({
+      record,
+      item,
+      itemNo: item.itemNo || '',
+      sourceType,
+      sourceNo,
+      storageKey: ref.storageKey || (sourceType === 'par' ? 'parRecords' : 'icsRecords')
+    });
+    sourceSet.add(`${sourceType}:${sourceNo}`);
   });
   if (!rows.length){
     notify('error', 'Cannot open Waste Materials Report metadata. Selected items not found.');
     return;
   }
   pendingWasteReportRows = rows;
-  pendingWasteReportTarget = { icsNo: rows[0].icsNo, itemNo: rows[0].itemNo, nextAction: nextAction || '', returnModal: returnModal || '' };
+  pendingWasteReportTarget = {
+    icsNo: rows[0].sourceNo,
+    itemNo: rows[0].itemNo,
+    sourceType: rows[0].sourceType || 'ics',
+    nextAction: nextAction || '',
+    returnModal: returnModal || ''
+  };
 
   const record = rows[0].record;
   const entitySet = new Set(rows.map((r) => r.record?.entity || '').filter(Boolean));
@@ -1001,7 +1053,7 @@ function openWasteReportModalForTargets(targets, nextAction, returnModal){
 
   const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value || '-'; };
   const setValue = (id, value) => { const el = document.getElementById(id); if (el) el.value = value || ''; };
-  setText('wmrIcsNo', icsSet.size === 1 ? (record.icsNo || '-') : `Multiple ICS (${icsSet.size})`);
+  setText('wmrIcsNo', sourceSet.size === 1 ? (rows[0]?.sourceNo || '-') : `Multiple Records (${sourceSet.size})`);
   setText('wmrItemCount', String(rows.length));
   setText('wmrEntity', entitySet.size <= 1 ? (record.entity || '-') : `Multiple Entities (${entitySet.size})`);
   setText('wmrPreparedAt', sharedFromFirst.preparedAt ? new Date(sharedFromFirst.preparedAt).toLocaleString() : 'Draft');
@@ -1019,17 +1071,19 @@ function openWasteReportModalForTargets(targets, nextAction, returnModal){
   if (body){
     body.innerHTML = rows.map((r, idx) => {
       const wr = r.item.wasteReport || {};
-      const safeIcs = (r.icsNo || '').replace(/"/g, '&quot;');
+      const safeSourceNo = (r.sourceNo || '').replace(/"/g, '&quot;');
+      const safeSourceType = (r.sourceType || 'ics').replace(/"/g, '&quot;');
       const safeItem = (r.itemNo || '').replace(/"/g, '&quot;');
+      const sourceDisplay = `${(r.sourceType || 'ics') === 'par' ? 'PAR-' : 'ICS-'}${r.sourceNo || ''}`;
       return `<tr>
         <td data-label="#">${idx + 1}</td>
-        <td data-label="ICS No.">${escapeHTML(r.icsNo || '')}</td>
+        <td data-label="ICS/PAR No.">${escapeHTML(sourceDisplay)}</td>
         <td data-label="Item No.">${escapeHTML(r.itemNo || '')}</td>
         <td data-label="Description">${escapeHTML(r.item.desc || '')}</td>
         <td data-label="Qty">${escapeHTML((r.item.qtyText || r.item.qty || '').toString())}</td>
         <td data-label="Unit">${escapeHTML(r.item.unit || '')}</td>
         <td data-label="Disposition">
-          <select class="stage-input wmr-disposition" data-ics="${safeIcs}" data-item="${safeItem}">
+          <select class="stage-input wmr-disposition" data-ics="${safeSourceNo}" data-item="${safeItem}" data-source-type="${safeSourceType}">
             <option value="">Select</option>
             <option value="destroyed" ${wr.disposition === 'destroyed' ? 'selected' : ''}>Destroyed</option>
             <option value="private_sale" ${wr.disposition === 'private_sale' ? 'selected' : ''}>Sold at Private Sale</option>
@@ -1037,10 +1091,10 @@ function openWasteReportModalForTargets(targets, nextAction, returnModal){
             <option value="transferred" ${wr.disposition === 'transferred' ? 'selected' : ''}>Transferred without cost</option>
           </select>
         </td>
-        <td data-label="Transfer To"><input class="stage-input wmr-transfer" data-ics="${safeIcs}" data-item="${safeItem}" value="${escapeHTML(wr.transferTo || '')}" /></td>
-        <td data-label="OR No."><input class="stage-input wmr-or-no" data-ics="${safeIcs}" data-item="${safeItem}" value="${escapeHTML(wr.officialReceiptNo || '')}" /></td>
-        <td data-label="OR Date"><input type="date" class="stage-input wmr-or-date" data-ics="${safeIcs}" data-item="${safeItem}" value="${escapeHTML(wr.officialReceiptDate || '')}" /></td>
-        <td data-label="OR Amount"><input class="stage-input wmr-or-amount" data-ics="${safeIcs}" data-item="${safeItem}" value="${escapeHTML(wr.officialReceiptAmount || '')}" /></td>
+        <td data-label="Transfer To"><input class="stage-input wmr-transfer" data-ics="${safeSourceNo}" data-item="${safeItem}" data-source-type="${safeSourceType}" value="${escapeHTML(wr.transferTo || '')}" /></td>
+        <td data-label="OR No."><input class="stage-input wmr-or-no" data-ics="${safeSourceNo}" data-item="${safeItem}" data-source-type="${safeSourceType}" value="${escapeHTML(wr.officialReceiptNo || '')}" /></td>
+        <td data-label="OR Date"><input type="date" class="stage-input wmr-or-date" data-ics="${safeSourceNo}" data-item="${safeItem}" data-source-type="${safeSourceType}" value="${escapeHTML(wr.officialReceiptDate || '')}" /></td>
+        <td data-label="OR Amount"><input class="stage-input wmr-or-amount" data-ics="${safeSourceNo}" data-item="${safeItem}" data-source-type="${safeSourceType}" value="${escapeHTML(wr.officialReceiptAmount || '')}" /></td>
       </tr>`;
     }).join('');
   }
@@ -1069,14 +1123,14 @@ function closeWasteReportModal(returnToPrevious = true){
   if (!returnToPrevious || !target) return;
   if (target.returnModal === 'archive'){
     if (activeViewKey() !== 'Action Center') goToView('Action Center');
-    pendingArchiveTarget = { icsNo: target.icsNo, itemNo: target.itemNo };
+    pendingArchiveTarget = { icsNo: target.icsNo, itemNo: target.itemNo, sourceType: target.sourceType || 'ics' };
     const arch = document.getElementById('archiveOverlay');
     if (arch) arch.classList.add('show');
     return;
   }
   if (target.returnModal === 'inspection'){
     if (activeViewKey() !== 'Action Center') goToView('Action Center');
-    pendingInspection = { icsNo: target.icsNo, itemNo: target.itemNo };
+    pendingInspection = { icsNo: target.icsNo, itemNo: target.itemNo, sourceType: target.sourceType || 'ics' };
     const insp = document.getElementById('inspectionOverlay');
     if (insp) insp.classList.add('show');
     updateInspectionArchiveButtonState();
@@ -1101,15 +1155,15 @@ function validateWasteReportMetadata(showError){
     if (bad) missing.push(f.label);
   });
   (pendingWasteReportRows || []).forEach((r, idx) => {
-    const dispInput = getWmrRowInput('wmr-disposition', r.icsNo, r.itemNo);
+    const dispInput = getWmrRowInput('wmr-disposition', r.sourceNo, r.itemNo, r.sourceType || 'ics');
     const disp = (dispInput?.value || '').trim();
     const missingDisp = !disp;
     setFieldError(dispInput, missingDisp);
     if (missingDisp) missing.push(`Disposition (row ${idx + 1})`);
     if (isSaleDisposition(disp)){
-      const orNoInput = getWmrRowInput('wmr-or-no', r.icsNo, r.itemNo);
-      const orDateInput = getWmrRowInput('wmr-or-date', r.icsNo, r.itemNo);
-      const orAmountInput = getWmrRowInput('wmr-or-amount', r.icsNo, r.itemNo);
+      const orNoInput = getWmrRowInput('wmr-or-no', r.sourceNo, r.itemNo, r.sourceType || 'ics');
+      const orDateInput = getWmrRowInput('wmr-or-date', r.sourceNo, r.itemNo, r.sourceType || 'ics');
+      const orAmountInput = getWmrRowInput('wmr-or-amount', r.sourceNo, r.itemNo, r.sourceType || 'ics');
       const orNo = (orNoInput?.value || '').trim();
       const orDate = (orDateInput?.value || '').trim();
       const orAmountRaw = (orAmountInput?.value || '').trim();
@@ -1136,8 +1190,14 @@ function isSaleDisposition(value){
   return v === 'private_sale' || v === 'public_auction';
 }
 
-function getWmrRowInput(cls, icsNo, itemNo){
-  return [...document.querySelectorAll(`.${cls}`)].find((el) => (el.dataset.ics || '') === (icsNo || '') && (el.dataset.item || '') === (itemNo || ''));
+function getWmrRowInput(cls, icsNo, itemNo, sourceType = ''){
+  const normalizedSource = (sourceType || '').toString().toLowerCase();
+  return [...document.querySelectorAll(`.${cls}`)].find((el) => {
+    if ((el.dataset.ics || '') !== (icsNo || '')) return false;
+    if ((el.dataset.item || '') !== (itemNo || '')) return false;
+    if (!normalizedSource) return true;
+    return ((el.dataset.sourceType || 'ics').toString().toLowerCase() === normalizedSource);
+  });
 }
 
 function toggleWasteSaleFields(){}
@@ -1164,22 +1224,34 @@ function saveWasteReportMetadata(printAfterSave){
     witnessToDisposal: (document.getElementById('wmrWitnessToDisposal')?.value || '').trim(),
     notes: (document.getElementById('wmrNotes')?.value || '').trim()
   };
-  const allRecords = JSON.parse(localStorage.getItem('icsRecords') || '[]');
+  const recordsByStorage = {
+    icsRecords: JSON.parse(localStorage.getItem('icsRecords') || '[]'),
+    parRecords: JSON.parse(localStorage.getItem('parRecords') || '[]')
+  };
   const archived = getArchivedItems();
   let savedCount = 0;
-  const touchedICS = {};
-  const touchedItemsByICS = {};
+  const touchedRecordsByStorage = { icsRecords: {}, parRecords: {} };
+  const touchedItemsByRecord = {};
   const archivedEntriesForPrint = [];
   (pendingWasteReportRows || []).forEach((r) => {
-    const rIdx = allRecords.findIndex((x) => (x.icsNo || '') === (r.icsNo || ''));
+    const sourceType = (r?.sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
+    const storageKey = sourceType === 'par' ? 'parRecords' : 'icsRecords';
+    const sourceNo = (r?.sourceNo || '').toString();
+    const allRecords = Array.isArray(recordsByStorage[storageKey]) ? recordsByStorage[storageKey] : [];
+    const rIdx = allRecords.findIndex((x) => {
+      const recordNo = sourceType === 'par'
+        ? ((x.parNo || x.icsNo || '').toString())
+        : ((x.icsNo || '').toString());
+      return recordNo === sourceNo;
+    });
     if (rIdx === -1) return;
     const iIdx = (allRecords[rIdx].items || []).findIndex((x) => (x.itemNo || '') === (r.itemNo || ''));
     if (iIdx === -1) return;
-    const disposition = (getWmrRowInput('wmr-disposition', r.icsNo, r.itemNo)?.value || '').trim();
-    const transferTo = (getWmrRowInput('wmr-transfer', r.icsNo, r.itemNo)?.value || '').trim();
-    const officialReceiptNo = (getWmrRowInput('wmr-or-no', r.icsNo, r.itemNo)?.value || '').trim();
-    const officialReceiptDate = (getWmrRowInput('wmr-or-date', r.icsNo, r.itemNo)?.value || '').trim();
-    const officialReceiptAmount = formatCurrencyValue(parseCurrencyValue(getWmrRowInput('wmr-or-amount', r.icsNo, r.itemNo)?.value || '')) || '';
+    const disposition = (getWmrRowInput('wmr-disposition', sourceNo, r.itemNo, sourceType)?.value || '').trim();
+    const transferTo = (getWmrRowInput('wmr-transfer', sourceNo, r.itemNo, sourceType)?.value || '').trim();
+    const officialReceiptNo = (getWmrRowInput('wmr-or-no', sourceNo, r.itemNo, sourceType)?.value || '').trim();
+    const officialReceiptDate = (getWmrRowInput('wmr-or-date', sourceNo, r.itemNo, sourceType)?.value || '').trim();
+    const officialReceiptAmount = formatCurrencyValue(parseCurrencyValue(getWmrRowInput('wmr-or-amount', sourceNo, r.itemNo, sourceType)?.value || '')) || '';
     const payload = {
       ...shared,
       disposition,
@@ -1195,10 +1267,13 @@ function saveWasteReportMetadata(printAfterSave){
     const item = allRecords[rIdx].items[iIdx];
     item.wasteReport = payload;
     const sourceRecord = allRecords[rIdx];
-    const sourceIcsNo = sourceRecord?.icsNo || '';
-    touchedICS[sourceIcsNo] = rIdx;
-    touchedItemsByICS[sourceIcsNo] = touchedItemsByICS[sourceIcsNo] || [];
-    touchedItemsByICS[sourceIcsNo].push(item.itemNo || '');
+    const sourceRecordNo = sourceType === 'par'
+      ? ((sourceRecord?.parNo || sourceRecord?.icsNo || sourceNo || '').toString())
+      : ((sourceRecord?.icsNo || sourceNo || '').toString());
+    touchedRecordsByStorage[storageKey][sourceRecordNo] = rIdx;
+    const touchedKey = `${storageKey}||${sourceRecordNo}`;
+    touchedItemsByRecord[touchedKey] = touchedItemsByRecord[touchedKey] || [];
+    touchedItemsByRecord[touchedKey].push(item.itemNo || '');
     item.inspections = Array.isArray(item.inspections) ? item.inspections : [];
     let latestUnserviceable = null;
     for (let i = item.inspections.length - 1; i >= 0; i--){
@@ -1222,7 +1297,9 @@ function saveWasteReportMetadata(printAfterSave){
       archivedAt: nowIso,
       archivedByProfileKey: actorProfileKey,
       source: {
-        icsNo: sourceIcsNo,
+        sourceType,
+        icsNo: sourceRecordNo,
+        parNo: sourceType === 'par' ? sourceRecordNo : '',
         entity: sourceRecord?.entity || '',
         fund: sourceRecord?.fund || '',
         issuedDate: sourceRecord?.issuedDate || ''
@@ -1241,40 +1318,41 @@ function saveWasteReportMetadata(printAfterSave){
     archivedEntriesForPrint.push(archivedEntry);
     sourceRecord.items.splice(iIdx, 1);
     savedCount += 1;
-    delete actionCenterSelectedKeys[getActionItemKey(r.icsNo, r.itemNo)];
+    delete actionCenterSelectedKeys[getActionItemKey(sourceRecordNo, r.itemNo, sourceType)];
   });
   if (!savedCount){
     notify('error', 'No selected items were saved for Waste Materials metadata.');
     return;
   }
-  Object.values(touchedICS).forEach((rIdx) => {
-    if (rIdx === undefined || rIdx === null || rIdx < 0 || rIdx >= allRecords.length) return;
-    const icsNo = allRecords[rIdx]?.icsNo || '';
-    allRecords[rIdx].wasteReportMeta = {
-      placeOfStorage: shared.placeOfStorage,
-      archiveApprovalStatus: shared.archiveApprovalStatus,
-      certifiedCorrect: shared.certifiedCorrect,
-      disposalApproved: shared.disposalApproved,
-      inspectionOfficer: shared.inspectionOfficer,
-      witnessToDisposal: shared.witnessToDisposal,
-      lastPreparedAt: nowIso,
-      lastPreparedByProfileKey: actorProfileKey
-    };
-    const touchedItems = (touchedItemsByICS[icsNo] || []).filter(Boolean);
-    const summary = touchedItems.length
-      ? `archive:${touchedItems.join(',')}`
-      : `archive:${icsNo || 'item'}`;
-    allRecords[rIdx] = appendRecordLineage(
-      allRecords[rIdx],
-      'archive',
-      summary
-    );
+  ['icsRecords', 'parRecords'].forEach((storageKey) => {
+    const records = Array.isArray(recordsByStorage[storageKey]) ? recordsByStorage[storageKey] : [];
+    const touched = touchedRecordsByStorage[storageKey] || {};
+    Object.entries(touched).forEach(([sourceNo, rIdx]) => {
+      if (rIdx === undefined || rIdx === null || rIdx < 0 || rIdx >= records.length) return;
+      records[rIdx].wasteReportMeta = {
+        placeOfStorage: shared.placeOfStorage,
+        archiveApprovalStatus: shared.archiveApprovalStatus,
+        certifiedCorrect: shared.certifiedCorrect,
+        disposalApproved: shared.disposalApproved,
+        inspectionOfficer: shared.inspectionOfficer,
+        witnessToDisposal: shared.witnessToDisposal,
+        lastPreparedAt: nowIso,
+        lastPreparedByProfileKey: actorProfileKey
+      };
+      const touchedItems = (touchedItemsByRecord[`${storageKey}||${sourceNo}`] || []).filter(Boolean);
+      const summary = touchedItems.length
+        ? `archive:${touchedItems.join(',')}`
+        : `archive:${sourceNo || 'item'}`;
+      records[rIdx] = appendRecordLineage(records[rIdx], 'archive', summary);
+    });
+    recordsByStorage[storageKey] = records;
   });
   setArchivedItems(archived);
-  localStorage.setItem('icsRecords', JSON.stringify(allRecords));
-  const touchedCount = Object.keys(touchedICS).filter(Boolean).length;
-  recordAudit('archive', `Prepared WMR and archived ${savedCount} item(s) across ${touchedCount} ICS.`, {
-    touchedIcs: touchedCount,
+  localStorage.setItem('icsRecords', JSON.stringify(recordsByStorage.icsRecords || []));
+  localStorage.setItem('parRecords', JSON.stringify(recordsByStorage.parRecords || []));
+  const touchedCount = Object.keys(touchedRecordsByStorage.icsRecords || {}).length + Object.keys(touchedRecordsByStorage.parRecords || {}).length;
+  recordAudit('archive', `Prepared WMR and archived ${savedCount} item(s) across ${touchedCount} record(s).`, {
+    touchedRecords: touchedCount,
     touchedItems: savedCount,
     source: 'wmr-save'
   });
@@ -1297,5 +1375,8 @@ function saveWasteReportMetadata(printAfterSave){
   }
   if (activeViewKey() !== 'Archives') goToView('Archives');
   initArchivesView();
+  initActionsView();
+  loadICSRecords();
+  loadPARRecords();
 }
 

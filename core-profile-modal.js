@@ -1,3 +1,200 @@
+const PROFILE_IMAGE_MAX_BYTES = 1024 * 1024;
+let myProfileDraftPhotoDataUrl = '';
+
+function estimateDataUrlBytes(dataUrl){
+  const raw = (dataUrl || '').toString();
+  const marker = ';base64,';
+  const at = raw.indexOf(marker);
+  if (at < 0) return raw.length;
+  const payload = raw.slice(at + marker.length).replace(/\s+/g, '');
+  const padding = payload.endsWith('==') ? 2 : payload.endsWith('=') ? 1 : 0;
+  return Math.max(0, Math.floor((payload.length * 3) / 4) - padding);
+}
+
+function readFileAsDataUrl(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result || '').toString());
+    reader.onerror = () => reject(new Error('read-failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImageFromDataUrl(dataUrl){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('image-load-failed'));
+    img.src = dataUrl;
+  });
+}
+
+async function resizeImageDataUrlToLimit(dataUrl, maxBytes){
+  const safe = sanitizeProfileAvatarDataUrl(dataUrl || '');
+  if (!safe) return '';
+  if (estimateDataUrlBytes(safe) <= maxBytes) return safe;
+  let img;
+  try {
+    img = await loadImageFromDataUrl(safe);
+  } catch (_err){
+    return '';
+  }
+  const srcWidth = Math.max(1, Number(img.naturalWidth || img.width || 1));
+  const srcHeight = Math.max(1, Number(img.naturalHeight || img.height || 1));
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+  let scale = 1;
+  for (let attempt = 0; attempt < 12; attempt += 1){
+    if (attempt > 0 && attempt % 2 === 0) scale *= 0.86;
+    const quality = Math.max(0.38, 0.92 - (attempt * 0.06));
+    const width = Math.max(120, Math.round(srcWidth * scale));
+    const height = Math.max(120, Math.round(srcHeight * scale));
+    canvas.width = width;
+    canvas.height = height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+    const candidate = canvas.toDataURL('image/jpeg', quality);
+    if (estimateDataUrlBytes(candidate) <= maxBytes){
+      return sanitizeProfileAvatarDataUrl(candidate);
+    }
+  }
+  return '';
+}
+
+function renderMyProfilePhotoPreview(dataUrl, displayName = ''){
+  const button = document.getElementById('myProfilePhotoButton');
+  const content = document.getElementById('myProfilePhotoContent');
+  if (!button || !content) return;
+  const next = sanitizeProfileAvatarDataUrl(dataUrl || '');
+  if (next){
+    button.style.backgroundImage = `url("${next}")`;
+    button.classList.add('has-image');
+    return;
+  }
+  button.style.backgroundImage = '';
+  button.classList.remove('has-image');
+  renderUserAvatar(content, displayName || currentUser?.name || '', currentUser?.avatar || 'initials');
+}
+
+function triggerMyProfilePhotoUpload(){
+  const input = document.getElementById('myProfilePhotoInput');
+  if (!input) return;
+  input.click();
+}
+
+function openMyProfileModal(){
+  const overlay = document.getElementById('myProfileOverlay');
+  const name = document.getElementById('myProfileName');
+  const role = document.getElementById('myProfileRole');
+  const email = document.getElementById('myProfileEmail');
+  const phone = document.getElementById('myProfilePhone');
+  const bio = document.getElementById('myProfileBio');
+  const input = document.getElementById('myProfilePhotoInput');
+  const hint = document.getElementById('myProfilePhotoHint');
+  if (!overlay) return;
+  myProfileDraftPhotoDataUrl = sanitizeProfileAvatarDataUrl(currentUser?.topbarAvatarDataUrl || '');
+  if (name) name.value = currentUser?.name || '';
+  if (role){
+    role.value = ((currentUser?.designation || '').toString().trim() || normalizeRoleLabel(currentUser?.role || 'encoder')).trim();
+  }
+  if (email) email.value = currentUser?.email || '';
+  if (phone) phone.value = (currentUser?.phone || '').toString();
+  if (bio) bio.value = (currentUser?.bio || '').toString();
+  if (input) input.value = '';
+  if (hint){
+    hint.textContent = myProfileDraftPhotoDataUrl
+      ? 'Click photo to replace. Image auto-resizes under 1MB.'
+      : 'Click photo to upload. Images are auto-resized under 1MB.';
+  }
+  renderMyProfilePhotoPreview(myProfileDraftPhotoDataUrl, name?.value || currentUser?.name || '');
+  overlay.classList.add('show');
+  if (typeof window.refreshIcons === 'function') window.refreshIcons();
+  if (name) setTimeout(() => name.focus(), 10);
+}
+
+function closeMyProfileModal(){
+  const overlay = document.getElementById('myProfileOverlay');
+  const input = document.getElementById('myProfilePhotoInput');
+  if (overlay) overlay.classList.remove('show');
+  if (input) input.value = '';
+  myProfileDraftPhotoDataUrl = '';
+  renderMyProfilePhotoPreview('', currentUser?.name || '');
+}
+
+async function handleMyProfilePhotoUpload(event){
+  const file = event?.target?.files?.[0];
+  const hint = document.getElementById('myProfilePhotoHint');
+  if (!file) return;
+  if (!/^image\/(png|jpeg|jpg|webp|svg\+xml)$/i.test(file.type || '')){
+    notify('error', 'Unsupported image format. Use PNG, JPG, WEBP, or SVG.');
+    event.target.value = '';
+    return;
+  }
+  let dataUrl = '';
+  try {
+    dataUrl = await readFileAsDataUrl(file);
+  } catch (_err){
+    notify('error', 'Unable to read photo file.');
+    event.target.value = '';
+    return;
+  }
+  const safe = sanitizeProfileAvatarDataUrl(dataUrl || '');
+  if (!safe){
+    notify('error', 'Invalid image data.');
+    event.target.value = '';
+    return;
+  }
+  if (estimateDataUrlBytes(safe) <= PROFILE_IMAGE_MAX_BYTES){
+    myProfileDraftPhotoDataUrl = safe;
+    renderMyProfilePhotoPreview(myProfileDraftPhotoDataUrl, document.getElementById('myProfileName')?.value || currentUser?.name || '');
+    if (hint) hint.textContent = 'Photo selected. Save changes to apply.';
+    return;
+  }
+  const resized = await resizeImageDataUrlToLimit(safe, PROFILE_IMAGE_MAX_BYTES);
+  if (!resized){
+    notify('error', 'Could not resize image under 1MB. Try a smaller image.');
+    event.target.value = '';
+    return;
+  }
+  myProfileDraftPhotoDataUrl = resized;
+  renderMyProfilePhotoPreview(myProfileDraftPhotoDataUrl, document.getElementById('myProfileName')?.value || currentUser?.name || '');
+  if (hint) hint.textContent = 'Photo auto-resized and ready. Save changes to apply.';
+}
+
+function saveMyProfileModal(){
+  const nameEl = document.getElementById('myProfileName');
+  const emailEl = document.getElementById('myProfileEmail');
+  const phoneEl = document.getElementById('myProfilePhone');
+  const bioEl = document.getElementById('myProfileBio');
+  const name = (nameEl?.value || '').trim();
+  const email = (emailEl?.value || '').trim();
+  if (!name){
+    notify('error', 'Full Name is required.');
+    nameEl?.focus();
+    return;
+  }
+  if (!validProfileEmail(email)){
+    notify('error', 'Enter a valid email address.');
+    emailEl?.focus();
+    return;
+  }
+  currentUser = normalizeUser({
+    ...currentUser,
+    name,
+    email,
+    phone: (phoneEl?.value || '').trim(),
+    bio: (bioEl?.value || '').trim(),
+    topbarAvatarDataUrl: sanitizeProfileAvatarDataUrl(myProfileDraftPhotoDataUrl || currentUser?.topbarAvatarDataUrl || '')
+  });
+  saveCurrentUser();
+  if ((schoolIdentity?.schoolId || '').trim()) upsertCurrentUserForSchool(schoolIdentity.schoolId);
+  renderUserIdentity();
+  updateTopbarProfileMenuIdentity();
+  closeMyProfileModal();
+  notify('success', 'My Profile updated.');
+}
+
 function openProfileModal(){
   const name = document.getElementById('profileName');
   const avatarTypeEl = document.getElementById('profileAvatarType');

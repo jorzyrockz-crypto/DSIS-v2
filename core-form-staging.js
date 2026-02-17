@@ -25,11 +25,12 @@ function formatICSNoInput(value){
 function prepareNewICS(){
   if (!hasRoleCapability('edit_records')) return;
   if (editingIndex !== null) return;
+  editingRecordType = 'ics';
   clearForm();
   const icsInput = document.getElementById('icsNo');
   icsInput.value = '';
   icsInput.placeholder = 'YYYY-MM-XXX';
-  addBtn.textContent = 'ADD ICS';
+  syncFormEditModeUI();
   validateForm();
 }
 
@@ -90,9 +91,52 @@ function clearForm(){
   refreshInputTitles(sheet);
 }
 
+function getEditingRecordType(){
+  return editingRecordType === 'par' ? 'par' : 'ics';
+}
+
+function syncInventoryFinalizeButtons(){
+  const finalizeICSBtn = document.querySelector('[data-action="finalizeICS"]');
+  const finalizePARBtn = document.querySelector('[data-action="finalizePAR"]');
+  const canEditRecords = hasRoleCapability('edit_records');
+  const isEditing = editingIndex !== null;
+  const isPAREdit = isEditing && getEditingRecordType() === 'par';
+  const isICSEdit = isEditing && getEditingRecordType() === 'ics';
+  if (finalizeICSBtn){
+    finalizeICSBtn.disabled = !canEditRecords || isPAREdit;
+    finalizeICSBtn.title = isPAREdit
+      ? 'Disabled while editing PAR record.'
+      : (!canEditRecords ? 'Requires Encoder/Admin role' : '');
+  }
+  if (finalizePARBtn){
+    finalizePARBtn.disabled = !canEditRecords || isICSEdit;
+    finalizePARBtn.title = isICSEdit
+      ? 'Disabled while editing ICS record.'
+      : (!canEditRecords ? 'Requires Encoder/Admin role' : '');
+  }
+}
+
+function syncFormEditModeUI(){
+  const isEditing = editingIndex !== null;
+  const isPAREdit = isEditing && getEditingRecordType() === 'par';
+  const recordNoLabelEl = document.getElementById('recordNoLabel');
+  const recordNoInput = document.getElementById('icsNo');
+  addBtn.textContent = isEditing ? (isPAREdit ? 'UPDATE PAR' : 'UPDATE ICS') : 'ADD ICS';
+  addBtn.classList.toggle('is-par-update', isPAREdit);
+  if (recordNoLabelEl){
+    recordNoLabelEl.textContent = isPAREdit ? 'PAR NO.' : 'ICS NO.';
+  }
+  if (recordNoInput){
+    recordNoInput.placeholder = isPAREdit ? 'YYYY-MM-XXXX' : 'YYYY-MM-XXX';
+    recordNoInput.maxLength = isPAREdit ? 12 : 11;
+  }
+  syncInventoryFinalizeButtons();
+}
+
 function resetFormMode(){
   editingIndex = null;
-  addBtn.textContent = 'ADD ICS';
+  editingRecordType = 'ics';
+  syncFormEditModeUI();
   clearForm();
   setStageContext(null);
 }
@@ -100,23 +144,27 @@ function resetFormMode(){
 function setStageContext(meta){
   const el = document.getElementById('stageContext');
   if (!el) return;
+  syncFormEditModeUI();
   if (!meta || !meta.icsNo){
-    el.textContent = 'Working ICS: none';
-    el.title = 'Working ICS: none';
+    el.textContent = 'Working Record: none';
+    el.title = 'Working Record: none';
     return;
   }
+  const recordType = (meta.recordType || 'ics').toString().toLowerCase() === 'par' ? 'PAR' : 'ICS';
   const modeText = meta.mode ? `${meta.mode}: ` : '';
   const entityText = meta.entity ? ` | ${meta.entity}` : '';
-  const fullText = `Working ICS: ${modeText}${meta.icsNo}${entityText}`;
+  const fullText = `Working ${recordType}: ${modeText}${meta.icsNo}${entityText}`;
   el.textContent = fullText;
   el.title = fullText;
 }
 
 function getCurrentFormMeta(){
+  const recordType = getEditingRecordType();
   return {
     icsNo: document.getElementById('icsNo').value.trim(),
     entity: document.getElementById('entityName').value.trim(),
-    mode: editingIndex !== null ? 'Editing' : 'Draft'
+    mode: editingIndex !== null ? 'Editing' : 'Draft',
+    recordType
   };
 }
 
@@ -193,7 +241,8 @@ function editICS(i){
   if (!r) return;
 
   editingIndex = i;
-  addBtn.textContent = 'UPDATE ICS';
+  editingRecordType = 'ics';
+  syncFormEditModeUI();
 
   document.getElementById('entityName').value = r.entity || '';
   document.getElementById('fundCluster').value = r.fund || '';
@@ -206,12 +255,43 @@ function editICS(i){
   document.getElementById('receivedByDate').value = (r.signatories?.receivedBy?.date || '').slice(0, 10);
 
   loadItemsToStage(r.items || []);
-  setStageContext({ icsNo: r.icsNo || '', entity: r.entity || '', mode: 'Editing' });
+  setStageContext({ icsNo: r.icsNo || '', entity: r.entity || '', mode: 'Editing', recordType: 'ics' });
   refreshInputTitles(sheet);
   sheet.classList.add('show');
   requestAnimationFrame(placeSheetNearAddItemButton);
   setTimeout(placeSheetNearAddItemButton, 80);
   notify('info', `Editing ${r.icsNo || 'ICS record'}.`);
+  validateForm();
+}
+
+function editPAR(i){
+  if (!requireAccess('open_ics_editor', { label: 'edit PAR records' })) return;
+  const records = JSON.parse(localStorage.getItem('parRecords') || '[]');
+  const r = records[i];
+  if (!r) return;
+
+  editingIndex = i;
+  editingRecordType = 'par';
+  syncFormEditModeUI();
+
+  const parNo = (r.parNo || r.icsNo || '').toString();
+  document.getElementById('entityName').value = r.entity || '';
+  document.getElementById('fundCluster').value = r.fund || '';
+  document.getElementById('icsNo').value = parNo;
+  document.getElementById('issuedByName').value = r.signatories?.issuedBy?.name || '';
+  document.getElementById('issuedByPos').value = r.signatories?.issuedBy?.position || '';
+  document.getElementById('issuedByDate').value = (r.signatories?.issuedBy?.date || r.issuedDate || '').slice(0, 10);
+  document.getElementById('receivedByName').value = r.signatories?.receivedBy?.name || '';
+  document.getElementById('receivedByPos').value = r.signatories?.receivedBy?.position || '';
+  document.getElementById('receivedByDate').value = (r.signatories?.receivedBy?.date || '').slice(0, 10);
+
+  loadItemsToStage(r.items || []);
+  setStageContext({ icsNo: parNo, entity: r.entity || '', mode: 'Editing', recordType: 'par' });
+  refreshInputTitles(sheet);
+  sheet.classList.add('show');
+  requestAnimationFrame(placeSheetNearAddItemButton);
+  setTimeout(placeSheetNearAddItemButton, 80);
+  notify('info', `Editing ${parNo || 'PAR record'}.`);
   validateForm();
 }
 

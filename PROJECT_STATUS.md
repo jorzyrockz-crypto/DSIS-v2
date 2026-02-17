@@ -1,7 +1,176 @@
 # Project ICS v3 - Status Checkpoint
 
-Last updated: 2026-02-16
+Last updated: 2026-02-17
 Main file: `ics_v_3_standalone_index.html`
+
+## Newly Implemented (2026-02-17, patch bump + modal consistency/fit/contrast fixes)
+- Versioning:
+  - manifest version bumped to `1.2.1` (`manifest.webmanifest`)
+  - runtime fallback version bumped to `1.2.1` (`APP_UI_VERSION_FALLBACK`)
+  - schema/export version bumped to `1.2.1` (`ICS_SCHEMA_VERSION`)
+  - service worker cache bumped to `dsis-v1-pwa-v6` (`sw.js`)
+  - added `What's New` notes entry for `1.2.1` (`core-app-bootstrap.js`)
+- Modal behavior and UI consistency follow-up:
+  - raised actions modal overlay stacking to properly cover/blur topbar during modal open
+  - improved Data Manager modal viewport fitting and Export/Import sizing/position refinements
+  - added import-history workflow:
+    - Import Center now shows latest `5` entries inline
+    - full history is available via dedicated `Import History` modal
+  - standardized modal close controls via shared close-button styling and icon+label pattern
+- Archived history and dark-theme fixes:
+  - patched archived modal token usage for consistent dark-theme readability
+  - inspection logs table now uses explicit column sizing (`Date`, `Status`, `Reason`, `Time`) with wrapping behavior for `Reason`
+
+## Newly Implemented (2026-02-17, PAR integration completion pass: action filters + Data Hub + audit + theming/text consistency)
+- Action Center and EUL targeting were hardened for mixed ICS/PAR datasets:
+  - introduced source-aware target scope state (`actionCenterSourceFilter`) to prevent ICS/PAR record-number collisions when filtering
+  - EUL deep-link buttons now carry `sourceType` and correct record number source (`icsNo` vs `parNo`)
+  - delegated routing updated so EUL deep links and WMR print actions propagate `sourceType` end-to-end
+  - inspection-history WMR print button now passes source context (`ics`/`par`) to avoid wrong-store lookup
+  - Action Center/UI state summaries now surface source scope (`Source: ICS` / `Source: PAR`) when active
+- Data Hub now supports ICS and PAR records in import/export workflow (not ICS-only):
+  - import package normalization accepts/merges both `data.records` (ICS) and `data.parRecords` (PAR), plus top-level `records`/`parRecords`
+  - validation preview and trace validation now classify rows as ICS/PAR with split counts and type-aware row labels
+  - import apply path now writes to both `icsRecords` and `parRecords` with per-type add/replace accounting in audit + status messages
+  - schema exports now include both record sets in payload (`data.records`, `data.parRecords`) for records/full package modes
+  - export filters/hints now compute combined totals and split counts for ICS and PAR
+  - conflict report payload now includes `recordType` + `recordNo`; report filename updated to `dsis-import-conflict-report.json`
+- Export filename clarity updates:
+  - single-record exports now include explicit type prefix: `ICS-...json` and `PAR-...json`
+  - Data Hub package exports now include type tags in filename (`ics`, `par`, `ics-par`) for both records and full package paths
+- Audit Trail enhancements:
+  - audit search now includes serialized `meta` payload to make source/record/item metadata queryable
+  - audit table now renders compact metadata summary under detail text (e.g., source type, record no., item no., mode/add/replace/skip)
+  - audit CSV export now includes a dedicated `meta` column
+  - archive/unarchive audit events now include PAR/source metadata (`sourceType`, `recordParNo` where applicable)
+- Data Hub theming and wording consistency pass:
+  - Data Manager/Import Center surfaces were moved from hardcoded light colors to theme tokens (`--surface`, `--surface-soft`, `--border`, `--t`, `--tm`) for consistent dark-theme readability
+  - updated Data Hub/Import/Export copy from ICS-only wording to shared `ICS/PAR` phrasing where workflows apply to both record types
+  - search-empty helper text updated to `Type to search ICS/PAR records.`
+
+## Newly Implemented (2026-02-16, PAR archive + WMR/batch print + search/details source-aware integration)
+- Action Center archive flow now supports PAR records (not ICS-only):
+  - enabled PAR archive action path with same inspection/remarks gating used by ICS
+  - archive persistence now writes back to correct source store (`icsRecords` or `parRecords`)
+  - archived entries now persist source metadata (`sourceType`, `parNo` where applicable)
+  - unarchive now resolves and restores to original source set (`icsRecords` or `parRecords`)
+- Waste Materials Report workflow aligned for PAR and ICS using shared form:
+  - WMR open/save path is now source-aware (`sourceType` + source record number)
+  - save now updates both record stores as needed, appends lineage, archives selected items, and refreshes ICS/PAR views
+  - WMR-required guard before archive now applies to disposal-qualified PAR items as well
+  - Archives WMR table labels updated to `ICS/PAR No.` and record-centric wording
+- WMR print and batch print flows now support PAR sources:
+  - `core-printing.js` print entry points now accept/propagate `sourceType`
+  - batch grouping now keys by `sourceType + recordNo` to avoid ICS/PAR collisions
+  - disposal validation for print now checks correct source via `hasDisposalSituation(..., sourceType)`
+  - archived WMR print now carries source type context for consistent output handling
+- Search overlay and details routing now include PAR records:
+  - search index now merges `icsRecords` + `parRecords` + archived data
+  - result badges now distinguish `ICS`, `PAR`, and `Archived`
+  - PAR search hits open PAR details via source-aware key/index routing and preserve item focus
+  - details/archive phrasing updated from ICS-only wording to record-type aware labels where applicable
+
+## Newly Implemented (2026-02-16, PAR record workflow expansion + Action Center ICS/PAR integration)
+- Inventory view spacing and PAR visual distinction:
+  - increased inventory container gap for better separation between staged/records cards
+  - added theme-aware PAR card accent styling (`.par-records`) distinct from ICS records
+  - upgraded `Finalize PAR Data` button to theme-aware PAR accent tokens (no fixed hardcoded color)
+- PAR records table interaction parity:
+  - made `PAR No.` clickable to open details modal
+  - added PAR-aware details rendering path (`PAR Details`) and switched ICS wording to PAR when source is PAR
+  - added PAR row actions: `Edit`, `Print`, `Export`, `Delete`
+- PAR edit/update workflow:
+  - added `editPAR()` preload behavior using same staged/floating form flow as ICS edit
+  - introduced edit-mode state (`editingRecordType`) to support `ics` vs `par` mode handling
+  - floating form primary action now switches to `UPDATE PAR` in PAR edit mode (PAR accent)
+  - finalize buttons now enforce mutual mode behavior:
+    - while editing ICS, `Finalize PAR Data` is disabled
+    - while editing PAR, `Finalize ICS Data` is disabled
+  - finalize logic now guards against wrong-mode finalize calls and supports PAR update-in-place (not add-only)
+- PAR number field behavior in floating form:
+  - record number label now switches dynamically (`ICS NO.` <-> `PAR NO.`)
+  - PAR update mode now uses `YYYY-MM-XXXX` pattern with adjusted maxlength (`12`) to support 4-digit suffix
+  - ICS mode keeps `YYYY-MM-XXX` pattern and maxlength (`11`)
+- PAR print/export/delete handlers:
+  - added `printPAR()` with PAR-specific print labels (`PROPERTY ACKNOWLEDGEMENT RECEIPT`, `PAR No.`)
+  - added `exportPAR()` and `deletePAR()` handlers using `parRecords` store + PAR audit trails/messages
+  - wired delegated actions for new PAR handlers
+- Action Center now accommodates PAR records:
+  - Action Center dataset now merges rows from both `icsRecords` and `parRecords`
+  - table column renamed from `ICS No.` to `ICS/PAR No.`
+  - per-row display now prefixes source type:
+    - ICS source: `ICS-YYYY-MM-XXX`
+    - PAR source: `PAR-YYYY-MM-XXXX`
+  - added row-level source tagging (`sourceType`) and source-aware delegated args for inspection/history/archive actions
+  - generalized item lookup (`findItemRef`) to resolve from ICS or PAR storage by source type
+  - kept archive operations ICS-only from Action Center; PAR rows show archive disabled messaging to avoid invalid archive path
+
+## Newly Implemented (2026-02-16, My Profile modal + PAR flow + theme/visual polish)
+- My Profile modal rollout (from topbar Profile Menu):
+  - added dedicated `My Profile` modal (separate from full `Profile Settings`) and rewired `My Profile` menu action to open it
+  - modal is theme-aware with light/dark specific styling adjustments and improved dark-theme field contrast
+  - preloads existing profile fields from profile settings/current user data (name, role/designation display, email, phone, bio, avatar)
+  - profile photo upload now supports click-to-upload on avatar with automatic resize/compression under `1MB`
+  - added save/cancel/close/overlay/keyboard wiring (`Esc` close, `Enter` save)
+- Profile/session model expansion:
+  - added persistent user fields `phone` and `bio` to normalized profile model
+  - preserved compatibility with existing user records and school-profile upsert flow
+- Versioning workflow improvements:
+  - bumped app baseline to `1.0.1` with schema `1.0.1` and SW cache `dsis-v1-pwa-v2`
+  - upgraded `bump-version.ps1` to auto-generate release notes from latest `PROJECT_STATUS.md` `Newly Implemented` section (replacing placeholder entry behavior)
+- Theme system additions and refinements:
+  - added new dark theme variant `dracula-nocturne` (theme tokens + picker entry + swatches + variant background handling)
+  - updated theme application to support Dracula-family variants via `data-theme-variant`
+  - added bottom-center ambient glow gradient layer across all themes and increased its intensity
+  - improved dark-theme chip readability in dashboard recent cards (higher-contrast text/fills/borders)
+- Inventory/Action table UI refinements:
+  - improved Action Center row alignment for actions/value columns (nowrap actions on desktop + mobile fallback wrap)
+  - synced sticky first-column row background handling to reduce seam/misalignment artifacts in dark themes
+- Floating form visual treatment:
+  - added strong accent-glow shadow layers for floating staged form (`.sheet`), including stronger visible-state glow
+- PAR records surface + staging action:
+  - added `PAR Records` table below `ICS Records` in Manage Inventory
+  - added `loadPARRecords()` renderer bound to `localStorage['parRecords']`
+  - added staged action button `Finalize PAR Data` (distinct `btn-par` color)
+  - implemented `finalizePAR()` workflow to validate staged form/items, prevent duplicate PAR No., save to `parRecords`, refresh tables, and write audit trail
+
+## Newly Implemented (2026-02-16, DSIS V1 branding reset + update UX + Audit/Help modal rollout)
+- DSIS branding and version-reset alignment:
+  - user-facing app identity moved from legacy ICS naming to `DSIS V1`
+  - runtime/display version baseline reset to `1` with schema baseline `1.0.0`
+  - service worker cache namespace reset to `dsis-v1-pwa-v1`
+  - browser/page title now `Digital School Inventory System v1.0`
+- Dynamic version label behavior restored/enhanced:
+  - sidebar version label is manifest-driven again and keeps `v1.0` formatting for whole-number versions
+  - topbar now retains prior title layout and shows a separate clickable version tag beside title
+  - both version touchpoints open `What's New` on click/keyboard activation
+- Topbar profile menu cleanup:
+  - removed `Enterprise Plan` row and related CSS
+  - removed topbar settings icon button from active navbar
+- PWA update flow improvements:
+  - added visual progress bar while applying update
+  - added 3-second post-apply countdown with auto-refresh
+  - added update-ready in-app notification (deduped by version) for pending SW updates
+- Notification behavior refinement:
+  - `What's New` changed to modal-only (removed duplicate toast/notification path)
+  - added notification-center-only helper for non-toast updates (`notifyCenter`)
+- Audit Trail modal implementation (replacing placeholder):
+  - full `Audit Trail` modal with table rendering from `icsAuditLogs`
+  - filters: search, type, actor, date range (`from` / `to`)
+  - pagination added with configurable state (default rows/page now `8`)
+  - exports: JSON + CSV from active filter scope
+  - audit type badges now tone-map by type (error/warn/success/info)
+  - modal now responsive and theme-aware across light/dark themes
+  - export feedback now routes to Notification Center instead of modal toast
+- Audit menu badge wiring:
+  - replaced hardcoded `5 New` badge with dynamic `new since last viewed` count
+  - persisted last-seen marker via localStorage
+  - badge auto-refreshes when new audit entries are recorded and clears on modal open
+- Help & Documentation modal rollout:
+  - replaced placeholder help modal with structured guide sections
+  - added printable help output (`Print Guide`) via print-friendly window
+  - wired close button, outside-click close, and `Esc` handling
+  - integrated help overlay into modal toast host resolution
 
 ## Newly Implemented (2026-02-16, no-sidebar consistency + topbar profile UX expansion + theme catalog refresh)
 - Layout mode stabilization:

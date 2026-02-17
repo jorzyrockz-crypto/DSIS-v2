@@ -4,7 +4,7 @@ function exportICS(i){
   const r = records[i];
   if (!r) return;
   const safe = (v) => (v || '').toString().trim().replace(/[^\w.-]+/g, '_');
-  const fileName = `${safe(r.entity)}+${safe(r.icsNo)}+${safe(r.issuedDate)}.json`;
+  const fileName = `ICS-${safe(r.entity)}+${safe(r.icsNo)}+${safe(r.issuedDate)}.json`;
   const record = ensureRecordTraceProfileKeysForExport([r])[0] || r;
   const payload = JSON.stringify({
     ...record,
@@ -25,14 +25,66 @@ function exportICS(i){
   notify('success', `Exported ${fileName}`);
 }
 
+function exportPAR(i){
+  if (!requireAccess('export_data', { label: 'export PAR record data' })) return;
+  const records = JSON.parse(localStorage.getItem('parRecords') || '[]');
+  const r = records[i];
+  if (!r) return;
+  const safe = (v) => (v || '').toString().trim().replace(/[^\w.-]+/g, '_');
+  const parNo = (r.parNo || r.icsNo || '').toString();
+  const fileName = `PAR-${safe(r.entity)}+${safe(parNo)}+${safe(r.issuedDate)}.json`;
+  const record = ensureRecordTraceProfileKeysForExport([r])[0] || r;
+  const payload = JSON.stringify({
+    ...record,
+    exportedAt: new Date().toISOString(),
+    exportedByProfileKey: getCurrentActorProfileKey(),
+    schemaVersion: ICS_SCHEMA_VERSION
+  }, null, 2);
+  const blob = new Blob([payload], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  recordAudit('backup', `Exported single PAR record ${parNo || ''} (${fileName})`, buildRecordLineageAuditMeta(r, { recordParNo: parNo }));
+  notify('success', `Exported ${fileName}`);
+}
+
 function printICS(i){
   const records = JSON.parse(localStorage.getItem('icsRecords') || '[]');
   const rec = records[i];
   if (!rec) return;
+  printRecordSlip(rec, {
+    documentTitle: 'ICS Print',
+    slipTitle: 'INVENTORY CUSTODIAN SLIP',
+    recordNoLabel: 'ICS No.',
+    recordNoValue: rec.icsNo || ''
+  });
+}
 
+function printPAR(i){
+  const records = JSON.parse(localStorage.getItem('parRecords') || '[]');
+  const rec = records[i];
+  if (!rec) return;
+  printRecordSlip(rec, {
+    documentTitle: 'PAR Print',
+    slipTitle: 'PROPERTY ACKNOWLEDGEMENT RECEIPT',
+    recordNoLabel: 'PAR No.',
+    recordNoValue: rec.parNo || rec.icsNo || ''
+  });
+}
+
+function printRecordSlip(rec, options = {}){
   const issuedBy = rec.signatories?.issuedBy || rec.issuedBy || {};
   const receivedBy = rec.signatories?.receivedBy || rec.receivedBy || {};
   const items = rec.items || [];
+  const documentTitle = (options.documentTitle || 'ICS Print').toString();
+  const slipTitle = (options.slipTitle || 'INVENTORY CUSTODIAN SLIP').toString();
+  const recordNoLabel = (options.recordNoLabel || 'ICS No.').toString();
+  const recordNoValue = (options.recordNoValue || rec.icsNo || '').toString();
   const minRows = 20;
   const totalRows = Math.max(items.length, minRows);
 
@@ -72,7 +124,7 @@ function printICS(i){
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ICS Print</title>
+  <title>${escapeHTML(documentTitle)}</title>
   <style>
     body { font-family: Arial, sans-serif; font-size:12px; }
     .center { text-align:center; }
@@ -110,7 +162,7 @@ function printICS(i){
 </div>
 
 <div class="center" style="margin-top:10px; font-weight:bold;">
-  INVENTORY CUSTODIAN SLIP
+  ${escapeHTML(slipTitle)}
 </div>
 
 <br>
@@ -124,9 +176,9 @@ function printICS(i){
       </span>
     </td>
     <td class="right" style="width:35%;">
-      <strong>ICS No.:</strong>
+      <strong>${escapeHTML(recordNoLabel)}</strong>
       <span style="border-bottom:1px solid #000; min-width:140px; display:inline-block;">
-        ${rec.icsNo || ''}
+        ${escapeHTML(recordNoValue)}
       </span>
     </td>
   </tr>
@@ -218,62 +270,83 @@ function printICS(i){
   }, 1000);
 }
 
-function printWasteMaterialsReport(icsNo, itemNo){
+function resolveWmrSourceType(sourceType){
+  return (sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
+}
+
+function getWmrRecordSource(icsNo, sourceType = 'ics'){
+  const resolvedSourceType = resolveWmrSourceType(sourceType);
+  const storageKey = resolvedSourceType === 'par' ? 'parRecords' : 'icsRecords';
+  const records = JSON.parse(localStorage.getItem(storageKey) || '[]');
+  const sourceNo = (icsNo || '').toString();
+  const record = records.find((r) => {
+    const no = resolvedSourceType === 'par'
+      ? ((r.parNo || r.icsNo || '').toString())
+      : ((r.icsNo || '').toString());
+    return no === sourceNo;
+  });
+  return { storageKey, sourceType: resolvedSourceType, records, record };
+}
+
+function printWasteMaterialsReport(icsNo, itemNo, sourceType = 'ics'){
   if (!requireAccess('archive_items', { label: 'print Waste Materials Report' })) return;
-  printWasteMaterialsReportBatch(icsNo, [itemNo]);
+  printWasteMaterialsReportBatch(icsNo, [itemNo], sourceType);
 }
 
 function printWasteMaterialsReportMulti(targets){
   if (!requireAccess('archive_items', { label: 'print batch Waste Materials Report' })) return;
-  const invalid = (targets || []).filter((t) => !hasDisposalSituation(t?.icsNo, t?.itemNo));
+  const invalid = (targets || []).filter((t) => !hasDisposalSituation(t?.icsNo, t?.itemNo, t?.sourceType || 'ics'));
   if (invalid.length){
-    const preview = invalid.slice(0, 4).map((x) => `${x?.icsNo || ''}/${x?.itemNo || ''}`).join(', ');
+    const preview = invalid.slice(0, 4).map((x) => `${(resolveWmrSourceType(x?.sourceType) === 'par' ? 'PAR' : 'ICS')}-${x?.icsNo || ''}/${x?.itemNo || ''}`).join(', ');
     notify('error', `Batch PRINT WMR only allows items with Situation "Item for disposal". Invalid: ${preview}${invalid.length > 4 ? ' ...' : ''}`);
     return;
   }
   const grouped = {};
   (targets || []).forEach((t) => {
-    const key = (t?.icsNo || '').toString();
+    const sourceType = resolveWmrSourceType(t?.sourceType);
+    const sourceNo = (t?.icsNo || '').toString();
     const itemNo = (t?.itemNo || '').toString();
-    if (!key || !itemNo) return;
-    grouped[key] = grouped[key] || [];
-    if (!grouped[key].includes(itemNo)) grouped[key].push(itemNo);
+    if (!sourceNo || !itemNo) return;
+    const groupKey = `${sourceType}||${sourceNo}`;
+    grouped[groupKey] = grouped[groupKey] || { sourceType, sourceNo, itemNos: [] };
+    if (!grouped[groupKey].itemNos.includes(itemNo)) grouped[groupKey].itemNos.push(itemNo);
   });
-  const icsList = Object.keys(grouped);
-  if (!icsList.length){
+  const groups = Object.values(grouped);
+  if (!groups.length){
     notify('error', 'No valid batch Waste Materials targets to print.');
     return;
   }
-  if (icsList.length === 1){
-    printWasteMaterialsReportBatch(icsList[0], grouped[icsList[0]]);
+  if (groups.length === 1){
+    printWasteMaterialsReportBatch(groups[0].sourceNo, groups[0].itemNos, groups[0].sourceType);
     return;
   }
-  notify('info', `Batch printing WMR for ${icsList.length} ICS groups.`);
+  notify('info', `Batch printing WMR for ${groups.length} record groups.`);
   let idx = 0;
   const runNext = () => {
-    if (idx >= icsList.length) return;
-    const icsNo = icsList[idx];
-    printWasteMaterialsReportBatch(icsNo, grouped[icsNo]);
+    if (idx >= groups.length) return;
+    const group = groups[idx];
+    printWasteMaterialsReportBatch(group.sourceNo, group.itemNos, group.sourceType);
     idx += 1;
-    if (idx < icsList.length) setTimeout(runNext, 700);
+    if (idx < groups.length) setTimeout(runNext, 700);
   };
   runNext();
 }
 
-function printWasteMaterialsReportForICS(icsNo){
+function printWasteMaterialsReportForICS(icsNo, sourceType = 'ics'){
   if (!requireAccess('archive_items', { label: 'print Waste Materials Report' })) return;
-  const records = JSON.parse(localStorage.getItem('icsRecords') || '[]');
-  const rec = records.find((r) => (r.icsNo || '') === (icsNo || ''));
+  const resolvedSourceType = resolveWmrSourceType(sourceType);
+  const rec = getWmrRecordSource(icsNo, resolvedSourceType).record;
   if (!rec){
-    notify('error', `ICS ${icsNo || ''} not found.`);
+    notify('error', `${resolvedSourceType === 'par' ? 'PAR' : 'ICS'} ${icsNo || ''} not found.`);
     return;
   }
   const itemNos = (rec.items || []).filter((it) => it?.wasteReport?.preparedAt).map((it) => it.itemNo || '').filter(Boolean);
   if (!itemNos.length){
-    notify('error', 'No Waste Materials Report metadata found for this ICS.');
+    notify('error', `No Waste Materials Report metadata found for this ${resolvedSourceType === 'par' ? 'PAR' : 'ICS'} record.`);
     return;
   }
-  printWasteMaterialsReportBatch(icsNo, itemNos);
+  const sourceNo = resolvedSourceType === 'par' ? (rec.parNo || rec.icsNo || icsNo || '') : (rec.icsNo || icsNo || '');
+  printWasteMaterialsReportBatch(sourceNo, itemNos, resolvedSourceType);
 }
 
 function printWasteMaterialsReportArchived(index){
@@ -291,6 +364,7 @@ function printWasteMaterialsReportArchived(index){
   }
   const record = {
     icsNo: entry?.source?.icsNo || '',
+    sourceType: resolveWmrSourceType(entry?.source?.sourceType || 'ics'),
     entity: entry?.source?.entity || '',
     items: [item]
   };
@@ -327,14 +401,17 @@ function printBatchWasteMaterialsReportArchived(){
   runNext();
 }
 
-function printWasteMaterialsReportBatch(icsNo, itemNos){
+function printWasteMaterialsReportBatch(icsNo, itemNos, sourceType = 'ics'){
   if (!requireAccess('archive_items', { label: 'print Waste Materials Report' })) return;
-  const records = JSON.parse(localStorage.getItem('icsRecords') || '[]');
-  const record = records.find((r) => (r.icsNo || '') === (icsNo || ''));
+  const resolvedSourceType = resolveWmrSourceType(sourceType);
+  const record = getWmrRecordSource(icsNo, resolvedSourceType).record;
   if (!record){
-    notify('error', `Waste Materials Report source not found for ICS ${icsNo || ''}.`);
+    notify('error', `Waste Materials Report source not found for ${resolvedSourceType === 'par' ? 'PAR' : 'ICS'} ${icsNo || ''}.`);
     return;
   }
+  const sourceNo = resolvedSourceType === 'par'
+    ? ((record.parNo || record.icsNo || icsNo || '').toString())
+    : ((record.icsNo || icsNo || '').toString());
   const selectedSet = new Set((itemNos || []).map((x) => (x || '').toString()));
   const selectedItems = (record.items || []).filter((it) => selectedSet.has((it.itemNo || '').toString()));
   if (!selectedItems.length){
@@ -342,9 +419,9 @@ function printWasteMaterialsReportBatch(icsNo, itemNos){
     return;
   }
   if ((itemNos || []).length > 1){
-    const invalid = selectedItems.filter((it) => !hasDisposalSituation(icsNo, it.itemNo || ''));
+    const invalid = selectedItems.filter((it) => !hasDisposalSituation(sourceNo, it.itemNo || '', resolvedSourceType));
     if (invalid.length){
-      const preview = invalid.slice(0, 4).map((it) => `${icsNo}/${it.itemNo || ''}`).join(', ');
+      const preview = invalid.slice(0, 4).map((it) => `${sourceNo}/${it.itemNo || ''}`).join(', ');
       notify('error', `Batch PRINT WMR only allows items with Situation "Item for disposal". Invalid: ${preview}${invalid.length > 4 ? ' ...' : ''}`);
       return;
     }
@@ -354,6 +431,7 @@ function printWasteMaterialsReportBatch(icsNo, itemNos){
     notify('error', 'Selected items have no prepared Waste Materials metadata.');
     return;
   }
+  record.sourceType = resolvedSourceType;
   printWasteMaterialsReportPrepared(record, prepared);
 }
 

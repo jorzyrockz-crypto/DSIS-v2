@@ -30,6 +30,8 @@ function openAutoPopulateFromDataHub(){
 function dashboardOpenActions(){
   actionCenterFilter = 'all';
   actionCenterICSFilter = '';
+  actionCenterItemFilter = '';
+  actionCenterSourceFilter = '';
   goToView('Action Center');
 }
 
@@ -42,6 +44,7 @@ function dashboardOpenActionFiltered(filter){
   actionCenterFilter = filter || 'all';
   actionCenterICSFilter = '';
   actionCenterItemFilter = '';
+  actionCenterSourceFilter = '';
   goToView('Action Center');
 }
 
@@ -57,6 +60,7 @@ function clearInventoryFilter(){
 function clearActionCenterICSFilter(){
   actionCenterICSFilter = '';
   actionCenterItemFilter = '';
+  actionCenterSourceFilter = '';
   goToView('Action Center');
 }
 
@@ -70,22 +74,25 @@ function openPastEULForICS(icsNo){
   actionCenterFilter = 'past';
   actionCenterICSFilter = icsNo || '';
   actionCenterItemFilter = '';
+  actionCenterSourceFilter = 'ics';
   goToView('Action Center');
 }
 
-function openPastEULForItem(icsNo, itemNo){
+function openPastEULForItem(icsNo, itemNo, sourceType = 'ics'){
   closeICSDetailsModal();
   actionCenterFilter = 'past';
   actionCenterICSFilter = icsNo || '';
   actionCenterItemFilter = itemNo || '';
+  actionCenterSourceFilter = (sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
   goToView('Action Center');
 }
 
-function openNearEULForItem(icsNo, itemNo){
+function openNearEULForItem(icsNo, itemNo, sourceType = 'ics'){
   closeICSDetailsModal();
   actionCenterFilter = 'near';
   actionCenterICSFilter = icsNo || '';
   actionCenterItemFilter = itemNo || '';
+  actionCenterSourceFilter = (sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
   goToView('Action Center');
 }
 

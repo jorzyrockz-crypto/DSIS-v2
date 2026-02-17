@@ -1,5 +1,12 @@
+function resetModalVariantState(){
+  const m = document.getElementById('modal');
+  if (!m) return;
+  m.classList.remove('modal-release-notes');
+}
+
 function showConfirm(title, msg, onConfirm, confirmLabel = 'Confirm'){
   const m = document.getElementById('modal');
+  resetModalVariantState();
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalMsg').textContent = msg;
   pendingConfirmAction = typeof onConfirm === 'function' ? onConfirm : null;
@@ -12,6 +19,7 @@ function showConfirm(title, msg, onConfirm, confirmLabel = 'Confirm'){
 
 function showModal(title, msg){
   const m = document.getElementById('modal');
+  resetModalVariantState();
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalMsg').textContent = msg;
   m.querySelector('.modal-actions').innerHTML = '<button class="btn btn-md btn-primary modal-btn primary" data-action="closeModal">OK</button>';
@@ -27,5 +35,6 @@ function runConfirmAction(){
 
 function closeModal(){
   pendingConfirmAction = null;
+  resetModalVariantState();
   document.getElementById('modal').style.display = 'none';
 }

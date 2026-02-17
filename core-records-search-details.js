@@ -3,6 +3,7 @@ function buildSearchIndex(rec, idx){
   const descs = items.map((i) => i.desc || '').filter(Boolean).join(' ');
   const itemNos = items.map((i) => i.itemNo || '').filter(Boolean).join(' ');
   return [
+    rec.parNo || '',
     rec.icsNo || '',
     rec.entity || '',
     rec.accountable || '',
@@ -27,23 +28,36 @@ function findFocusedItemNo(record, query){
 let currentArchivedHistoryIndex = null;
 
 function renderSearchResults(query){
-  const records = JSON.parse(localStorage.getItem('icsRecords') || '[]');
+  const icsRecords = JSON.parse(localStorage.getItem('icsRecords') || '[]');
+  const parRecords = JSON.parse(localStorage.getItem('parRecords') || '[]');
   const archived = getArchivedItems();
   const q = (query || '').trim().toLowerCase();
   if (!q){
     searchMatches = [];
     searchActiveIndex = -1;
-    searchResults.innerHTML = '<div class="search-empty">Type to search ICS records or archived items.</div>';
+    searchResults.innerHTML = '<div class="search-empty">Type to search ICS/PAR records or archived items.</div>';
     return;
   }
 
-  const recordHits = records
+  const recordHits = icsRecords
     .map((r, i) => ({ i, r, hay: buildSearchIndex(r, i) }))
     .filter((x) => x.hay.includes(q))
     .map((x) => ({
       type: 'ics',
       i: x.i,
+      sourceNo: x.r.icsNo || '',
       title: `${x.r.icsNo || 'No ICS No.'} - ${x.r.entity || 'Unknown Entity'}`,
+      meta: `${x.r.issuedDate || ''} | ${x.r.accountable || ''} | Items: ${(x.r.items || []).length}`,
+      focusItemNo: findFocusedItemNo(x.r, q)
+    }));
+  const parHits = parRecords
+    .map((r, i) => ({ i, r, hay: buildSearchIndex(r, i) }))
+    .filter((x) => x.hay.includes(q))
+    .map((x) => ({
+      type: 'par',
+      i: x.i,
+      sourceNo: x.r.parNo || x.r.icsNo || '',
+      title: `${x.r.parNo || x.r.icsNo || 'No PAR No.'} - ${x.r.entity || 'Unknown Entity'}`,
       meta: `${x.r.issuedDate || ''} | ${x.r.accountable || ''} | Items: ${(x.r.items || []).length}`,
       focusItemNo: findFocusedItemNo(x.r, q)
     }));
@@ -64,11 +78,11 @@ function renderSearchResults(query){
     .map((x) => ({
       type: 'archive',
       i: x.i,
-      title: `${x.a.source?.icsNo || 'No ICS No.'} - ${x.a.item?.itemNo || 'No Item No.'}`,
+      title: `${((x.a.source?.sourceType || 'ics').toString().toLowerCase() === 'par' ? 'PAR-' : 'ICS-')}${x.a.source?.icsNo || 'No Record No.'} - ${x.a.item?.itemNo || 'No Item No.'}`,
       meta: `${x.a.source?.entity || ''} | Archived: ${(x.a.archivedAt || '').slice(0, 10)}`
     }));
 
-  searchMatches = [...recordHits, ...archiveHits].slice(0, 30);
+  searchMatches = [...recordHits, ...parHits, ...archiveHits].slice(0, 30);
   searchActiveIndex = searchMatches.length ? 0 : -1;
 
   if (!searchMatches.length){
@@ -78,7 +92,7 @@ function renderSearchResults(query){
 
   searchResults.innerHTML = searchMatches.map((m, idx) => {
     const cls = idx === searchActiveIndex ? 'search-item active' : 'search-item';
-    const typeLabel = m.type === 'archive' ? 'Archived' : 'ICS';
+    const typeLabel = m.type === 'archive' ? 'Archived' : (m.type === 'par' ? 'PAR' : 'ICS');
     return `<button class="${cls}" data-action="activateSearchResult" data-arg1="${idx}">
       <div class="search-item-title">${escapeHTML(m.title)}<span class="search-item-type">${typeLabel}</span></div>
       <div class="search-item-meta">${escapeHTML(m.meta)}</div>
@@ -94,11 +108,17 @@ function activateSearchResult(matchIndex){
     openArchivedItemHistory(hit.i);
     return;
   }
-  const records = JSON.parse(localStorage.getItem('icsRecords') || '[]');
+  const records = hit.type === 'par'
+    ? JSON.parse(localStorage.getItem('parRecords') || '[]')
+    : JSON.parse(localStorage.getItem('icsRecords') || '[]');
   const rec = records[hit.i];
   if (!rec) return;
+  if (hit.type === 'par'){
+    openRecordDetailsByKey(hit.sourceNo || (rec.parNo || rec.icsNo || ''), hit.focusItemNo || '', 'par');
+    return;
+  }
   if (hit.focusItemNo){
-    openICSDetailsByKey(rec.icsNo, hit.focusItemNo);
+    openRecordDetailsByKey(hit.sourceNo || rec.icsNo, hit.focusItemNo, 'ics');
   } else {
     openICSDetailsByIndex(hit.i);
   }
@@ -120,16 +140,28 @@ function closeSearchOverlay(){
   searchOverlay.classList.remove('show');
 }
 
-function findItemRef(icsNo, itemNo){
-  const records = JSON.parse(localStorage.getItem('icsRecords') || '[]');
-  const targetIcsKey = normalizeICSKey(icsNo || '');
+function findItemRef(recordNo, itemNo, sourceType = 'ics'){
+  const source = (sourceType || 'ics').toString().toLowerCase();
+  const targetRecordKey = normalizeICSKey(recordNo || '');
   const targetItemKey = normalizeICSKey(itemNo || '');
-  const rIdx = records.findIndex((r) => normalizeICSKey(r.icsNo || '') === targetIcsKey);
-  if (rIdx === -1) return null;
-  const items = records[rIdx].items || [];
-  const iIdx = items.findIndex((i) => normalizeICSKey(i.itemNo || '') === targetItemKey);
-  if (iIdx === -1) return null;
-  return { records, rIdx, iIdx };
+  const sources = source === 'par'
+    ? [{ storageKey: 'parRecords', sourceType: 'par', noResolver: (r) => (r.parNo || r.icsNo || '') }]
+    : source === 'ics'
+      ? [{ storageKey: 'icsRecords', sourceType: 'ics', noResolver: (r) => (r.icsNo || '') }]
+      : [
+          { storageKey: 'icsRecords', sourceType: 'ics', noResolver: (r) => (r.icsNo || '') },
+          { storageKey: 'parRecords', sourceType: 'par', noResolver: (r) => (r.parNo || r.icsNo || '') }
+        ];
+  for (const src of sources){
+    const records = JSON.parse(localStorage.getItem(src.storageKey) || '[]');
+    const rIdx = records.findIndex((r) => normalizeICSKey(src.noResolver(r)) === targetRecordKey);
+    if (rIdx === -1) continue;
+    const items = records[rIdx].items || [];
+    const iIdx = items.findIndex((i) => normalizeICSKey(i.itemNo || '') === targetItemKey);
+    if (iIdx === -1) continue;
+    return { records, rIdx, iIdx, storageKey: src.storageKey, sourceType: src.sourceType };
+  }
+  return null;
 }
 
 function openICSDetailsByIndex(i){
@@ -139,7 +171,17 @@ function openICSDetailsByIndex(i){
     notify('error', 'ICS record not found.');
     return;
   }
-  openICSDetailsModal(rec, '', i);
+  openICSDetailsModal(rec, '', i, 'ics');
+}
+
+function openPARDetailsByIndex(i, focusItemNo = ''){
+  const records = JSON.parse(localStorage.getItem('parRecords') || '[]');
+  const rec = records[i];
+  if (!rec){
+    notify('error', 'PAR record not found.');
+    return;
+  }
+  openICSDetailsModal(rec, focusItemNo || '', i, 'par');
 }
 
 function getRecordStatusMetaTitle(record){
@@ -178,14 +220,20 @@ function renderRecordStatusMini(record){
   return `<span class="ics-status-mini ${type}" title="${title}" aria-label="${title}"${warnAttr}><span class="dot" aria-hidden="true"></span>${label}</span>`;
 }
 
-function buildICSRecordFromArchive(icsNo){
-  const key = normalizeICSKey(icsNo);
+function buildRecordFromArchive(recordNo, sourceType = 'ics'){
+  const key = normalizeICSKey(recordNo);
   if (!key) return null;
-  const archived = getArchivedItems().filter((a) => normalizeICSKey(a.source?.icsNo || '') === key);
+  const expectedType = (sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
+  const archived = getArchivedItems().filter((a) => {
+    const archiveType = (a?.source?.sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
+    return archiveType === expectedType && normalizeICSKey(a.source?.icsNo || '') === key;
+  });
   if (!archived.length) return null;
   const src = archived[0].source || {};
+  const sourceNo = (src.icsNo || recordNo || '').toString();
   return {
-    icsNo: src.icsNo || icsNo || '',
+    icsNo: sourceNo,
+    parNo: expectedType === 'par' ? (src.parNo || sourceNo) : '',
     entity: src.entity || '',
     fund: src.fund || '',
     issuedDate: src.issuedDate || '',
@@ -200,30 +248,46 @@ function buildICSRecordFromArchive(icsNo){
   };
 }
 
-function openICSDetailsByKey(icsNo, focusItemNo){
-  const records = JSON.parse(localStorage.getItem('icsRecords') || '[]');
-  const key = normalizeICSKey(icsNo);
-  const recIndex = records.findIndex((r) => normalizeICSKey(r.icsNo || '') === key);
-  const rec = (recIndex !== -1 ? records[recIndex] : null) || buildICSRecordFromArchive(icsNo);
-  if (!rec) return notify('error', `ICS ${icsNo || ''} not found.`);
-  openICSDetailsModal(rec, focusItemNo || '', recIndex !== -1 ? recIndex : null);
+function openRecordDetailsByKey(recordNo, focusItemNo, sourceType = 'ics'){
+  const resolvedSourceType = (sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
+  const storageKey = resolvedSourceType === 'par' ? 'parRecords' : 'icsRecords';
+  const records = JSON.parse(localStorage.getItem(storageKey) || '[]');
+  const key = normalizeICSKey(recordNo);
+  const recIndex = records.findIndex((r) => normalizeICSKey(resolvedSourceType === 'par' ? (r.parNo || r.icsNo || '') : (r.icsNo || '')) === key);
+  const rec = (recIndex !== -1 ? records[recIndex] : null) || buildRecordFromArchive(recordNo, resolvedSourceType);
+  if (!rec) return notify('error', `${resolvedSourceType === 'par' ? 'PAR' : 'ICS'} ${recordNo || ''} not found.`);
+  openICSDetailsModal(rec, focusItemNo || '', recIndex !== -1 ? recIndex : null, resolvedSourceType);
 }
 
-function openICSDetailsModal(record, focusItemNo, recordIndex){
+function openICSDetailsByKey(icsNo, focusItemNo){
+  openRecordDetailsByKey(icsNo, focusItemNo || '', 'ics');
+}
+
+function openPARDetailsByKey(parNo, focusItemNo){
+  openRecordDetailsByKey(parNo, focusItemNo || '', 'par');
+}
+
+function openICSDetailsModal(record, focusItemNo, recordIndex, sourceType = 'ics'){
   const overlay = document.getElementById('icsDetailsOverlay');
   const title = document.getElementById('icsDetailsTitle');
   const body = document.getElementById('icsDetailsBody');
   if (!overlay || !title || !body) return;
+  const normalizedSource = (sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
+  const isPARSource = normalizedSource === 'par';
+  const recordCode = isPARSource ? 'PAR' : 'ICS';
+  const sourceNo = isPARSource
+    ? (record.parNo || record.icsNo || '')
+    : (record.icsNo || '');
   currentICSDetailsContext = {
     recordIndex: Number.isInteger(recordIndex) && recordIndex >= 0 ? recordIndex : null,
-    icsNo: record.icsNo || '',
+    icsNo: sourceNo,
     hasLiveRecord: Number.isInteger(recordIndex) && recordIndex >= 0
   };
 
   const issuedBy = record.signatories?.issuedBy || {};
   const receivedBy = record.signatories?.receivedBy || {};
   const items = Array.isArray(record.items) ? record.items : [];
-  const archivedItems = getArchivedItems().filter((a) => (a.source?.icsNo || '') === (record.icsNo || ''));
+  const archivedItems = getArchivedItems().filter((a) => (a.source?.icsNo || '') === (sourceNo || ''));
   const lineage = normalizeRecordLineage(record?._lineage || record?.lineage);
   const lineageCheck = verifyRecordLineage(record || {});
   const shortToken = (value, max = 18) => {
@@ -267,9 +331,9 @@ function openICSDetailsModal(record, focusItemNo, recordIndex){
       <td>${escapeHTML(a.disposal?.status === 'approved' ? 'Approved' : 'Not Approved')}</td>
       <td><span class="u-truncate" title="${escapeHTML(a.disposal?.approvedBy || '-')}">${escapeHTML(a.disposal?.approvedBy || '-')}</span></td>
     </tr>
-  `).join('') : '<tr><td colspan="5" class="empty-cell">No archived items for this ICS.</td></tr>';
+  `).join('') : `<tr><td colspan="5" class="empty-cell">No archived items for this ${recordCode}.</td></tr>`;
 
-  const safeIcsNo = escapeHTML(record.icsNo || 'N/A');
+  const safeRecordNo = escapeHTML(sourceNo || 'N/A');
   const itemCount = items.length;
   const inspectedCount = items.filter((it) => Array.isArray(it?.inspections) && it.inspections.length).length;
   const archivedCount = archivedItems.length;
@@ -288,13 +352,16 @@ function openICSDetailsModal(record, focusItemNo, recordIndex){
   const iconItems = icon('package');
   const iconHistory = icon('history');
 
-  title.textContent = 'ICS Details';
+  title.textContent = `${recordCode} Details`;
   body.innerHTML = `
     <div class="icsd-shell">
       <section class="icsd-head">
         <div class="icsd-head-left">
           <div class="icsd-head-title-row">
-            <button class="ics-link-btn icsd-ics-btn" data-action="icsDetailsEditFromTitle">${safeIcsNo}</button>
+            ${isPARSource
+              ? `<span class="u-mono">${safeRecordNo}</span>`
+              : `<button class="ics-link-btn icsd-ics-btn" data-action="icsDetailsEditFromTitle">${safeRecordNo}</button>`
+            }
             ${lineageIntegrity}
           </div>
           <div class="icsd-head-meta">
@@ -340,7 +407,7 @@ function openICSDetailsModal(record, focusItemNo, recordIndex){
                   <tbody>${archivedRows}</tbody>
                 </table>
               </div>
-            ` : '<div class="icsd-empty-box">No archived items for this ICS.</div>'}
+            ` : `<div class="icsd-empty-box">No archived items for this ${recordCode}.</div>`}
           </section>
 
           <section class="icsd-card">
@@ -358,7 +425,7 @@ function openICSDetailsModal(record, focusItemNo, recordIndex){
                 <div class="icsd-activity-summary">${showAdvancedAudit ? latestSummary : escapeHTML('Record updated')}</div>
               ` : '<div class="lineage-empty">No activity yet for this record.</div>'}
             </div>
-            <button class="btn btn-sm btn-secondary" data-action="openICSRecordHistoryModal">${iconHistory}View record history</button>
+            ${isPARSource ? '' : `<button class="btn btn-sm btn-secondary" data-action="openICSRecordHistoryModal">${iconHistory}View record history</button>`}
           </section>
         </div>
       </div>
@@ -384,7 +451,9 @@ function openICSDetailsModal(record, focusItemNo, recordIndex){
               const itemNo = (it.itemNo || '').toString();
               const cls = classifyEULItem(record, it);
               const canTarget = itemNo.trim() !== '';
-              const eulStatusCell = cls.code === 'past' && canTarget
+              const eulStatusCell = isPARSource
+                ? `<span class="${cls.cls}">${cls.status}</span>`
+                : cls.code === 'past' && canTarget
                 ? `<button class="ics-link-btn" data-action="openPastEULForItem" data-arg1="${escapeHTML(record.icsNo || '')}" data-arg2="${escapeHTML(itemNo)}"><span class="${cls.cls}">${cls.status}</span></button>`
                 : cls.code === 'near' && canTarget
                   ? `<button class="ics-link-btn" data-action="openNearEULForItem" data-arg1="${escapeHTML(record.icsNo || '')}" data-arg2="${escapeHTML(itemNo)}"><span class="${cls.cls}">${cls.status}</span></button>`
@@ -407,7 +476,7 @@ function openICSDetailsModal(record, focusItemNo, recordIndex){
                 <td>${eulStatusCell}</td>
                 <td>${inspLabel}</td>
               </tr>`;
-            }).join('') : '<tr><td colspan="9" class="empty-cell">No items found in this ICS record.</td></tr>'}</tbody>
+            }).join('') : `<tr><td colspan="9" class="empty-cell">No items found in this ${recordCode} record.</td></tr>`}</tbody>
           </table>
         </div>
         <div class="icsd-table-meta">
@@ -533,8 +602,9 @@ function openArchivedItemHistory(index){
   const iconLogs = icon('list');
   const iconExport = icon('download');
 
+  const sourceCode = (src.sourceType || 'ics').toString().toLowerCase() === 'par' ? 'PAR' : 'ICS';
   const assetRows = [
-    { label: 'ICS Number', value: textOrDash(src.icsNo) },
+    { label: `${sourceCode} Number`, value: textOrDash(src.icsNo) },
     { label: 'Entity', value: textOrDash(src.entity) },
     { label: 'Fund Cluster', value: textOrDash(src.fund) },
     { label: 'Issued Date', value: textOrDash(src.issuedDate) },
@@ -597,6 +667,12 @@ function openArchivedItemHistory(index){
             <div class="icsd-card-title">${iconLogs}Inspection Logs</div>
             <div class="detail-table-wrap">
               <table class="detail-table archived-log-table archived-icsd-log-table">
+                <colgroup>
+                  <col class="archived-log-col-date" />
+                  <col class="archived-log-col-status" />
+                  <col class="archived-log-col-reason" />
+                  <col class="archived-log-col-time" />
+                </colgroup>
                 <thead>
                   <tr><th>Date</th><th>Status</th><th>Reason</th><th>Time</th></tr>
                 </thead>

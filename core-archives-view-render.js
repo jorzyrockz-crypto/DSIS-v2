@@ -1,6 +1,6 @@
 function renderArchivesView(){
   const canArchive = hasRoleCapability('archive_items');
-  const scope = archivesFilterIcs ? ` <span class="risk-badge ok">ICS: ${escapeHTML(archivesFilterIcs)}</span> <button class="btn btn-sm btn-secondary" data-action="clearArchivesFilter">Clear ICS Filter</button>` : '';
+  const scope = archivesFilterIcs ? ` <span class="risk-badge ok">Record: ${escapeHTML(archivesFilterIcs)}</span> <button class="btn btn-sm btn-secondary" data-action="clearArchivesFilter">Clear Filter</button>` : '';
   const batchBtn = `<button class="btn btn-sm btn-primary" data-action="openBatchWasteReportBuilderArchived" ${canArchive ? '' : 'disabled title="Requires Encoder/Admin role"'}><i data-lucide="printer" aria-hidden="true"></i>Batch Print WMR</button>`;
   return `
 ${renderWelcomeBanner('Archives')}
@@ -32,7 +32,7 @@ ${renderWelcomeBanner('Archives')}
       <thead>
         <tr>
           <th>#</th>
-          <th>ICS No.</th>
+          <th>ICS/PAR No.</th>
           <th>Item No.</th>
           <th>Description</th>
           <th>Qty</th>
@@ -114,7 +114,7 @@ ${renderWelcomeBanner('Archives')}
       </colgroup>
       <thead>
         <tr>
-          <th>#</th><th>Archived At</th><th>ICS No.</th><th>Description</th><th>Item No.</th><th style="text-align:center">EUL</th><th style="text-align:center">Approval</th><th>Approved By</th><th>Remarks</th><th style="text-align:center">Actions</th>
+          <th>#</th><th>Archived At</th><th>ICS/PAR No.</th><th>Description</th><th>Item No.</th><th style="text-align:center">EUL</th><th style="text-align:center">Approval</th><th>Approved By</th><th>Remarks</th><th style="text-align:center">Actions</th>
         </tr>
       </thead>
       <tbody id="archiveBody"></tbody>

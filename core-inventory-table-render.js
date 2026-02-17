@@ -95,8 +95,12 @@ function computeRecordMetrics(record){
   };
 }
 
-function renderEULStatus(record){
+function renderEULStatus(record, sourceType = 'ics'){
   const items = Array.isArray(record?.items) ? record.items : [];
+  const resolvedSourceType = (sourceType || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
+  const sourceNo = resolvedSourceType === 'par'
+    ? ((record?.parNo || record?.icsNo || '').toString())
+    : ((record?.icsNo || '').toString());
   const groups = {
     overdue: [],
     lt30: [],
@@ -125,9 +129,10 @@ function renderEULStatus(record){
       const tooltip = `${label} items: ${bucket.map((x) => x.label).join(', ')}`;
       const badge = `<span class="risk-badge ${cls}" title="${escapeHTML(tooltip)}">${label}: ${bucket.length}</span>`;
       if (!firstItemNo) return badge;
-      const icsNo = escapeHTML(record.icsNo || '');
+      const safeSourceNo = escapeHTML(sourceNo || '');
+      const safeSourceType = escapeHTML(resolvedSourceType);
       const safeItem = escapeHTML(firstItemNo);
-      return `<button class="ics-link-btn" data-action="${action}" data-arg1="${icsNo}" data-arg2="${safeItem}">${badge}</button>`;
+      return `<button class="ics-link-btn" data-action="${action}" data-arg1="${safeSourceNo}" data-arg2="${safeItem}" data-arg3="${safeSourceType}">${badge}</button>`;
     };
 
     const overdueBadge = renderTier('overdue', 'danger', 'Overdue', 'openPastEULForItem');
@@ -166,6 +171,7 @@ function loadICSRecords(){
     body.innerHTML = inventoryFilter === 'missing'
       ? '<tr><td class="empty-cell" colspan="10">No ICS records with missing data.</td></tr>'
       : '<tr><td class="empty-cell" colspan="10">No ICS records yet. Add or import an ICS to get started.</td></tr>';
+    loadPARRecords();
     return;
   }
 
@@ -183,7 +189,7 @@ function loadICSRecords(){
       <td>${safeEntity}</td>
       <td>${r.issuedDate}</td>
       <td>${r.accountable}</td>
-      <td>${renderEULStatus(r)}</td>
+      <td>${renderEULStatus(r, 'ics')}</td>
       <td>${metrics.totalItems}</td>
       <td>${renderValueCell(r)}</td>
       <td>
@@ -191,6 +197,55 @@ function loadICSRecords(){
         <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Print ICS" aria-label="Print ICS" data-action="printICS" data-arg1="${i}"><i data-lucide="printer" aria-hidden="true"></i></button>
         <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Export ICS" aria-label="Export ICS" data-action="exportICS" data-arg1="${i}" ${canExport ? '' : 'disabled'}><i data-lucide="download" aria-hidden="true"></i></button>
         <button class="btn btn-sm btn-danger btn-icon icon-only-btn" title="Delete ICS" aria-label="Delete ICS" data-action="deleteICS" data-arg1="${i}" ${canDelete ? '' : 'disabled'}><i data-lucide="trash-2" aria-hidden="true"></i></button>
+      </td>`;
+    body.appendChild(tr);
+  });
+  loadPARRecords();
+}
+
+function loadPARRecords(){
+  const canEdit = hasRoleCapability('edit_records');
+  const canDelete = hasRoleCapability('delete_records');
+  const canExport = hasRoleCapability('export_data');
+  const allRecords = JSON.parse(localStorage.getItem('parRecords') || '[]');
+  const body = document.getElementById('parRecords');
+  if (!body) return;
+  body.innerHTML = '';
+  const rows = allRecords
+    .map((r, i) => ({ r, i }))
+    .filter(({ r }) => (inventoryFilter === 'missing' ? recordHasMissingData(r) : true));
+
+  if (!rows.length){
+    body.innerHTML = inventoryFilter === 'missing'
+      ? '<tr><td class="empty-cell" colspan="10">No PAR records with missing data.</td></tr>'
+      : '<tr><td class="empty-cell" colspan="10">No PAR records yet.</td></tr>';
+    return;
+  }
+
+  rows.forEach((entry, rowIdx) => {
+    const r = entry.r || {};
+    const i = entry.i;
+    const metrics = computeRecordMetrics(r);
+    const statusMini = renderRecordStatusMini(r);
+    const safePar = escapeHTML((r.parNo || r.icsNo || '').toString());
+    const safeEntity = escapeHTML((r.entity || '').toString());
+    const issuedDate = escapeHTML((r.issuedDate || '').toString());
+    const accountable = escapeHTML((r.accountable || '').toString());
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${rowIdx + 1}</td>
+      <td><div class="ics-no-wrap"><div class="ics-no-line"><button class="ics-link-btn" title="${safePar}" aria-label="Open PAR ${safePar}" data-action="openPARDetailsByIndex" data-arg1="${i}">${safePar || '-'}</button></div></div></td>
+      <td>${statusMini}</td>
+      <td>${safeEntity}</td>
+      <td>${issuedDate || '-'}</td>
+      <td>${accountable || '-'}</td>
+      <td>${renderEULStatus(r, 'par')}</td>
+      <td>${metrics.totalItems}</td>
+      <td>${renderValueCell(r)}</td>
+      <td>
+        <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="${canEdit ? 'Edit PAR' : 'Requires Encoder/Admin role'}" aria-label="Edit PAR" data-action="editPAR" data-arg1="${i}" ${canEdit ? '' : 'disabled'}><i data-lucide="pencil" aria-hidden="true"></i></button>
+        <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Print PAR" aria-label="Print PAR" data-action="printPAR" data-arg1="${i}"><i data-lucide="printer" aria-hidden="true"></i></button>
+        <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Export PAR" aria-label="Export PAR" data-action="exportPAR" data-arg1="${i}" ${canExport ? '' : 'disabled'}><i data-lucide="download" aria-hidden="true"></i></button>
+        <button class="btn btn-sm btn-danger btn-icon icon-only-btn" title="Delete PAR" aria-label="Delete PAR" data-action="deletePAR" data-arg1="${i}" ${canDelete ? '' : 'disabled'}><i data-lucide="trash-2" aria-hidden="true"></i></button>
       </td>`;
     body.appendChild(tr);
   });
@@ -214,3 +269,24 @@ function deleteICS(i){
     'Delete'
   );
 }
+
+function deletePAR(i){
+  if (!requireAccess('delete_record')) return;
+  const records = JSON.parse(localStorage.getItem('parRecords') || '[]');
+  const target = records[i];
+  if (!target) return;
+  const parNo = (target.parNo || target.icsNo || 'record').toString();
+  showConfirm(
+    'Confirm Delete',
+    `Delete PAR ${parNo}? This action cannot be undone.`,
+    () => {
+      records.splice(i, 1);
+      localStorage.setItem('parRecords', JSON.stringify(records));
+      recordAudit('delete', `Deleted PAR ${parNo}.`, buildRecordLineageAuditMeta(target, { recordParNo: parNo }));
+      loadICSRecords();
+      notify('info', `Deleted ${parNo}.`);
+    },
+    'Delete'
+  );
+}
+

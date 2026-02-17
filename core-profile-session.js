@@ -21,6 +21,8 @@ function createDefaultUser(){
     designation: 'Inventory Officer',
     role: 'Encoder',
     email: '',
+    phone: '',
+    bio: '',
     avatar: 'initials',
     topbarAvatarDataUrl: '',
     lastLogin: new Date().toISOString(),
@@ -55,6 +57,8 @@ function normalizeUser(user){
     designation,
     role: roleLabel,
     email: (src.email || '').toString().trim(),
+    phone: (src.phone || '').toString().trim(),
+    bio: (src.bio || '').toString().trim(),
     avatar,
     topbarAvatarDataUrl,
     lastLogin: src.lastLogin || base.lastLogin,
@@ -89,6 +93,15 @@ function renderUserAvatar(target, name, avatarType){
   target.innerHTML = icon;
 }
 
+function openMyProfileFromMenu(){
+  closeTopbarProfileMenu();
+  if (typeof openMyProfileModal === 'function'){
+    openMyProfileModal();
+    return;
+  }
+  openProfileModal();
+}
+
 function renderTopbarProfileAvatar(target, dataUrl, name = '', avatarType = 'initials'){
   if (!target) return;
   const next = sanitizeProfileAvatarDataUrl(dataUrl || '');
@@ -112,7 +125,54 @@ function resolveCurrentThemeAccent(){
 }
 
 function isDarkThemeAccent(accent){
-  return accent === 'dracula' || accent === 'crimson-black';
+  return accent === 'crimson-black' || String(accent || '').startsWith('dracula');
+}
+
+const AUDIT_LAST_SEEN_AT_STORAGE_KEY = 'dsisAuditLogsLastSeenAt';
+
+function getAuditLastSeenAtMs(){
+  const raw = localStorage.getItem(AUDIT_LAST_SEEN_AT_STORAGE_KEY) || '';
+  const ms = Number(raw);
+  return Number.isFinite(ms) && ms > 0 ? ms : 0;
+}
+
+function setAuditLastSeenAtMs(value){
+  const ms = Number(value);
+  if (!Number.isFinite(ms) || ms <= 0) return;
+  localStorage.setItem(AUDIT_LAST_SEEN_AT_STORAGE_KEY, String(ms));
+}
+
+function getLatestAuditAtMs(){
+  const logs = getAuditLogs() || [];
+  let latest = 0;
+  logs.forEach((entry) => {
+    const ms = getAuditEntryTimeMs(entry);
+    if (ms > latest) latest = ms;
+  });
+  return latest;
+}
+
+function getNewAuditLogsCount(){
+  const since = getAuditLastSeenAtMs();
+  const logs = getAuditLogs() || [];
+  let count = 0;
+  logs.forEach((entry) => {
+    if (getAuditEntryTimeMs(entry) > since) count += 1;
+  });
+  return count;
+}
+
+function refreshAuditLogsMenuBadge(){
+  const badge = document.getElementById('auditLogsMenuBadge');
+  if (!badge) return;
+  const count = getNewAuditLogsCount();
+  if (count <= 0){
+    badge.style.display = 'none';
+    badge.textContent = '0 New';
+    return;
+  }
+  badge.style.display = 'inline-flex';
+  badge.textContent = `${count > 99 ? '99+' : count} New`;
 }
 
 function updateTopbarProfileMenuIdentity(){
@@ -125,6 +185,7 @@ function updateTopbarProfileMenuIdentity(){
   if (topbarAppearanceMode){
     topbarAppearanceMode.textContent = isDarkThemeAccent(resolveCurrentThemeAccent()) ? 'Dark' : 'Light';
   }
+  refreshAuditLogsMenuBadge();
 }
 
 function closeTopbarProfileMenu(){
@@ -155,14 +216,327 @@ function openProfileFromMenu(tab = 'identity'){
   setTimeout(() => setProfileSettingsTab(safeTab, true), 0);
 }
 
+const auditLogsViewState = {
+  query: '',
+  type: 'all',
+  actor: 'all',
+  fromDate: '',
+  toDate: '',
+  page: 1,
+  pageSize: 8
+};
+
+function getAuditEntryTimeMs(entry){
+  const at = new Date(entry?.at || '').getTime();
+  if (Number.isFinite(at)) return at;
+  const parsed = new Date(entry?.time || '').getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getDateStartMs(ymd){
+  const v = (ymd || '').toString().trim();
+  if (!v) return null;
+  const ms = new Date(`${v}T00:00:00`).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function getDateEndMs(ymd){
+  const v = (ymd || '').toString().trim();
+  if (!v) return null;
+  const ms = new Date(`${v}T23:59:59.999`).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function getFilteredAuditLogs(){
+  const logs = (getAuditLogs() || []).slice().reverse();
+  const q = (auditLogsViewState.query || '').toLowerCase().trim();
+  const type = (auditLogsViewState.type || 'all').toLowerCase();
+  const actor = (auditLogsViewState.actor || 'all').toLowerCase();
+  const fromMs = getDateStartMs(auditLogsViewState.fromDate);
+  const toMs = getDateEndMs(auditLogsViewState.toDate);
+  return logs.filter((entry) => {
+    const timeMs = getAuditEntryTimeMs(entry);
+    if (fromMs !== null && timeMs < fromMs) return false;
+    if (toMs !== null && timeMs > toMs) return false;
+    const currentType = (entry?.type || 'info').toString().toLowerCase();
+    if (type !== 'all' && currentType !== type) return false;
+    const profileKey = (entry?.actorProfileKey || 'unknown-profile').toString();
+    if (actor !== 'all' && profileKey.toLowerCase() !== actor) return false;
+    if (!q) return true;
+    const hay = [
+      entry?.detail || '',
+      entry?.type || '',
+      entry?.actorProfileKey || '',
+      entry?.actorRole || '',
+      entry?.actorDeviceId || '',
+      entry?.actorSessionId || '',
+      JSON.stringify(entry?.meta || {})
+    ].join(' ').toLowerCase();
+    return hay.includes(q);
+  });
+}
+
+function formatAuditMetaSummary(entry){
+  const meta = entry?.meta;
+  if (!meta || typeof meta !== 'object') return '';
+  const preferredKeys = [
+    'sourceType',
+    'recordIcsNo',
+    'recordParNo',
+    'itemNo',
+    'mode',
+    'added',
+    'replaced',
+    'skipped'
+  ];
+  const parts = [];
+  preferredKeys.forEach((key) => {
+    const value = meta[key];
+    if (value === undefined || value === null || value === '') return;
+    parts.push(`${key}:${value}`);
+  });
+  if (!parts.length){
+    const fallback = Object.entries(meta)
+      .slice(0, 3)
+      .map(([k, v]) => `${k}:${typeof v === 'object' ? '[obj]' : String(v)}`);
+    return fallback.join(' | ');
+  }
+  return parts.join(' | ');
+}
+
+function getAuditLogPageSlice(rows){
+  const total = rows.length;
+  const pageSize = Math.max(1, Number(auditLogsViewState.pageSize) || 12);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(totalPages, Math.max(1, Number(auditLogsViewState.page) || 1));
+  auditLogsViewState.page = page;
+  const start = (page - 1) * pageSize;
+  const end = start + pageSize;
+  return {
+    total,
+    totalPages,
+    page,
+    pageSize,
+    rows: rows.slice(start, end)
+  };
+}
+
+function renderAuditLogsModal(){
+  const actorFilter = document.getElementById('auditLogsActorFilter');
+  const summary = document.getElementById('auditLogsSummary');
+  const body = document.getElementById('auditLogsTableBody');
+  const pageInfo = document.getElementById('auditLogsPageInfo');
+  const prevBtn = document.getElementById('auditLogsPrevBtn');
+  const nextBtn = document.getElementById('auditLogsNextBtn');
+  if (!actorFilter || !summary || !body || !pageInfo || !prevBtn || !nextBtn) return;
+
+  const allLogs = getAuditLogs() || [];
+  const actorKeys = [...new Set(allLogs.map((x) => (x?.actorProfileKey || 'unknown-profile').toString()).filter(Boolean))].sort();
+  actorFilter.innerHTML = '<option value="all">All Actors</option>'
+    + actorKeys.map((k) => `<option value="${escapeHTML(k)}">${escapeHTML(k)}</option>`).join('');
+  actorFilter.value = actorKeys.some((k) => k.toLowerCase() === (auditLogsViewState.actor || '').toLowerCase())
+    ? auditLogsViewState.actor
+    : 'all';
+
+  const filteredRows = getFilteredAuditLogs();
+  const pageView = getAuditLogPageSlice(filteredRows);
+  summary.textContent = filteredRows.length
+    ? `${filteredRows.length} log entr${filteredRows.length === 1 ? 'y' : 'ies'} matched (${allLogs.length} total).`
+    : `No matching logs (${allLogs.length} total).`;
+  pageInfo.textContent = `Page ${pageView.page} of ${pageView.totalPages}`;
+  prevBtn.disabled = pageView.page <= 1;
+  nextBtn.disabled = pageView.page >= pageView.totalPages;
+
+  if (!filteredRows.length){
+    body.innerHTML = '<tr><td colspan="5" class="empty-cell">No audit logs found for current filters.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = pageView.rows.map((entry) => {
+    const timeText = escapeHTML(entry?.time || new Date(entry?.at || '').toLocaleString() || '-');
+    const rawType = (entry?.type || 'info').toString().toLowerCase();
+    const typeText = escapeHTML(rawType);
+    const badgeTone = rawType === 'error'
+      ? 'danger'
+      : rawType === 'warn'
+        ? 'warn'
+        : rawType === 'success'
+          ? 'ok'
+          : rawType === 'info'
+            ? 'near'
+            : 'ok';
+    const detailText = escapeHTML(entry?.detail || '-');
+    const metaSummary = formatAuditMetaSummary(entry);
+    const metaHtml = metaSummary ? `<div class="meta">${escapeHTML(metaSummary)}</div>` : '';
+    const actorText = escapeHTML(entry?.actorProfileKey || 'unknown-profile');
+    const roleText = escapeHTML(entry?.actorRole || '-');
+    const traceText = `dev:${escapeHTML(entry?.actorDeviceId || '-')}, sess:${escapeHTML(entry?.actorSessionId || '-')}`;
+    return `<tr>
+      <td>${timeText}</td>
+      <td><span class="risk-badge ${badgeTone}">${typeText}</span></td>
+      <td>${detailText}${metaHtml}</td>
+      <td>${actorText}<div class="meta">${roleText}</div></td>
+      <td class="meta">${traceText}</td>
+    </tr>`;
+  }).join('');
+}
+
+function closeAuditLogsModal(){
+  const overlay = document.getElementById('auditLogsOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('show');
+}
+
+function openAuditLogsModal(){
+  const overlay = document.getElementById('auditLogsOverlay');
+  if (!overlay){
+    showModal('Audit Logs', 'Audit log viewer panel is unavailable.');
+    return;
+  }
+  document.getElementById('auditLogsSearchInput').value = auditLogsViewState.query || '';
+  document.getElementById('auditLogsTypeFilter').value = auditLogsViewState.type || 'all';
+  document.getElementById('auditLogsFromDate').value = auditLogsViewState.fromDate || '';
+  document.getElementById('auditLogsToDate').value = auditLogsViewState.toDate || '';
+  auditLogsViewState.page = 1;
+  setAuditLastSeenAtMs(Math.max(Date.now(), getLatestAuditAtMs()));
+  refreshAuditLogsMenuBadge();
+  renderAuditLogsModal();
+  overlay.classList.add('show');
+  if (typeof window.refreshIcons === 'function') window.refreshIcons();
+  setTimeout(() => document.getElementById('auditLogsSearchInput')?.focus(), 0);
+}
+
+function exportAuditLogsModalData(){
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    exportType: 'audit-logs',
+    filters: { ...auditLogsViewState },
+    rows: getFilteredAuditLogs()
+  };
+  const stamp = new Date().toISOString().slice(0, 10);
+  const fileName = `dsis-audit-logs-${stamp}.json`;
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  const summary = document.getElementById('auditLogsSummary');
+  if (summary) summary.textContent = `Exported JSON: ${fileName}`;
+  if (typeof notifyCenter === 'function') notifyCenter('info', `Audit Trail export complete (JSON): ${fileName}`);
+}
+
+function csvCell(value){
+  const str = (value ?? '').toString().replace(/\r?\n/g, ' ').trim();
+  const escaped = str.replace(/"/g, '""');
+  return `"${escaped}"`;
+}
+
+function exportAuditLogsCsv(){
+  const rows = getFilteredAuditLogs();
+  const header = ['at', 'time', 'type', 'detail', 'meta', 'actorProfileKey', 'actorRole', 'actorDeviceId', 'actorSessionId'];
+  const lines = [header.map(csvCell).join(',')];
+  rows.forEach((entry) => {
+    const row = [
+      entry?.at || '',
+      entry?.time || '',
+      entry?.type || '',
+      entry?.detail || '',
+      JSON.stringify(entry?.meta || {}),
+      entry?.actorProfileKey || '',
+      entry?.actorRole || '',
+      entry?.actorDeviceId || '',
+      entry?.actorSessionId || ''
+    ];
+    lines.push(row.map(csvCell).join(','));
+  });
+  const stamp = new Date().toISOString().slice(0, 10);
+  const fileName = `dsis-audit-logs-${stamp}.csv`;
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  const summary = document.getElementById('auditLogsSummary');
+  if (summary) summary.textContent = `Exported CSV: ${fileName}`;
+  if (typeof notifyCenter === 'function') notifyCenter('info', `Audit Trail export complete (CSV): ${fileName}`);
+}
+
 function openAuditLogsFromMenu(){
   closeTopbarProfileMenu();
-  showModal('Audit Logs', 'Audit log viewer panel is not available yet. Use Export Full Package to include audit logs.');
+  openAuditLogsModal();
 }
+
+function closeHelpDocsModal(){
+  const overlay = document.getElementById('helpDocsOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('show');
+}
+
+function openHelpDocsModal(){
+  const overlay = document.getElementById('helpDocsOverlay');
+  if (!overlay){
+    showModal('Help & Documentation', 'Help panel is unavailable.');
+    return;
+  }
+  overlay.classList.add('show');
+  if (typeof window.refreshIcons === 'function') window.refreshIcons();
+}
+
+function printHelpDocsModal(){
+  const contentRoot = document.getElementById('helpDocsPrintArea');
+  if (!contentRoot){
+    showModal('Print Help', 'Help content is unavailable for printing.');
+    return;
+  }
+  const printWindow = window.open('', '_blank', 'width=900,height=700');
+  if (!printWindow){
+    showModal('Print Help', 'Popup blocked. Please allow popups to print the guide.');
+    return;
+  }
+  const style = `
+    <style>
+      body{font-family:Segoe UI,Arial,sans-serif;margin:24px;color:#0f172a}
+      h1{font-size:22px;margin:0 0 12px}
+      p,li{font-size:12px;line-height:1.45}
+      ul{margin:0 0 10px;padding-left:18px}
+      .help-docs-card{border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:10px}
+      .help-docs-card h4{margin:0 0 6px;font-size:14px}
+      .meta{font-size:11px;color:#64748b;margin-bottom:10px}
+    </style>
+  `;
+  const html = `
+    <!doctype html>
+    <html>
+      <head><meta charset="utf-8" /><title>DSIS Help Guide</title>${style}</head>
+      <body>
+        <h1>DSIS Help & Documentation</h1>
+        <div class="meta">Generated: ${new Date().toLocaleString()}</div>
+        ${contentRoot.innerHTML}
+      </body>
+    </html>
+  `;
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+  setTimeout(() => {
+    printWindow.focus();
+    printWindow.print();
+  }, 220);
+}
+
+window.refreshAuditLogsMenuBadge = refreshAuditLogsMenuBadge;
 
 function openHelpFromMenu(){
   closeTopbarProfileMenu();
-  showModal('Help & Documentation', 'Help center is not available yet. Use Profile Settings and Data Hub for current workspace controls.');
+  openHelpDocsModal();
 }
 
 function toggleAppearanceFromMenu(){

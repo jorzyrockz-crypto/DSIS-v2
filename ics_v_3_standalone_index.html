@@ -42,6 +42,10 @@
   --btn-ghost-bg:transparent;
   --btn-ghost-text:var(--btn-secondary-text);
   --btn-ghost-border:var(--border);
+  --par-accent:color-mix(in srgb, var(--a) 58%, #06b6d4 42%);
+  --par-accent-hover:color-mix(in srgb, var(--par-accent) 84%, #0f172a 16%);
+  --par-accent-soft:color-mix(in srgb, var(--par-accent) 18%, transparent);
+  --bg-bottom-glow:radial-gradient(1350px 520px at 50% 112%, rgba(37,99,235,.34) 0%, rgba(37,99,235,0) 76%);
   --btn-focus-ring:0 0 0 3px rgba(59,130,246,.22);
   --btn-shadow-rest:0 1px 2px rgba(15,23,42,.06);
   --btn-shadow-hover:0 8px 16px rgba(15,23,42,.12);
@@ -91,56 +95,81 @@ body{
   background:
     radial-gradient(1600px 760px at 0% -10%, #dbeafe 0%, rgba(219,234,254,0) 72%),
     radial-gradient(1380px 700px at 100% -5%, #e0f2fe 0%, rgba(224,242,254,0) 64%),
+    var(--bg-bottom-glow),
     var(--bg);
   color:var(--t);
 }
 body[data-theme="playful-sunflower"]{
+  --bg-bottom-glow:radial-gradient(1350px 520px at 50% 112%, rgba(249,115,22,.42) 0%, rgba(249,115,22,0) 76%);
   background:
     radial-gradient(1600px 760px at 0% -10%, #fde68a 0%, rgba(253,230,138,0) 72%),
     radial-gradient(1380px 700px at 100% -5%, #bfdbfe 0%, rgba(191,219,254,0) 64%),
+    var(--bg-bottom-glow),
     var(--bg);
 }
 body[data-theme="playful-flamingo"]{
+  --bg-bottom-glow:radial-gradient(1350px 520px at 50% 112%, rgba(239,68,68,.38) 0%, rgba(239,68,68,0) 76%);
   background:
     radial-gradient(1600px 760px at 0% -10%, #fecdd3 0%, rgba(254,205,211,0) 72%),
     radial-gradient(1380px 700px at 100% -5%, #fda4af 0%, rgba(253,164,175,0) 64%),
+    var(--bg-bottom-glow),
     var(--bg);
 }
 body[data-theme="playful-lotus"]{
+  --bg-bottom-glow:radial-gradient(1350px 520px at 50% 112%, rgba(20,184,166,.38) 0%, rgba(20,184,166,0) 76%);
   background:
     radial-gradient(1600px 760px at 0% -10%, #99f6e4 0%, rgba(153,246,228,0) 72%),
     radial-gradient(1380px 700px at 100% -5%, #67e8f9 0%, rgba(103,232,249,0) 64%),
+    var(--bg-bottom-glow),
     var(--bg);
 }
 body[data-theme="playful-kingfisher"]{
+  --bg-bottom-glow:radial-gradient(1350px 520px at 50% 112%, rgba(14,165,233,.38) 0%, rgba(14,165,233,0) 76%);
   background:
     radial-gradient(1600px 760px at 0% -10%, #bae6fd 0%, rgba(186,230,253,0) 72%),
     radial-gradient(1380px 700px at 100% -5%, #7dd3fc 0%, rgba(125,211,252,0) 64%),
+    var(--bg-bottom-glow),
     var(--bg);
 }
 body[data-theme="playful-fern"]{
+  --bg-bottom-glow:radial-gradient(1350px 520px at 50% 112%, rgba(16,185,129,.38) 0%, rgba(16,185,129,0) 76%);
   background:
     radial-gradient(1600px 760px at 0% -10%, #bbf7d0 0%, rgba(187,247,208,0) 72%),
     radial-gradient(1380px 700px at 100% -5%, #86efac 0%, rgba(134,239,172,0) 64%),
+    var(--bg-bottom-glow),
     var(--bg);
 }
 body[data-theme="elegant-white"]{
+  --bg-bottom-glow:radial-gradient(1350px 520px at 50% 112%, rgba(37,99,235,.3) 0%, rgba(37,99,235,0) 76%);
   background:
     radial-gradient(1600px 760px at 0% -10%, #eef2ff 0%, rgba(238,242,255,0) 72%),
     radial-gradient(1380px 700px at 100% -5%, #f1f5f9 0%, rgba(241,245,249,0) 64%),
+    var(--bg-bottom-glow),
     var(--bg);
 }
 body[data-theme="crimson-black"]{
+  --bg-bottom-glow:radial-gradient(1350px 520px at 50% 112%, rgba(190,18,60,.42) 0%, rgba(190,18,60,0) 76%);
   background:
     radial-gradient(1600px 760px at 0% -10%, rgba(127,29,29,.6) 0%, rgba(127,29,29,0) 72%),
     radial-gradient(1380px 700px at 100% -5%, rgba(136,19,55,.4) 0%, rgba(136,19,55,0) 64%),
+    var(--bg-bottom-glow),
     #0b0b10;
 }
 body[data-theme="dracula"]{
+  --bg-bottom-glow:radial-gradient(1350px 520px at 50% 112%, rgba(111,45,189,.48) 0%, rgba(111,45,189,0) 76%);
   background:
     radial-gradient(1600px 760px at 0% -10%, #6f2dbd 0%, rgba(111,45,189,0) 72%),
     radial-gradient(1380px 700px at 100% -5%, #a663cc 0%, rgba(166,99,204,0) 64%),
+    var(--bg-bottom-glow),
     #171123;
+}
+body[data-theme="dracula"][data-theme-variant="dracula-nocturne"]{
+  --bg-bottom-glow:radial-gradient(1350px 520px at 50% 112%, rgba(139,92,246,.56) 0%, rgba(139,92,246,0) 76%);
+  background:
+    radial-gradient(1600px 760px at 0% -10%, #8b5cf6 0%, rgba(139,92,246,0) 72%),
+    radial-gradient(1380px 700px at 100% -5%, #4338ca 0%, rgba(67,56,202,0) 64%),
+    var(--bg-bottom-glow),
+    #130f1f;
 }
 body[data-theme="crimson-black"] .app-sidebar,
 body[data-theme="crimson-black"] .app-topbar,
@@ -191,6 +220,9 @@ body[data-theme="dracula"] .search-input{
   border-color:#4b3f6d;
   color:#f8fafc;
 }
+body[data-theme="dracula"]{
+  --par-accent:color-mix(in srgb, var(--a) 52%, #22d3ee 48%);
+}
 body[data-theme="crimson-black"] .app-sidebar{background:linear-gradient(180deg,#140f16 0%,#1a1118 100%)}
 body[data-theme="crimson-black"] .app-topbar,
 body[data-theme="crimson-black"] .app-topbar-v2-wrap{background:linear-gradient(135deg,rgba(35,22,30,.58) 0%,rgba(27,18,24,.36) 100%)}
@@ -217,6 +249,9 @@ body[data-theme="crimson-black"] .search-input{
   background:#120d14;
   border-color:#4b2a33;
   color:#f8fafc;
+}
+body[data-theme="crimson-black"]{
+  --par-accent:color-mix(in srgb, var(--a) 50%, #22d3ee 50%);
 }
 body[data-theme="crimson-black"] .dash-kpi{
   background:linear-gradient(180deg,#18131a 0%,#221722 100%);
@@ -274,6 +309,10 @@ body[data-theme="crimson-black"] .dash-kpi .v{color:#f8fafc}
 }
 .topbar-v2-left .brand-copy{
   min-width:auto;
+  display:flex;
+  flex-direction:row;
+  align-items:baseline;
+  gap:8px;
 }
 body.sidebar-collapsed .app-topbar-v2 .brand-copy{
   display:flex;
@@ -283,6 +322,275 @@ body.sidebar-collapsed .app-topbar-v2 .brand-copy{
   white-space:normal;
   overflow:visible;
   text-overflow:clip;
+}
+.topbar-v2-left .brand-sub{
+  font-size:12px;
+  font-weight:700;
+  color:var(--tm);
+}
+.topbar-version-link{
+  cursor:pointer;
+}
+.topbar-version-link:hover,
+.topbar-version-link:focus-visible{
+  color:var(--ah);
+  text-decoration:underline;
+  outline:none;
+}
+.audit-logs-toolbar{
+  display:grid;
+  grid-template-columns:1.2fr .8fr .8fr .8fr .8fr auto;
+  gap:8px;
+  margin-bottom:10px;
+}
+.audit-logs-modal{
+  width:min(1220px,98vw);
+  max-height:94vh;
+}
+.audit-logs-modal .modal-head h3{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin:0;
+}
+.audit-logs-modal .detail-table-wrap{
+  max-height:56vh;
+  overflow:auto;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:var(--surface);
+}
+.audit-logs-toolbar .stage-input{
+  width:100%;
+  background:var(--surface);
+  color:var(--t);
+  border-color:var(--border);
+}
+.audit-logs-summary{
+  font-size:12px;
+  color:var(--tm);
+  margin:0 0 8px;
+}
+.audit-logs-pagination{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-top:10px;
+}
+.audit-logs-page-info{
+  font-size:12px;
+  color:var(--tm);
+}
+.audit-logs-table th,
+.audit-logs-table td{
+  font-size:12px;
+}
+.audit-logs-table thead th{
+  background:var(--surface-soft);
+  color:var(--tm);
+}
+.audit-logs-table tbody td{
+  color:var(--t);
+  border-bottom:1px solid var(--border);
+}
+.audit-logs-table tbody tr:nth-child(even) td{
+  background:color-mix(in srgb, var(--surface) 92%, var(--m) 8%);
+}
+.audit-logs-table tbody tr:hover td{
+  background:color-mix(in srgb, var(--surface) 82%, var(--as) 18%);
+}
+.audit-logs-table .meta{
+  font-size:11px;
+  color:var(--tm);
+}
+/* Help & Documentation modal */
+.help-docs-modal{
+  width:min(980px,97vw);
+}
+.help-docs-modal .modal-head h3{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+.help-docs-sections{
+  display:grid;
+  gap:12px;
+}
+.help-docs-card{
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:var(--surface-soft);
+  padding:12px;
+}
+.help-docs-card h4{
+  margin:0 0 8px;
+  font-size:14px;
+  color:var(--t);
+}
+.help-docs-card p,
+.help-docs-card li{
+  font-size:12px;
+  color:var(--tm);
+  line-height:1.45;
+}
+.help-docs-card ul{
+  margin:0;
+  padding-left:18px;
+  display:grid;
+  gap:6px;
+}
+body[data-theme="dracula"] .help-docs-card,
+body[data-theme="crimson-black"] .help-docs-card{
+  background:rgba(15,23,42,.45);
+  border-color:rgba(148,163,184,.28);
+}
+body[data-theme="dracula"] .help-docs-card h4,
+body[data-theme="crimson-black"] .help-docs-card h4{
+  color:#f8fafc;
+}
+body[data-theme="dracula"] .help-docs-card p,
+body[data-theme="dracula"] .help-docs-card li,
+body[data-theme="crimson-black"] .help-docs-card p,
+body[data-theme="crimson-black"] .help-docs-card li{
+  color:#cbd5e1;
+}
+body[data-theme="dracula"] .audit-logs-modal .detail-table-wrap,
+body[data-theme="crimson-black"] .audit-logs-modal .detail-table-wrap{
+  background:rgba(15,23,42,.35);
+  border-color:rgba(148,163,184,.28);
+}
+body[data-theme="dracula"] .audit-logs-modal .stage-input,
+body[data-theme="crimson-black"] .audit-logs-modal .stage-input{
+  background:rgba(15,23,42,.55);
+  border-color:rgba(148,163,184,.45);
+  color:#e2e8f0;
+}
+body[data-theme="dracula"] .audit-logs-table thead th,
+body[data-theme="crimson-black"] .audit-logs-table thead th{
+  background:rgba(15,23,42,.72);
+  color:#cbd5e1;
+}
+body[data-theme="dracula"] .audit-logs-table tbody td,
+body[data-theme="crimson-black"] .audit-logs-table tbody td{
+  color:#e2e8f0;
+  border-bottom-color:rgba(148,163,184,.22);
+}
+body[data-theme="dracula"] .audit-logs-table tbody tr:nth-child(even) td{
+  background:rgba(91,74,128,.16);
+}
+body[data-theme="crimson-black"] .audit-logs-table tbody tr:nth-child(even) td{
+  background:rgba(91,39,58,.16);
+}
+body[data-theme="dracula"] .audit-logs-table tbody tr:hover td{
+  background:rgba(88,75,148,.26);
+}
+body[data-theme="crimson-black"] .audit-logs-table tbody tr:hover td{
+  background:rgba(98,46,66,.24);
+}
+body[data-theme="dracula"] .audit-logs-summary,
+body[data-theme="dracula"] .audit-logs-page-info,
+body[data-theme="dracula"] .audit-logs-table .meta,
+body[data-theme="crimson-black"] .audit-logs-summary,
+body[data-theme="crimson-black"] .audit-logs-page-info,
+body[data-theme="crimson-black"] .audit-logs-table .meta{
+  color:#a7b4cc;
+}
+@media (max-width:980px){
+  .audit-logs-modal{
+    width:min(100vw,100vw);
+    max-height:100vh;
+    border-radius:0;
+    border-left:0;
+    border-right:0;
+  }
+  .audit-logs-modal .modal-body{
+    padding:10px;
+  }
+  .audit-logs-toolbar{
+    grid-template-columns:1fr;
+  }
+  .audit-logs-pagination{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .audit-logs-pagination > div:last-child{
+    display:grid !important;
+    grid-template-columns:1fr 1fr;
+    gap:8px !important;
+  }
+  .audit-logs-modal .detail-table-wrap{
+    max-height:52vh;
+  }
+  .help-docs-modal{
+    width:min(100vw,100vw);
+    max-height:100vh;
+    border-radius:0;
+  }
+}
+@media (max-width:640px){
+  .audit-logs-modal .modal-head{
+    padding:12px;
+  }
+  .audit-logs-modal .modal-head h3{
+    font-size:18px;
+  }
+  .audit-logs-modal .modal-sub{
+    font-size:12px;
+  }
+  .audit-logs-modal .detail-table-wrap{
+    max-height:48vh;
+  }
+  .audit-logs-pagination > div:last-child{
+    grid-template-columns:1fr;
+  }
+}
+/* Uniform close controls across modal headers */
+.modal-head .modal-close-btn,
+.modal-head .inspection-history-close,
+.modal-head .archived-history-close,
+.modal-head .dm-hub-close,
+.modal-head .my-profile-close,
+.modal-head .setup-close-btn,
+.wmr-modal .icsd-head-actions .wmr-close-btn{
+  border:1px solid var(--modal-border);
+  background:var(--modal-bg);
+  color:var(--t);
+  border-radius:999px;
+  min-height:32px;
+  padding:0 12px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  font-size:12px;
+  font-weight:700;
+  line-height:1;
+  cursor:pointer;
+}
+.modal-head .modal-close-btn:hover,
+.modal-head .inspection-history-close:hover,
+.modal-head .archived-history-close:hover,
+.modal-head .dm-hub-close:hover,
+.modal-head .my-profile-close:hover,
+.modal-head .setup-close-btn:hover,
+.wmr-modal .icsd-head-actions .wmr-close-btn:hover{
+  border-color:var(--a);
+  background:var(--as);
+  color:var(--ah);
+}
+.modal-head .modal-close-btn .lucide,
+.modal-head .inspection-history-close .lucide,
+.modal-head .archived-history-close .lucide,
+.modal-head .dm-hub-close .lucide,
+.modal-head .my-profile-close .lucide,
+.modal-head .setup-close-btn .lucide,
+.wmr-modal .icsd-head-actions .wmr-close-btn .lucide{
+  width:14px;
+  height:14px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
 }
 .topbar-v2-left .brand-title{
   color:var(--ah);
@@ -364,9 +672,13 @@ body[data-theme="crimson-black"] .app-topbar-v2 .brand-title{
   transform:scaleX(1);
 }
 .topbar-v2-view-btn.is-primary{
-  background:transparent;
-  border-color:transparent;
-  color:var(--a);
+  background:var(--as);
+  color:var(--ah);
+  box-shadow:none;
+}
+.topbar-v2-view-btn.is-primary::after{
+  opacity:0;
+  transform:scaleX(.4);
 }
 .topbar-v2-search-btn{
   min-width:190px;
@@ -591,46 +903,6 @@ body[data-theme="crimson-black"] .app-topbar-v2 .brand-title{
 .topbar-menu-list{
   padding:6px;
 }
-.topbar-menu-plan{
-  margin:0 12px 8px;
-  border:1px solid #c7d2fe;
-  background:#eef2ff;
-  border-radius:12px;
-  padding:10px 10px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-}
-.topbar-menu-plan-left{
-  min-width:0;
-  display:flex;
-  align-items:center;
-  gap:8px;
-  color:#3730a3;
-  font-size:12px;
-  font-weight:700;
-}
-.topbar-menu-plan-left .lucide{
-  width:14px;
-  height:14px;
-  stroke:currentColor;
-  stroke-width:2;
-  fill:none;
-}
-.topbar-menu-plan-manage{
-  border:0;
-  background:transparent;
-  color:#4f46e5;
-  font-size:12px;
-  font-weight:700;
-  cursor:pointer;
-}
-.topbar-menu-plan-manage:hover,
-.topbar-menu-plan-manage:focus-visible{
-  text-decoration:underline;
-  outline:none;
-}
 .topbar-menu-item{
   width:100%;
   border:0;
@@ -660,6 +932,8 @@ body[data-theme="crimson-black"] .app-topbar-v2 .brand-title{
 .topbar-menu-item .lucide{
   width:15px;
   height:15px;
+  display:inline-block;
+  vertical-align:middle;
   stroke:currentColor;
   stroke-width:2;
   fill:none;
@@ -734,12 +1008,14 @@ body[data-theme="crimson-black"] .topbar-v2-view-btn:focus-visible{
 }
 body[data-theme="dracula"] .topbar-v2-view-btn.is-primary,
 body[data-theme="crimson-black"] .topbar-v2-view-btn.is-primary{
-  color:#ffffff;
+  color:var(--ah);
+  background:var(--as);
+  box-shadow:none;
 }
 body[data-theme="dracula"] .topbar-v2-view-btn.is-primary::after,
 body[data-theme="crimson-black"] .topbar-v2-view-btn.is-primary::after{
-  opacity:1;
-  transform:scaleX(1);
+  opacity:0;
+  transform:scaleX(.4);
 }
 body[data-theme="dracula"] .topbar-v2-search-btn,
 body[data-theme="crimson-black"] .topbar-v2-search-btn{
@@ -810,19 +1086,6 @@ body[data-theme="crimson-black"] .topbar-menu-email{
 body[data-theme="dracula"] .topbar-menu-item,
 body[data-theme="crimson-black"] .topbar-menu-item{
   color:#e2e8f0;
-}
-body[data-theme="dracula"] .topbar-menu-plan,
-body[data-theme="crimson-black"] .topbar-menu-plan{
-  background:rgba(30,41,59,.78);
-  border-color:rgba(99,102,241,.45);
-}
-body[data-theme="dracula"] .topbar-menu-plan-left,
-body[data-theme="crimson-black"] .topbar-menu-plan-left{
-  color:#c7d2fe;
-}
-body[data-theme="dracula"] .topbar-menu-plan-manage,
-body[data-theme="crimson-black"] .topbar-menu-plan-manage{
-  color:#a5b4fc;
 }
 body[data-theme="dracula"] .topbar-menu-item:hover,
 body[data-theme="dracula"] .topbar-menu-item:focus-visible,
@@ -954,9 +1217,9 @@ body.sidebar-collapsed .app-shell.hide-sidebar{
   transform:translateX(1px);
 }
 .sidebar-nav .item.active{
-  background:linear-gradient(135deg,var(--a) 0%,var(--ah) 100%);
-  color:#fff;
-  box-shadow:0 10px 22px rgba(15,23,42,.24);
+  background:var(--as);
+  color:var(--ah);
+  box-shadow:0 6px 14px rgba(15,23,42,.12);
 }
 .nav-ico{
   width:28px;
@@ -1006,9 +1269,9 @@ body.sidebar-collapsed .app-shell.hide-sidebar{
   background:#eff6ff;
 }
 .sidebar-nav .item.active .nav-ico{
-  border-color:rgba(255,255,255,.42);
-  background:rgba(255,255,255,.18);
-  color:#fff;
+  border-color:var(--a);
+  background:var(--surface);
+  color:var(--a);
 }
 body[data-theme="dracula"] .sidebar-nav .item,
 body[data-theme="crimson-black"] .sidebar-nav .item{
@@ -1387,7 +1650,7 @@ body[data-theme="crimson-black"] .welcome-icon{
   display:none;
   align-items:center;
   justify-content:center;
-  z-index:145;
+  z-index:190;
 }
 .actions-modal-overlay.show{display:flex}
 .actions-modal{
@@ -1427,23 +1690,7 @@ body[data-theme="crimson-black"] .welcome-icon{
   gap:10px;
 }
 .setup-close-btn{
-  width:34px;
-  height:34px;
-  border-radius:10px;
-  border:1px solid var(--border);
-  background:var(--icon-btn-bg);
-  color:var(--icon-btn-text);
   display:none;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-}
-.setup-close-btn .lucide{
-  width:16px;
-  height:16px;
-  fill:none;
-  stroke:currentColor;
-  stroke-width:2;
 }
 .setup-modal .modal-foot{
   padding:14px 24px 18px;
@@ -1543,13 +1790,14 @@ body[data-theme="crimson-black"] .welcome-icon{
 }
 .setup-overlay.personnel-mode .setup-section-school{
   opacity:.75;
-  padding:14px 16px;
+  padding:8px 0;
 }
 .setup-overlay.personnel-mode .setup-section-profile{
-  padding:22px 20px;
+  padding:8px 0 0;
 }
 .setup-overlay.personnel-mode .setup-modal{
-  width:min(640px,95vw);
+  width:min(560px,94vw);
+  max-height:92vh;
   border:6px solid transparent;
   background:
     linear-gradient(var(--modal-bg),var(--modal-bg)) padding-box,
@@ -1563,40 +1811,33 @@ body[data-theme="crimson-black"] .welcome-icon{
     0 0 34px rgba(255,255,255,.36);
 }
 .setup-overlay.personnel-mode .setup-modal .modal-head{
-  padding:18px 22px 14px;
+  padding:14px 16px 10px;
   background:var(--modal-head-bg);
   border-bottom:1px solid var(--modal-head-border);
 }
 .setup-overlay.personnel-mode .setup-close-btn{
   display:inline-flex;
-  background:transparent;
-  border-color:transparent;
-  color:#94a3b8;
-}
-.setup-overlay.personnel-mode .setup-close-btn:hover{
-  background:#f1f5f9;
-  color:#475569;
 }
 .setup-overlay.personnel-mode .setup-modal .modal-head h3{
-  font-size:21px;
+  font-size:18px;
   color:#0f172a;
 }
 .setup-overlay.personnel-mode .setup-modal .modal-sub{
-  margin-top:8px;
-  margin-left:44px;
-  font-size:13px;
+  margin-top:4px;
+  margin-left:30px;
+  font-size:12px;
   color:var(--tm);
 }
 .setup-overlay.personnel-mode .setup-modal .modal-body{
-  padding:18px 22px;
+  padding:12px 16px;
 }
 .setup-overlay.personnel-mode .setup-modal .modal-foot{
-  padding:12px 22px 16px;
+  padding:10px 16px 12px;
   background:var(--modal-foot-bg);
   border-top:1px solid var(--modal-foot-border);
 }
 .setup-overlay.personnel-mode .setup-modal .setup-layout{
-  gap:18px;
+  gap:10px;
 }
 .setup-overlay.personnel-mode .setup-modal .setup-section{
   border:0;
@@ -1607,19 +1848,16 @@ body[data-theme="crimson-black"] .welcome-icon{
   opacity:1;
 }
 .setup-overlay.personnel-mode .setup-modal .setup-section-head{
-  margin:0 0 12px;
+  margin:0 0 8px;
 }
 .setup-overlay.personnel-mode .setup-modal .setup-section-sub{
-  display:block;
-  margin:3px 0 0 27px;
-  font-size:12px;
-  color:var(--tm);
+  display:none;
 }
 .setup-overlay.personnel-mode .setup-modal .setup-section-sub:empty{
   display:none;
 }
 .setup-overlay.personnel-mode .setup-modal .setup-field-head{
-  margin:0 0 6px;
+  margin:0 0 4px;
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -1658,14 +1896,14 @@ body[data-theme="crimson-black"] .welcome-icon{
 }
 .setup-overlay.personnel-mode .setup-modal .setup-section-profile{
   border-top:1px solid var(--border);
-  padding-top:14px;
+  padding:8px 0 0;
 }
 .setup-overlay.personnel-mode .setup-modal .setup-section .profile-grid{
-  gap:12px 14px;
+  gap:8px 10px;
 }
 .setup-overlay.personnel-mode .setup-modal .profile-section-title{
-  margin:0 0 8px;
-  font-size:12px;
+  margin:0 0 4px;
+  font-size:11px;
   letter-spacing:.01em;
   color:var(--tm);
 }
@@ -1674,16 +1912,16 @@ body[data-theme="crimson-black"] .welcome-icon{
 }
 .setup-overlay.personnel-mode .setup-modal label{
   color:#334155;
-  font-size:12px;
+  font-size:11px;
   font-weight:700;
 }
 .setup-overlay.personnel-mode .setup-modal .field-label .lucide{
   opacity:.85;
 }
 .setup-overlay.personnel-mode .setup-modal .stage-input{
-  min-height:42px;
+  min-height:36px;
   padding:0 12px;
-  font-size:14px;
+  font-size:13px;
   border-radius:10px;
   background:var(--modal-bg);
   border-color:var(--border);
@@ -1703,8 +1941,8 @@ body[data-theme="crimson-black"] .welcome-icon{
   box-shadow:0 0 0 2px rgba(59,130,246,.2);
 }
 .setup-overlay.personnel-mode .setup-hint{
-  margin:10px 0 0;
-  font-size:13px;
+  margin:8px 0 0;
+  font-size:12px;
   color:var(--tm);
 }
 .setup-overlay.personnel-mode .setup-hint.error{
@@ -1786,10 +2024,109 @@ body[data-theme="crimson-black"] .welcome-icon{
     padding-right:16px;
   }
 }
+@media (max-height:760px){
+  .setup-overlay.personnel-mode .setup-modal{
+    max-height:96vh;
+  }
+  .setup-overlay.personnel-mode .setup-modal .modal-head{
+    padding:10px 14px 8px;
+  }
+  .setup-overlay.personnel-mode .setup-modal .modal-body{
+    padding:10px 14px;
+  }
+  .setup-overlay.personnel-mode .setup-modal .modal-foot{
+    padding:8px 14px 10px;
+  }
+  .setup-overlay.personnel-mode .setup-modal .setup-layout{
+    gap:8px;
+  }
+  .setup-overlay.personnel-mode .setup-modal .stage-input{
+    min-height:34px;
+    font-size:12px;
+  }
+  .setup-overlay.personnel-mode .setup-modal .setup-field-meta{
+    display:none;
+  }
+}
 .modal-sm{width:min(520px,94vw)}
 .modal-md{width:min(620px,95vw)}
 .modal-lg{width:min(980px,97vw)}
 .modal-xl{width:min(1120px,98vw)}
+/* Keep Data Manager overlays inside viewport */
+.actions-modal-overlay#dataImportOverlay,
+.actions-modal-overlay#dataValidationOverlay,
+.actions-modal-overlay#dataExportOverlay{
+  align-items:flex-start;
+  overflow:auto;
+  padding:56px 12px 12px;
+}
+.actions-modal-overlay#dataImportOverlay .actions-modal,
+.actions-modal-overlay#dataValidationOverlay .actions-modal,
+.actions-modal-overlay#dataExportOverlay .actions-modal{
+  width:min(1120px, calc(100vw - 24px));
+  max-height:calc(100vh - 68px);
+}
+.actions-modal-overlay#dataImportOverlay .actions-modal{
+  width:min(980px, calc(100vw - 24px));
+}
+.actions-modal-overlay#dataImportOverlay .modal-head{
+  padding:10px 14px 8px;
+}
+.actions-modal-overlay#dataImportOverlay .modal-body{
+  padding:10px 14px;
+}
+.actions-modal-overlay#dataImportOverlay .modal-foot{
+  padding:8px 14px;
+}
+.actions-modal-overlay#dataImportOverlay .dm-layout{
+  gap:8px;
+}
+.actions-modal-overlay#dataImportOverlay .dm-section{
+  padding:8px;
+  border-radius:10px;
+}
+.actions-modal-overlay#dataImportOverlay .dm-section-head{
+  margin-bottom:6px;
+}
+.actions-modal-overlay#dataImportOverlay .data-manager-bar{
+  gap:8px;
+}
+.actions-modal-overlay#dataImportOverlay .data-manager-file{
+  min-width:180px;
+  padding:6px 8px;
+}
+.actions-modal-overlay#dataImportOverlay .data-manager-mode{
+  gap:6px;
+  margin:0 0 8px;
+}
+.actions-modal-overlay#dataImportOverlay .data-manager-mode label{
+  padding:4px 8px;
+  font-size:11px;
+}
+.actions-modal-overlay#dataImportOverlay .dm-inline-status{
+  margin:0 0 8px;
+  padding:7px 8px;
+  font-size:11px;
+}
+.actions-modal-overlay#dataImportOverlay .btn.btn-sm{
+  min-height:30px;
+  padding:0 9px;
+  font-size:11px;
+}
+.actions-modal-overlay#dataExportOverlay .actions-modal{
+  width:min(980px, calc(100vw - 24px));
+}
+.actions-modal-overlay#dataExportOverlay{
+  align-items:center;
+  padding-top:12px;
+}
+@media (max-height:760px){
+  .actions-modal-overlay#dataImportOverlay,
+  .actions-modal-overlay#dataValidationOverlay,
+  .actions-modal-overlay#dataExportOverlay{
+    padding-top:44px;
+  }
+}
 .modal-head{
   padding:14px 16px 12px;
   border-bottom:1px solid var(--modal-head-border);
@@ -1962,9 +2299,10 @@ body[data-theme="crimson-black"] .welcome-icon{
   align-items:start;
 }
 .dm-section{
-  border:1px solid #dbe3ef;
+  border:1px solid var(--modal-border);
   border-radius:12px;
-  background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);
+  background:linear-gradient(180deg,var(--modal-bg) 0%,var(--modal-head-bg) 100%);
+  box-shadow:0 8px 18px rgba(15,23,42,.08);
   padding:10px;
 }
 .dm-section-head{
@@ -1977,7 +2315,7 @@ body[data-theme="crimson-black"] .welcome-icon{
 .dm-section-head h4{
   margin:0;
   font-size:13px;
-  color:#0f172a;
+  color:var(--t);
 }
 .dm-step-mark{
   display:none;
@@ -1995,17 +2333,17 @@ body[data-theme="crimson-black"] .welcome-icon{
 .dm-section-head p{
   margin:0;
   font-size:11px;
-  color:#64748b;
+  color:var(--tm);
 }
 .data-manager-file{
   flex:1;
   min-width:220px;
-  border:1px dashed #cbd5e1;
+  border:1px dashed color-mix(in srgb, var(--modal-border) 78%, var(--a) 22%);
   border-radius:10px;
   padding:8px 10px;
   font-size:12px;
-  color:#334155;
-  background:#f8fafc;
+  color:var(--t);
+  background:var(--modal-head-bg);
 }
 .data-manager-mode{
   display:flex;
@@ -2017,13 +2355,13 @@ body[data-theme="crimson-black"] .welcome-icon{
   display:inline-flex;
   gap:6px;
   align-items:center;
-  border:1px solid #cbd5e1;
+  border:1px solid var(--modal-border);
   border-radius:999px;
   padding:6px 10px;
   font-size:12px;
   font-weight:700;
-  color:#334155;
-  background:#fff;
+  color:var(--t);
+  background:var(--modal-bg);
 }
 .dm-kpis{
   display:grid;
@@ -2032,43 +2370,55 @@ body[data-theme="crimson-black"] .welcome-icon{
   margin:10px 0;
 }
 .dm-kpi{
-  border:1px solid #dbe3ef;
+  border:1px solid var(--modal-border);
   border-radius:10px;
   padding:8px;
-  background:#fff;
+  background:var(--modal-bg);
 }
 .dm-kpi .k{
   font-size:10px;
   text-transform:uppercase;
   letter-spacing:.3px;
-  color:#64748b;
+  color:var(--tm);
 }
 .dm-kpi .v{
   font-size:17px;
   font-weight:800;
-  color:#0f172a;
+  color:var(--t);
   margin-top:2px;
 }
-.dm-kpi.warn{background:#fffbeb;border-color:#fde68a}
-.dm-kpi.err{background:#fef2f2;border-color:#fecaca}
+.dm-kpi.warn{background:color-mix(in srgb,#f59e0b 14%, var(--modal-bg) 86%);border-color:color-mix(in srgb,#f59e0b 42%, var(--modal-border) 58%)}
+.dm-kpi.err{background:color-mix(in srgb,#ef4444 12%, var(--modal-bg) 88%);border-color:color-mix(in srgb,#ef4444 38%, var(--modal-border) 62%)}
 .dm-preview-table{
   width:100%;
   border-collapse:collapse;
   font-size:12px;
 }
 .dm-preview-table th,.dm-preview-table td{
-  border-bottom:1px solid #e2e8f0;
+  border-bottom:1px solid var(--border);
   padding:7px 6px;
   text-align:left;
 }
 .dm-preview-table th{
   font-size:11px;
-  color:#64748b;
-  background:#f8fafc;
+  color:var(--tm);
+  background:var(--modal-head-bg);
+}
+.actions-modal-overlay#dataImportOverlay .stage-input,
+.actions-modal-overlay#dataValidationOverlay .stage-input,
+.actions-modal-overlay#dataExportOverlay .stage-input{
+  background:var(--modal-bg);
+  border-color:var(--modal-border);
+  color:var(--t);
+}
+.actions-modal-overlay#dataImportOverlay .stage-input::placeholder,
+.actions-modal-overlay#dataValidationOverlay .stage-input::placeholder,
+.actions-modal-overlay#dataExportOverlay .stage-input::placeholder{
+  color:var(--tm);
 }
 .dm-muted{
   font-size:12px;
-  color:#64748b;
+  color:var(--tm);
 }
 .data-manager-export-filters{
   display:flex;
@@ -2081,7 +2431,7 @@ body[data-theme="crimson-black"] .welcome-icon{
   flex-direction:column;
   gap:4px;
   font-size:11px;
-  color:#475569;
+  color:var(--tm);
   font-weight:700;
 }
 .data-manager-export-filters .stage-input{
@@ -2132,9 +2482,9 @@ body[data-theme="crimson-black"] .welcome-icon{
 .dm-verify-panel{
   margin:8px 0 10px;
   border-radius:10px;
-  border:1px solid #cbd5e1;
-  background:#f8fafc;
-  color:#334155;
+  border:1px solid var(--border);
+  background:var(--surface-soft);
+  color:var(--t);
   padding:9px 10px;
   font-size:12px;
   font-weight:700;
@@ -2152,6 +2502,9 @@ body[data-theme="crimson-black"] .welcome-icon{
   color:inherit;
   opacity:.95;
 }
+.import-history-modal{
+  width:min(960px,96vw);
+}
 .dm-history-list{
   margin:0;
   padding-left:18px;
@@ -2160,10 +2513,10 @@ body[data-theme="crimson-black"] .welcome-icon{
 }
 .dm-history-list li{
   font-size:12px;
-  color:#334155;
+  color:var(--t);
 }
 .dm-history-time{
-  color:#64748b;
+  color:var(--tm);
   font-size:11px;
 }
 .ics-no-wrap{
@@ -2310,6 +2663,22 @@ body[data-theme="crimson-black"] .welcome-icon{
   box-shadow:0 6px 14px rgba(15,23,42,.12);
   transform:translateY(-1px);
 }
+body[data-theme="dracula"] .dm-hub-btn,
+body[data-theme="crimson-black"] .dm-hub-btn,
+body[data-theme="dracula-nocturne"] .dm-hub-btn{
+  background:var(--modal-bg);
+  border-color:var(--modal-border);
+}
+body[data-theme="dracula"] .dm-hub-ico,
+body[data-theme="crimson-black"] .dm-hub-ico,
+body[data-theme="dracula-nocturne"] .dm-hub-ico{
+  background:var(--modal-head-bg);
+}
+body[data-theme="dracula"] .dm-hub-btn:hover,
+body[data-theme="crimson-black"] .dm-hub-btn:hover,
+body[data-theme="dracula-nocturne"] .dm-hub-btn:hover{
+  border-color:var(--a);
+}
 .dm-hub-modal{
   width:min(860px,94vw);
   border-radius:24px;
@@ -2352,14 +2721,7 @@ body[data-theme="crimson-black"] .welcome-icon{
   color:var(--tm);
 }
 .dm-hub-close{
-  border:1px solid var(--border);
-  background:var(--btn-secondary-bg);
-  color:var(--btn-secondary-text);
-  border-radius:999px;
-  padding:7px 12px;
-  font-size:12px;
-  font-weight:700;
-  cursor:pointer;
+  /* Unified by modal-close-btn */
 }
 .dm-hub-modal .modal-body{
   padding:20px;
@@ -3658,14 +4020,7 @@ body[data-theme="crimson-black"] .welcome-icon{
   letter-spacing:.2px;
 }
 .inspection-history-close{
-  border:1px solid #cbd5e1;
-  border-radius:999px;
-  background:#f8fafc;
-  color:#334155;
-  font-size:12px;
-  font-weight:700;
-  padding:7px 14px;
-  cursor:pointer;
+  /* Unified by modal-close-btn */
 }
 .inspection-history-table-wrap{
   border:1px solid #e2e8f0;
@@ -4441,6 +4796,7 @@ body[data-theme="crimson-black"] .welcome-icon{
   }
   .wmr-modal .detail-table tbody td[data-label="#"],
   .wmr-modal .detail-table tbody td[data-label="ICS No."],
+  .wmr-modal .detail-table tbody td[data-label="ICS/PAR No."],
   .wmr-modal .detail-table tbody td[data-label="Item No."]{
     grid-column:span 1;
   }
@@ -4535,23 +4891,7 @@ body[data-theme="crimson-black"] .welcome-icon{
   color:var(--btn-secondary-text);
 }
 .archived-history-close{
-  border:0;
-  background:transparent;
-  color:var(--tm);
-  font-size:20px;
-  line-height:1;
-  cursor:pointer;
-  padding:2px 6px;
-}
-.archived-history-close:hover{
-  color:var(--t);
-}
-.archived-history-close .lucide{
-  width:16px;
-  height:16px;
-  fill:none;
-  stroke:currentColor;
-  stroke-width:2.25;
+  /* Unified by modal-close-btn */
 }
 .archived-history-modal .modal-body{
   padding:10px 14px 8px;
@@ -4562,6 +4902,21 @@ body[data-theme="crimson-black"] .welcome-icon{
 }
 .archived-icsd-grid{
   grid-template-columns:1fr 1fr;
+}
+.archived-history-modal .icsd-card{
+  background:var(--modal-bg);
+  border:1px solid var(--modal-border);
+  box-shadow:none;
+}
+.archived-history-modal .icsd-kv{
+  background:var(--modal-head-bg);
+  border-color:var(--modal-border);
+}
+.archived-history-modal .icsd-kv .k{
+  color:var(--tm);
+}
+.archived-history-modal .icsd-kv .v{
+  color:var(--t);
 }
 .archived-icsd-log-table{
   min-width:640px;
@@ -4650,9 +5005,9 @@ body[data-theme="crimson-black"] .welcome-icon{
   color:var(--tm);
 }
 .archived-logs-card{
-  border:1px solid var(--border);
+  border:1px solid var(--modal-border);
   border-radius:8px;
-  background:var(--surface);
+  background:var(--modal-bg);
   padding:8px 8px 6px;
   box-shadow:var(--sh);
 }
@@ -4669,29 +5024,46 @@ body[data-theme="crimson-black"] .welcome-icon{
 }
 .archived-logs-wrap{
   overflow:auto;
-  border:1px solid var(--border);
+  max-width:100%;
+  border:1px solid var(--modal-border);
   border-radius:6px;
 }
 .archived-log-table{
   width:100%;
   border-collapse:collapse;
-  min-width:560px;
+  min-width:0;
+  table-layout:fixed;
   font-size:11px;
 }
+.archived-log-table col.archived-log-col-date{width:22%}
+.archived-log-table col.archived-log-col-status{width:26%}
+.archived-log-table col.archived-log-col-reason{width:34%}
+.archived-log-table col.archived-log-col-time{width:18%}
 .archived-log-table thead th{
-  background:var(--surface-soft);
+  background:var(--modal-head-bg);
   color:var(--tm);
   font-size:10px;
   text-transform:uppercase;
   letter-spacing:.2px;
   text-align:left;
   padding:8px 10px;
-  border-bottom:1px solid var(--border);
+  border-bottom:1px solid var(--modal-border);
 }
 .archived-log-table tbody td{
   padding:8px 10px;
-  border-bottom:1px solid var(--border);
+  border-bottom:1px solid var(--modal-border);
   color:var(--t);
+}
+.archived-log-table th:nth-child(1),
+.archived-log-table td:nth-child(1),
+.archived-log-table th:nth-child(4),
+.archived-log-table td:nth-child(4){
+  white-space:nowrap;
+}
+.archived-log-table th:nth-child(3),
+.archived-log-table td:nth-child(3){
+  white-space:normal;
+  overflow-wrap:anywhere;
 }
 .archived-log-table tbody tr:last-child td{border-bottom:none}
 .archive-log-pill{
@@ -5015,13 +5387,16 @@ body[data-theme="crimson-black"] .welcome-icon{
 .main{
   margin-top:0;
   flex:1;
-  padding:45px 70px 24px;
+  padding:45px 100px 24px;
   display:flex;
   flex-direction:column;
   gap:14px;
 }
 .main[data-view="Dashboard"]{
   padding-top:200px;
+}
+.main[data-view="Manage Inventory"]{
+  gap:30px;
 }
 
 /* ICS STAGED ITEMS CARD */
@@ -5054,6 +5429,20 @@ body[data-theme="crimson-black"] .welcome-icon{
 .ics-card.records{
   background:#ffffff;
   border:1px solid #e2e8f0;
+}
+.ics-card.records.par-records{
+  border-color:color-mix(in srgb, var(--par-accent) 42%, var(--border) 58%);
+  box-shadow:
+    var(--sh),
+    inset 0 1px 0 color-mix(in srgb, var(--par-accent) 30%, transparent);
+}
+.ics-card.records.par-records .ics-card-head{
+  border-bottom-color:color-mix(in srgb, var(--par-accent) 34%, #e2e8f0 66%);
+}
+.ics-card.records.par-records .card-badge.records{
+  background:var(--par-accent-soft);
+  color:var(--par-accent);
+  border-color:color-mix(in srgb, var(--par-accent) 42%, transparent);
 }
 .card-title{display:flex;align-items:center;gap:8px}
 .card-badge{
@@ -5164,8 +5553,18 @@ body[data-theme="crimson-black"] .welcome-icon{
 }
 .records .ics-table th{background:#f8fafc}
 .records .ics-table td{font-size:var(--tbl-body-size)}
-.records .ics-table tbody tr:nth-child(even){background:#fcfdff}
-.records .ics-table tbody tr:hover{background:#f7fbff}
+.records .ics-table tbody tr{
+  --records-row-bg:#ffffff;
+  background:var(--records-row-bg);
+}
+.records .ics-table tbody tr:nth-child(even){
+  --records-row-bg:#fcfdff;
+  background:var(--records-row-bg);
+}
+.records .ics-table tbody tr:hover{
+  --records-row-bg:#f7fbff;
+  background:var(--records-row-bg);
+}
 .records .ics-table{
   table-layout:fixed;
   width:100%;
@@ -5188,7 +5587,8 @@ body[data-theme="crimson-black"] .welcome-icon{
 }
 .records-table-wrap .ics-table tbody td:first-child{
   z-index:1;
-  background:#fff;
+  background:var(--records-row-bg);
+  background-clip:padding-box;
 }
 .stage-table-wrap .ics-table thead th:first-child{
   z-index:4;
@@ -5203,6 +5603,37 @@ body[data-theme="crimson-black"] .welcome-icon{
 .records .ics-table td:nth-child(6){
   word-break:break-word;
 }
+.stage-table-wrap .staged-items-table{
+  table-layout:auto;
+  width:100%;
+  min-width:100%;
+}
+.stage-table-wrap{
+  position:relative;
+}
+.staged .staged-items-table th:nth-child(1),
+.staged .staged-items-table td:nth-child(1),
+.staged .staged-items-table th:nth-child(4),
+.staged .staged-items-table td:nth-child(4),
+.staged .staged-items-table th:nth-child(8),
+.staged .staged-items-table td:nth-child(8),
+.staged .staged-items-table th:nth-child(9),
+.staged .staged-items-table td:nth-child(9){
+  text-align:center;
+}
+.staged .staged-items-table td:nth-child(4) .stage-input,
+.staged .staged-items-table td:nth-child(6) .stage-input,
+.staged .staged-items-table td:nth-child(7) .stage-input{
+  text-align:right;
+}
+.staged .staged-items-table .stage-cell-actions{
+  gap:6px;
+}
+.staged .staged-items-table .stage-cell-actions .icon-only-btn{
+  min-width:30px;
+  width:30px;
+  height:30px;
+}
 .records .ics-records-table td:nth-child(4){
   white-space:normal;
   overflow-wrap:anywhere;
@@ -5213,11 +5644,23 @@ body[data-theme="crimson-black"] .welcome-icon{
   white-space:nowrap;
 }
 .records .actions-eul-table td:last-child{
-  white-space:normal;
+  white-space:nowrap;
+  padding-top:0;
+  padding-bottom:0;
+}
+.records .actions-eul-table{
+  border-collapse:separate;
+  border-spacing:0;
+}
+.records .actions-eul-table td{
+  vertical-align:middle;
 }
 .records .actions-eul-table td:nth-child(3){
   word-break:break-word;
   white-space:normal;
+}
+.records .actions-eul-table td:nth-child(2){
+  white-space:nowrap;
 }
 .records .actions-eul-table td:nth-child(8){
   white-space:normal;
@@ -5236,6 +5679,9 @@ body[data-theme="crimson-black"] .welcome-icon{
   gap:4px;
   justify-content:center;
   align-items:center;
+  min-height:42px;
+  height:100%;
+  width:100%;
 }
 .actions-eul-divider{
   width:1px;
@@ -5289,11 +5735,16 @@ body[data-theme="crimson-black"] .welcome-icon{
   -webkit-overflow-scrolling:touch;
 }
 .records-table-wrap .ics-table,
-.stage-table-wrap .ics-table,
+.stage-table-wrap .ics-table:not(.staged-items-table),
 .detail-table-wrap .detail-table,
 .inspection-history-table-wrap .inspection-history-table{
   width:max-content;
   min-width:100%;
+}
+.stage-table-wrap .staged-items-table{
+  width:100%;
+  min-width:100%;
+  table-layout:auto;
 }
 .wmr-archive-panel{
   display:block;
@@ -5420,6 +5871,35 @@ body[data-theme="crimson-black"] .welcome-icon{
 .records .ics-records-table td:nth-child(5){min-width:94px}
 .records .ics-records-table th:nth-child(8),
 .records .ics-records-table td:nth-child(8){min-width:74px}
+.records .actions-eul-table col.c-ac-idx{width:4%}
+.records .actions-eul-table col.c-ac-record{width:12%}
+.records .actions-eul-table col.c-ac-desc{width:24%}
+.records .actions-eul-table col.c-ac-euldays{width:9%}
+.records .actions-eul-table col.c-ac-eulstatus{width:11%}
+.records .actions-eul-table col.c-ac-inspection{width:10%}
+.records .actions-eul-table col.c-ac-remarks{width:14%}
+.records .actions-eul-table col.c-ac-actions{width:16%}
+.records-table-wrap.actions-eul-wrap .actions-eul-table{
+  width:100%;
+  min-width:0;
+  table-layout:fixed;
+}
+.records .actions-eul-table th:nth-child(1),
+.records .actions-eul-table td:nth-child(1){min-width:40px}
+.records .actions-eul-table th:nth-child(2),
+.records .actions-eul-table td:nth-child(2){min-width:100px}
+.records .actions-eul-table th:nth-child(3),
+.records .actions-eul-table td:nth-child(3){min-width:180px}
+.records .actions-eul-table th:nth-child(4),
+.records .actions-eul-table td:nth-child(4){min-width:76px}
+.records .actions-eul-table th:nth-child(5),
+.records .actions-eul-table td:nth-child(5){min-width:100px}
+.records .actions-eul-table th:nth-child(6),
+.records .actions-eul-table td:nth-child(6){min-width:96px}
+.records .actions-eul-table th:nth-child(7),
+.records .actions-eul-table td:nth-child(7){min-width:120px}
+.records .actions-eul-table th:nth-child(8),
+.records .actions-eul-table td:nth-child(8){min-width:140px}
 .records .ics-records-table th:nth-child(9),
 .records .ics-records-table td:nth-child(9){min-width:104px}
 .records .ics-records-table th:nth-child(10),
@@ -5536,14 +6016,12 @@ body[data-theme="crimson-black"] .welcome-icon{
   border-radius:12px;
 }
 .records-table-wrap,
-.stage-table-wrap,
 .detail-table-wrap,
 .inspection-history-table-wrap{
   -ms-overflow-style:none;
   scrollbar-width:none;
 }
 .records-table-wrap::-webkit-scrollbar,
-.stage-table-wrap::-webkit-scrollbar,
 .detail-table-wrap::-webkit-scrollbar,
 .inspection-history-table-wrap::-webkit-scrollbar{
   width:0;
@@ -5640,6 +6118,20 @@ body[data-theme="crimson-black"] .welcome-icon{
   background:var(--btn-del-bg);
   border-color:transparent;
   color:var(--btn-del-text);
+}
+.btn-par{
+  background:var(--par-accent);
+  border-color:color-mix(in srgb, var(--par-accent) 72%, transparent);
+  color:#ffffff;
+}
+.btn-par:hover:not(:disabled){
+  background:var(--par-accent-hover);
+  color:#ffffff;
+}
+.btn-par:focus-visible{
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--par-accent) 28%, transparent),
+    var(--btn-shadow-hover);
 }
 .btn-ghost{
   background:var(--btn-ghost-bg);
@@ -5818,9 +6310,10 @@ body[data-density="compact"] .stage-input{padding:3px 5px;font-size:11px}
   cursor:pointer;
 }
 .profile-menu-btn.active{
-  border-color:var(--a);
-  background:var(--surface-soft);
-  box-shadow:0 0 0 1px var(--a);
+  border-color:transparent;
+  background:var(--as);
+  color:var(--ah);
+  box-shadow:none;
 }
 .profile-menu-btn:focus-visible{
   outline:2px solid var(--a);
@@ -6015,6 +6508,9 @@ body[data-density="compact"] .stage-input{padding:3px 5px;font-size:11px}
 .theme-preview-btn[data-theme="dracula"] .theme-swatches i:nth-child(1){background:#6f2dbd}
 .theme-preview-btn[data-theme="dracula"] .theme-swatches i:nth-child(2){background:#a663cc}
 .theme-preview-btn[data-theme="dracula"] .theme-swatches i:nth-child(3){background:#171123}
+.theme-preview-btn[data-theme="dracula-nocturne"] .theme-swatches i:nth-child(1){background:#8b5cf6}
+.theme-preview-btn[data-theme="dracula-nocturne"] .theme-swatches i:nth-child(2){background:#c4b5fd}
+.theme-preview-btn[data-theme="dracula-nocturne"] .theme-swatches i:nth-child(3){background:#130f1f}
 .theme-preview-btn:focus-visible{
   outline:2px solid var(--a);
   outline-offset:1px;
@@ -6023,6 +6519,214 @@ body[data-density="compact"] .stage-input{padding:3px 5px;font-size:11px}
   border-color:var(--a);
   outline:2px solid var(--a);
   outline-offset:1px;
+}
+
+.my-profile-modal{
+  width:min(980px,96vw);
+}
+.my-profile-modal .modal-body{
+  overflow:visible;
+}
+.my-profile-modal .modal-head{
+  border-bottom:none;
+  min-height:118px;
+  background:linear-gradient(135deg,var(--ah) 0%,var(--a) 100%);
+  position:relative;
+}
+.my-profile-close{
+  display:inline-flex;
+  margin-left:auto;
+}
+.my-profile-shell{
+  padding-top:0;
+}
+.my-profile-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+  margin-top:-56px;
+}
+.my-profile-avatar-btn{
+  width:108px;
+  height:108px;
+  border-radius:999px;
+  border:4px solid var(--modal-bg);
+  background:var(--as);
+  color:var(--a);
+  display:grid;
+  place-items:center;
+  position:relative;
+  overflow:visible;
+  cursor:pointer;
+}
+.my-profile-photo-content{
+  width:100%;
+  height:100%;
+  display:grid;
+  place-items:center;
+  font-size:28px;
+  font-weight:800;
+}
+.my-profile-avatar-btn .profile-avatar-icon{
+  width:34px;
+  height:34px;
+}
+.my-profile-avatar-btn.has-image{
+  background-size:cover;
+  background-position:center;
+}
+.my-profile-avatar-btn.has-image .my-profile-photo-content{
+  opacity:0;
+}
+.my-profile-avatar-btn .my-profile-photo-badge{
+  position:absolute;
+  right:-6px;
+  bottom:-6px;
+  width:28px;
+  height:28px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.26);
+  background:var(--a);
+  color:#fff;
+  display:grid;
+  place-items:center;
+  z-index:2;
+}
+.my-profile-avatar-btn .my-profile-photo-badge .lucide{
+  width:14px;
+  height:14px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+}
+.my-profile-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding-top:66px;
+}
+.my-profile-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  margin-top:12px;
+}
+.my-profile-grid .full{
+  grid-column:1 / -1;
+}
+.my-profile-grid label{
+  display:block;
+  font-size:11px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--tm);
+  font-weight:800;
+  margin-bottom:6px;
+}
+.my-profile-input-wrap{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:var(--surface);
+  padding:0 10px;
+}
+.my-profile-input-wrap .stage-input{
+  border:none;
+  background:transparent;
+  min-height:38px;
+  padding:0;
+  box-shadow:none;
+}
+.my-profile-input-wrap .stage-input:focus{
+  box-shadow:none;
+}
+.my-profile-input-wrap .lucide{
+  width:14px;
+  height:14px;
+  color:var(--tm);
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+}
+.my-profile-bio{
+  min-height:94px;
+  resize:vertical;
+}
+.my-profile-photo-hint{
+  margin:8px 0 0;
+  font-size:11px;
+  color:var(--tm);
+}
+body[data-theme="dracula"] .my-profile-modal .modal-head{
+  background:linear-gradient(135deg,#7c3aed 0%,#5b21b6 100%);
+}
+body[data-theme="crimson-black"] .my-profile-modal .modal-head{
+  background:linear-gradient(135deg,#be123c 0%,#9f1239 100%);
+}
+body[data-theme="dracula"] .my-profile-modal,
+body[data-theme="crimson-black"] .my-profile-modal{
+  border-color:rgba(203,213,225,.26);
+}
+body[data-theme="dracula"] .my-profile-modal .my-profile-grid label,
+body[data-theme="crimson-black"] .my-profile-modal .my-profile-grid label{
+  color:#d7ddea;
+}
+body[data-theme="dracula"] .my-profile-modal .my-profile-photo-hint,
+body[data-theme="crimson-black"] .my-profile-modal .my-profile-photo-hint{
+  color:#cbd5e1;
+}
+body[data-theme="dracula"] .my-profile-modal .my-profile-input-wrap,
+body[data-theme="crimson-black"] .my-profile-modal .my-profile-input-wrap{
+  background:rgba(255,255,255,.04);
+  border-color:rgba(148,163,184,.32);
+}
+body[data-theme="dracula"] .my-profile-modal .my-profile-input-wrap .stage-input,
+body[data-theme="crimson-black"] .my-profile-modal .my-profile-input-wrap .stage-input{
+  background:transparent;
+  border:none;
+  color:#f8fafc;
+  box-shadow:none;
+}
+body[data-theme="dracula"] .my-profile-modal .my-profile-input-wrap .stage-input::placeholder,
+body[data-theme="crimson-black"] .my-profile-modal .my-profile-input-wrap .stage-input::placeholder{
+  color:#94a3b8;
+}
+body[data-theme="dracula"] .my-profile-modal .my-profile-input-wrap .stage-input[readonly],
+body[data-theme="crimson-black"] .my-profile-modal .my-profile-input-wrap .stage-input[readonly]{
+  background:transparent;
+  color:#e2e8f0;
+}
+body[data-theme="dracula"] .my-profile-modal .my-profile-input-wrap .lucide,
+body[data-theme="crimson-black"] .my-profile-modal .my-profile-input-wrap .lucide{
+  color:#aeb9d3;
+}
+body[data-theme="dracula"] .my-profile-modal .my-profile-bio,
+body[data-theme="crimson-black"] .my-profile-modal .my-profile-bio{
+  background:rgba(255,255,255,.04);
+  border-color:rgba(148,163,184,.32);
+  color:#f8fafc;
+}
+body[data-theme="dracula"] .my-profile-modal .my-profile-bio:focus,
+body[data-theme="crimson-black"] .my-profile-modal .my-profile-bio:focus{
+  border-color:var(--a);
+  box-shadow:0 0 0 2px rgba(148,163,184,.2);
+}
+@media (max-width: 700px){
+  .my-profile-top{
+    flex-direction:column;
+    margin-top:-52px;
+  }
+  .my-profile-actions{
+    width:100%;
+    padding-top:0;
+    justify-content:flex-end;
+  }
+  .my-profile-grid{
+    grid-template-columns:1fr;
+  }
 }
 
 /* Dark theme surface consistency fix */
@@ -6221,17 +6925,41 @@ body[data-theme="crimson-black"] .records-table-wrap .ics-table thead th:first-c
   color:#cbd5e1;
 }
 body[data-theme="dracula"] .records-table-wrap .ics-table tbody td:first-child{
-  background:#1c1730;
+  background:var(--records-row-bg);
   color:#d8def0;
 }
 body[data-theme="crimson-black"] .records-table-wrap .ics-table tbody td:first-child{
-  background:#17111a;
+  background:var(--records-row-bg);
   color:#cbd5e1;
 }
-body[data-theme="dracula"] .records .ics-table tbody tr:nth-child(even) td:first-child{background:#1f1934}
-body[data-theme="dracula"] .records .ics-table tbody tr:hover td:first-child{background:#2a2142}
-body[data-theme="crimson-black"] .records .ics-table tbody tr:nth-child(even) td:first-child{background:#18121d}
-body[data-theme="crimson-black"] .records .ics-table tbody tr:hover td:first-child{background:#231826}
+body[data-theme="dracula"] .records .ics-table tbody tr{
+  --records-row-bg:#1c1730;
+  background:var(--records-row-bg);
+}
+body[data-theme="dracula"] .records .ics-table tbody tr:nth-child(even){
+  --records-row-bg:#1f1934;
+  background:var(--records-row-bg);
+}
+body[data-theme="dracula"] .records .ics-table tbody tr:hover{
+  --records-row-bg:#2a2142;
+  background:var(--records-row-bg);
+}
+body[data-theme="crimson-black"] .records .ics-table tbody tr{
+  --records-row-bg:#17111a;
+  background:var(--records-row-bg);
+}
+body[data-theme="crimson-black"] .records .ics-table tbody tr:nth-child(even){
+  --records-row-bg:#18121d;
+  background:var(--records-row-bg);
+}
+body[data-theme="crimson-black"] .records .ics-table tbody tr:hover{
+  --records-row-bg:#231826;
+  background:var(--records-row-bg);
+}
+body[data-theme="dracula"] .records .ics-table td,
+body[data-theme="crimson-black"] .records .ics-table td{
+  border-bottom-color:rgba(255,255,255,.14);
+}
 body[data-theme="dracula"] .records .actions-eul-table tbody tr.targeted-row,
 body[data-theme="dracula"] .records .actions-eul-table tbody tr.targeted-row td:first-child{
   background:#2f254b;
@@ -6391,33 +7119,39 @@ body[data-theme="crimson-black"] .dash-recent-card-idx{
 }
 body[data-theme="dracula"] .dash-recent-pill.status,
 body[data-theme="crimson-black"] .dash-recent-pill.status{
-  background:rgba(251,113,133,.2);
-  color:#fecdd3;
+  background:rgba(254,202,202,.88);
+  border:1px solid rgba(248,113,113,.6);
+  color:#7f1d1d;
 }
 body[data-theme="dracula"] .dash-recent-pill.status-updated,
 body[data-theme="crimson-black"] .dash-recent-pill.status-updated{
-  background:rgba(245,158,11,.22);
-  color:#fde68a;
+  background:rgba(254,243,199,.9);
+  border:1px solid rgba(245,158,11,.55);
+  color:#78350f;
 }
 body[data-theme="dracula"] .dash-recent-pill.status-imported,
 body[data-theme="crimson-black"] .dash-recent-pill.status-imported{
-  background:rgba(59,130,246,.2);
-  color:#bfdbfe;
+  background:rgba(219,234,254,.9);
+  border:1px solid rgba(96,165,250,.55);
+  color:#1e3a8a;
 }
 body[data-theme="dracula"] .dash-recent-pill.status-new,
 body[data-theme="crimson-black"] .dash-recent-pill.status-new{
-  background:rgba(139,92,246,.22);
-  color:#ddd6fe;
+  background:rgba(237,233,254,.9);
+  border:1px solid rgba(167,139,250,.55);
+  color:#4c1d95;
 }
 body[data-theme="dracula"] .dash-recent-pill.ok,
 body[data-theme="crimson-black"] .dash-recent-pill.ok{
-  background:rgba(45,212,191,.18);
-  color:#99f6e4;
+  background:rgba(209,250,229,.9);
+  border:1px solid rgba(52,211,153,.55);
+  color:#065f46;
 }
 body[data-theme="dracula"] .dash-recent-pill.danger,
 body[data-theme="crimson-black"] .dash-recent-pill.danger{
-  background:rgba(248,113,113,.2);
-  color:#fecaca;
+  background:rgba(254,226,226,.92);
+  border:1px solid rgba(248,113,113,.58);
+  color:#991b1b;
 }
 body[data-theme="dracula"] .dash-recent-card-foot{
   border-top-color:#e2e8f0;
@@ -6445,9 +7179,9 @@ body[data-theme="crimson-black"] .inspection-history-title{
 }
 body[data-theme="dracula"] .inspection-history-close,
 body[data-theme="crimson-black"] .inspection-history-close{
-  background:rgba(255,255,255,.08);
-  border-color:rgba(255,255,255,.2);
-  color:#f8fafc;
+  background:var(--modal-bg);
+  border-color:var(--modal-border);
+  color:var(--t);
 }
 body[data-theme="dracula"] .inspection-history-table-wrap{
   border-color:#4b3f6d;
@@ -6551,13 +7285,11 @@ body[data-theme="crimson-black"] .wmr-modal .wmr-sale-note{
 /* Dark theme accent differentiation */
 body[data-theme="dracula"] .inspection-history-close:hover,
 body[data-theme="dracula"] .wmr-modal .wmr-close-btn:hover{
-  color:#c4b5fd;
-  box-shadow:none;
+  color:var(--ah);
 }
 body[data-theme="crimson-black"] .inspection-history-close:hover,
 body[data-theme="crimson-black"] .wmr-modal .wmr-close-btn:hover{
-  color:#fda4af;
-  box-shadow:none;
+  color:var(--ah);
 }
 body[data-theme="dracula"] .inspection-history-table thead th{
   box-shadow:inset 0 -1px 0 #5e3c76;
@@ -6635,6 +7367,16 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
 .modal h3{margin:0;font-size:16px}
 .modal p{margin:0;font-size:13px;color:var(--tm);white-space:pre-line}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.modal-overlay.modal-release-notes .modal{
+  max-width:min(760px,94vw);
+  max-height:88vh;
+}
+.modal-overlay.modal-release-notes #modalMsg{
+  max-height:60vh;
+  overflow:auto;
+  padding-right:6px;
+  line-height:1.5;
+}
 .modal-btn{min-height:36px}
 .modal-btn.primary{background:var(--btn-primary-bg);color:var(--btn-primary-text)}
 .modal-btn.secondary{background:var(--btn-secondary-bg);color:var(--btn-secondary-text)}
@@ -6683,7 +7425,11 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
   border:1px solid var(--sheet-border);
   border-radius:12px;
 
-  box-shadow:var(--sheet-shadow);
+  box-shadow:
+    var(--sheet-shadow),
+    0 0 0 1px color-mix(in srgb, var(--a) 46%, transparent),
+    0 0 44px color-mix(in srgb, var(--a) 62%, transparent),
+    0 0 88px color-mix(in srgb, var(--a) 34%, transparent);
 
   padding:14px 16px 16px;
   display:grid;
@@ -6695,7 +7441,14 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
   z-index:70;
 }
 
-.sheet.show{bottom:20px}
+.sheet.show{
+  bottom:20px;
+  box-shadow:
+    var(--sheet-shadow),
+    0 0 0 1px color-mix(in srgb, var(--a) 62%, transparent),
+    0 0 64px color-mix(in srgb, var(--a) 78%, transparent),
+    0 0 120px color-mix(in srgb, var(--a) 42%, transparent);
+}
 
 .form-col{
   display:flex;
@@ -7215,6 +7968,7 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
   }
   .actions-eul-actions{
     justify-content:flex-start;
+    flex-wrap:wrap;
     gap:3px;
   }
   .actions-eul-actions .small-btn,
@@ -7334,6 +8088,12 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
 }
 
 .add-btn:hover.enabled{background:var(--ah)}
+.add-btn.is-par-update{
+  background:var(--par-accent);
+}
+.add-btn.is-par-update:hover.enabled{
+  background:var(--par-accent-hover);
+}
 </style>
 </head>
 <body>
@@ -7348,7 +8108,8 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
     </div>
     <div class="topbar-v2-left">
       <div class="brand-copy">
-        <span class="brand-title">Digital School Inventory System v1.0</span>
+        <span class="brand-title">Digital School Inventory System</span>
+        <span class="brand-sub topbar-version-link" id="topbarVersionLink" role="button" tabindex="0" title="Show What's New">v1.0</span>
       </div>
     </div>
     <div class="right" aria-label="Topbar V2 actions">
@@ -7360,9 +8121,6 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
       </button>
       <button class="icon-btn" type="button" title="Data Manager" aria-label="Data Manager" data-action="openDataManagerModal" data-arg1="hub">
         <i data-lucide="database" aria-hidden="true"></i>
-      </button>
-      <button class="icon-btn mobile-profile-btn" type="button" title="Profile Settings" aria-label="Profile Settings" data-action="openProfileModal">
-        <i data-lucide="settings" aria-hidden="true"></i>
       </button>
       <div class="notif-wrap">
         <button class="icon-btn" id="notifBellBtn" type="button" title="Notifications" aria-label="Notifications" data-action="toggleNotificationsPanel">
@@ -7407,17 +8165,13 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
             <p class="topbar-menu-email" id="topbarMenuEmail">No email set</p>
           </div>
         </div>
-        <div class="topbar-menu-plan">
-          <span class="topbar-menu-plan-left"><i data-lucide="package-check"></i><span>Enterprise Plan</span></span>
-          <button class="topbar-menu-plan-manage" type="button" data-action="openProfileFromMenu" data-arg1="preferences">Manage</button>
-        </div>
         <div class="topbar-menu-list">
-          <button class="topbar-menu-item" type="button" data-action="openProfileFromMenu" data-arg1="identity">
+          <button class="topbar-menu-item" type="button" data-action="openMyProfileFromMenu">
             <span class="topbar-menu-item-left"><i data-lucide="user"></i><span>My Profile</span></span>
           </button>
           <button class="topbar-menu-item" type="button" data-action="openAuditLogsFromMenu">
-            <span class="topbar-menu-item-left"><i data-lucide="clipboard-list"></i><span>Audit Logs</span></span>
-            <span class="topbar-menu-badge new">5 New</span>
+            <span class="topbar-menu-item-left"><i data-lucide="history"></i><span>Audit Trail</span></span>
+            <span class="topbar-menu-badge new" id="auditLogsMenuBadge" style="display:none">0 New</span>
           </button>
           <button class="topbar-menu-item" type="button" data-action="openProfileFromMenu" data-arg1="preferences">
             <span class="topbar-menu-item-left"><i data-lucide="settings"></i><span>Settings</span></span>
@@ -7559,7 +8313,7 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
         <input id="fundCluster" list="fundClusterList" placeholder="Cluster" />
       </div>
       <div>
-        <label>ICS NO.</label>
+        <label id="recordNoLabel">ICS NO.</label>
         <input id="icsNo" placeholder="YYYY-MM-XXX" maxlength="11" inputmode="numeric" autocomplete="off" />
       </div>
     </div>
@@ -7597,9 +8351,9 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
 <datalist id="stageUnitList"></datalist>
 <div class="search-overlay" id="searchOverlay">
   <div class="search-box">
-    <input id="searchInput" class="search-input" placeholder="Search ICS No., entity, accountable person, item description, item no..." />
+    <input id="searchInput" class="search-input" placeholder="Search ICS/PAR No., entity, accountable person, item description, item no..." />
     <div class="search-results" id="searchResults">
-      <div class="search-empty">Type to search ICS records.</div>
+      <div class="search-empty">Type to search ICS/PAR records.</div>
     </div>
   </div>
 </div>
@@ -7607,7 +8361,7 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
   <div class="actions-modal modal-xl ics-details-modal">
     <div class="modal-head actions-hero" style="margin:0">
       <h3 id="icsDetailsTitle">ICS Details</h3>
-      <button class="archived-history-close" id="icsDetailsCloseBtn" aria-label="Close ICS details">x</button>
+      <button class="archived-history-close modal-close-btn" id="icsDetailsCloseBtn" aria-label="Close record details"><i data-lucide="x" aria-hidden="true"></i>Close</button>
     </div>
     <div class="modal-body" id="icsDetailsBody"></div>
   </div>
@@ -7616,7 +8370,7 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
   <div class="actions-modal modal-lg ics-history-modal">
     <div class="modal-head actions-hero" style="margin:0">
       <h3 id="icsRecordHistoryTitle">Record history</h3>
-      <button class="archived-history-close" id="icsRecordHistoryCloseBtn" aria-label="Close record history">x</button>
+      <button class="archived-history-close modal-close-btn" id="icsRecordHistoryCloseBtn" aria-label="Close record history"><i data-lucide="x" aria-hidden="true"></i>Close</button>
     </div>
     <div class="modal-body" id="icsRecordHistoryBody"></div>
   </div>
@@ -7625,7 +8379,7 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
   <div class="actions-modal modal-lg archived-history-modal">
     <div class="modal-head actions-hero" style="margin:0">
       <h3 id="archivedHistoryTitle">Archived Item History</h3>
-      <button class="archived-history-close" id="archivedHistoryCloseBtn" aria-label="Close archived history">x</button>
+      <button class="archived-history-close modal-close-btn" id="archivedHistoryCloseBtn" aria-label="Close archived history"><i data-lucide="x" aria-hidden="true"></i>Close</button>
     </div>
     <div class="modal-body" id="archivedHistoryBody"></div>
   </div>
@@ -7635,7 +8389,7 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
     <div class="modal-head">
       <div class="setup-title-row">
         <h3><i data-lucide="school" aria-hidden="true"></i>Setup School Workspace</h3>
-        <button type="button" class="setup-close-btn" id="setupCloseBtn" aria-label="Close setup modal"><i data-lucide="x" aria-hidden="true"></i></button>
+        <button type="button" class="setup-close-btn modal-close-btn" id="setupCloseBtn" aria-label="Close setup modal"><i data-lucide="x" aria-hidden="true"></i>Close</button>
       </div>
       <p class="modal-sub">Create school identity and first personnel profile for this device.</p>
     </div>
@@ -7911,6 +8665,7 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
                   <button type="button" class="theme-preview-btn" data-theme="elegant-white"><span class="theme-name">Elegant White</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
                   <button type="button" class="theme-preview-btn" data-theme="crimson-black"><span class="theme-name">Crimson Black</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
                   <button type="button" class="theme-preview-btn" data-theme="dracula"><span class="theme-name">Dracula</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
+                  <button type="button" class="theme-preview-btn" data-theme="dracula-nocturne"><span class="theme-name">Dracula Nocturne</span><span class="theme-swatches"><i></i><i></i><i></i></span></button>
                 </div>
               </div>
             </div>
@@ -7970,6 +8725,180 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
     </div>
   </div>
 </div>
+<div class="actions-modal-overlay" id="myProfileOverlay">
+  <div class="actions-modal my-profile-modal">
+    <div class="modal-head">
+      <button type="button" class="my-profile-close modal-close-btn" id="myProfileCloseBtn" aria-label="Close My Profile"><i data-lucide="x" aria-hidden="true"></i>Close</button>
+    </div>
+    <div class="modal-body my-profile-shell">
+      <div class="my-profile-top">
+        <div>
+          <button type="button" class="my-profile-avatar-btn" id="myProfilePhotoButton" title="Upload profile photo" aria-label="Upload profile photo">
+            <span class="my-profile-photo-content" id="myProfilePhotoContent">CU</span>
+            <span class="my-profile-photo-badge" aria-hidden="true"><i data-lucide="camera" aria-hidden="true"></i></span>
+          </button>
+          <input id="myProfilePhotoInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none" />
+          <p class="my-profile-photo-hint" id="myProfilePhotoHint">Click photo to upload. Images are auto-resized under 1MB.</p>
+        </div>
+        <div class="my-profile-actions">
+          <button type="button" class="btn btn-md btn-secondary" id="myProfileCancelBtn">Cancel</button>
+          <button type="button" class="btn btn-md btn-primary" id="myProfileSaveBtn">Save Changes</button>
+        </div>
+      </div>
+      <div class="my-profile-grid">
+        <div>
+          <label for="myProfileName">Full Name</label>
+          <div class="my-profile-input-wrap">
+            <i data-lucide="user" aria-hidden="true"></i>
+            <input id="myProfileName" class="stage-input" placeholder="Full name" />
+          </div>
+        </div>
+        <div>
+          <label for="myProfileRole">Role</label>
+          <div class="my-profile-input-wrap">
+            <i data-lucide="shield-check" aria-hidden="true"></i>
+            <input id="myProfileRole" class="stage-input" readonly />
+          </div>
+        </div>
+        <div>
+          <label for="myProfileEmail">Email Address</label>
+          <div class="my-profile-input-wrap">
+            <i data-lucide="mail" aria-hidden="true"></i>
+            <input id="myProfileEmail" class="stage-input" placeholder="name@example.com" />
+          </div>
+        </div>
+        <div>
+          <label for="myProfilePhone">Phone</label>
+          <div class="my-profile-input-wrap">
+            <i data-lucide="phone" aria-hidden="true"></i>
+            <input id="myProfilePhone" class="stage-input" placeholder="+1 (555) 000-0000" />
+          </div>
+        </div>
+        <div class="full">
+          <label for="myProfileBio">Bio</label>
+          <textarea id="myProfileBio" class="stage-input my-profile-bio" placeholder="Write a short bio..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="actions-modal-overlay" id="auditLogsOverlay">
+  <div class="actions-modal modal-xl audit-logs-modal">
+    <div class="modal-head">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <h3><i data-lucide="history" aria-hidden="true"></i>Audit Trail</h3>
+        <button class="btn btn-sm btn-secondary modal-close-btn" id="auditLogsCloseBtn"><i data-lucide="x" aria-hidden="true"></i>Close</button>
+      </div>
+      <p class="modal-sub">Review recent system activity and trace metadata for this workspace.</p>
+    </div>
+    <div class="modal-body">
+      <div class="audit-logs-toolbar">
+        <input id="auditLogsSearchInput" class="stage-input" placeholder="Search detail, profile key, device, or session..." />
+        <select id="auditLogsTypeFilter" class="stage-input">
+          <option value="all">All Types</option>
+          <option value="info">Info</option>
+          <option value="success">Success</option>
+          <option value="warn">Warn</option>
+          <option value="error">Error</option>
+          <option value="import">Import</option>
+          <option value="export">Export</option>
+          <option value="backup">Backup</option>
+          <option value="archive">Archive</option>
+          <option value="unarchive">Unarchive</option>
+          <option value="delete">Delete</option>
+          <option value="update">Update</option>
+        </select>
+        <select id="auditLogsActorFilter" class="stage-input">
+          <option value="all">All Actors</option>
+        </select>
+        <input id="auditLogsFromDate" class="stage-input" type="date" title="From date" />
+        <input id="auditLogsToDate" class="stage-input" type="date" title="To date" />
+        <button class="btn btn-sm btn-secondary" id="auditLogsRefreshBtn" type="button"><i data-lucide="refresh-cw" aria-hidden="true"></i>Refresh</button>
+      </div>
+      <p class="audit-logs-summary" id="auditLogsSummary">No audit logs available.</p>
+      <div class="detail-table-wrap">
+        <table class="dm-preview-table audit-logs-table">
+          <thead>
+            <tr><th>Time</th><th>Type</th><th>Detail</th><th>Actor</th><th>Trace</th></tr>
+          </thead>
+          <tbody id="auditLogsTableBody">
+            <tr><td colspan="5" class="empty-cell">No audit logs found.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="audit-logs-pagination">
+        <div class="audit-logs-page-info" id="auditLogsPageInfo">Page 1 of 1</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-sm btn-secondary" id="auditLogsPrevBtn" type="button">Prev</button>
+          <button class="btn btn-sm btn-secondary" id="auditLogsNextBtn" type="button">Next</button>
+          <button class="btn btn-sm btn-secondary" id="auditLogsExportCsvBtn" type="button"><i data-lucide="file-spreadsheet" aria-hidden="true"></i>Export CSV</button>
+          <button class="btn btn-sm btn-secondary" id="auditLogsExportJsonBtn" type="button"><i data-lucide="download" aria-hidden="true"></i>Export JSON</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="actions-modal-overlay" id="helpDocsOverlay">
+  <div class="actions-modal modal-lg help-docs-modal">
+    <div class="modal-head">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <h3><i data-lucide="book-open" aria-hidden="true"></i>Help & Documentation</h3>
+        <button class="btn btn-sm btn-secondary modal-close-btn" id="helpDocsCloseBtn"><i data-lucide="x" aria-hidden="true"></i>Close</button>
+      </div>
+      <p class="modal-sub">Quick operator guide for daily DSIS workflows.</p>
+    </div>
+    <div class="modal-body" id="helpDocsPrintArea">
+      <div class="help-docs-sections">
+        <section class="help-docs-card">
+          <h4>1. Getting Started</h4>
+          <ul>
+            <li>Login with your School ID and profile.</li>
+            <li>Use top navigation: Dashboard, Inventory, Action Center, Archives.</li>
+            <li>Open Profile menu for settings, appearance, updates, and sign out.</li>
+          </ul>
+        </section>
+        <section class="help-docs-card">
+          <h4>2. Inventory Workflow</h4>
+          <ul>
+            <li>Create or edit records in Manage Inventory.</li>
+            <li>Fill agency/signatory fields and add item rows.</li>
+            <li>Finalize data to save record into the records table.</li>
+          </ul>
+        </section>
+        <section class="help-docs-card">
+          <h4>3. Action Center & Archives</h4>
+          <ul>
+            <li>Review EUL and inspection status in Action Center.</li>
+            <li>Archive eligible items and prepare Waste Materials Report entries.</li>
+            <li>Use Archives for historical records and WMR print actions.</li>
+          </ul>
+        </section>
+        <section class="help-docs-card">
+          <h4>4. Data & Security</h4>
+          <ul>
+            <li>Use Data Hub for ICS/PAR import/export with validation preview.</li>
+            <li>Use Profile > Security for trace checks and recovery actions.</li>
+            <li>Use Audit Trail to review activity logs with filters and exports.</li>
+          </ul>
+        </section>
+        <section class="help-docs-card">
+          <h4>5. Keyboard Shortcuts</h4>
+          <ul>
+            <li><code>Ctrl+K</code>: Search</li>
+            <li><code>Alt+1..4</code>: Switch main views</li>
+            <li><code>Alt+D</code>: Data Manager</li>
+            <li><code>Esc</code>: Close active overlay/modal</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div class="ics-card-actions" style="justify-content:flex-end">
+        <button class="btn btn-sm btn-secondary" id="helpDocsPrintBtn"><i data-lucide="printer" aria-hidden="true"></i>Print Guide</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="actions-modal-overlay" id="dataHubOverlay">
   <div class="actions-modal dm-hub-modal">
     <div class="modal-head">
@@ -7981,7 +8910,7 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
             <p class="modal-sub">Choose the task you want to perform.</p>
           </div>
         </div>
-        <button class="dm-hub-close" id="dataHubCloseBtn">Close</button>
+        <button class="dm-hub-close modal-close-btn" id="dataHubCloseBtn"><i data-lucide="x" aria-hidden="true"></i>Close</button>
       </div>
     </div>
     <div class="modal-body">
@@ -7990,21 +8919,21 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
           <span class="dm-hub-ico import" aria-hidden="true"><i data-lucide="download" aria-hidden="true"></i></span>
           <span class="dm-hub-copy">
             <strong>Import Center</strong>
-            <span>Validate a JSON file, review conflicts, and apply merge/replace import.</span>
+            <span>Validate a JSON file, review conflicts, and apply merge/replace import for ICS/PAR records.</span>
           </span>
         </button>
         <button class="dm-hub-btn" id="dataHubOpenExportBtn" type="button">
           <span class="dm-hub-ico export" aria-hidden="true"><i data-lucide="upload" aria-hidden="true"></i></span>
           <span class="dm-hub-copy">
             <strong>Export Center</strong>
-            <span>Export filtered records package or full unfiltered workspace backup.</span>
+            <span>Export filtered ICS/PAR records package or full unfiltered workspace backup.</span>
           </span>
         </button>
         <button class="dm-hub-btn" id="dataHubAutoPopulateBtn" type="button">
           <span class="dm-hub-ico export" aria-hidden="true"><i data-lucide="plus" aria-hidden="true"></i></span>
           <span class="dm-hub-copy">
-            <strong>Auto-Populate x3</strong>
-            <span>Generate 3 sample ICS records for stress testing and demo data.</span>
+            <strong>Auto-Populate x6</strong>
+            <span>Generate 3 sample ICS and 3 sample PAR records for stress testing and demo data.</span>
           </span>
         </button>
       </div>
@@ -8020,9 +8949,9 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
     <div class="modal-head">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <h3>Import Center</h3>
-        <button class="btn btn-sm btn-secondary" id="dataImportCloseBtn">Close</button>
+        <button class="btn btn-sm btn-secondary modal-close-btn" id="dataImportCloseBtn"><i data-lucide="x" aria-hidden="true"></i>Close</button>
       </div>
-      <p class="modal-sub">Schema-validated import with preview, merge/replace control, and conflict reporting.</p>
+      <p class="modal-sub">Schema-validated ICS/PAR import with preview, merge/replace control, and conflict reporting.</p>
     </div>
     <div class="modal-body">
       <div class="dm-layout">
@@ -8043,10 +8972,10 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
             <h4>2) Import Rules and Result</h4>
             <span class="dm-step-mark" id="dmStep3Mark">Ready to Apply</span>
           </div>
-          <p class="dm-muted" style="margin:0 0 8px">Choose how duplicate ICS numbers should be handled.</p>
+          <p class="dm-muted" style="margin:0 0 8px">Choose how duplicate ICS/PAR record numbers should be handled.</p>
           <div class="data-manager-mode">
-            <label><input type="radio" name="dmMode" value="merge" checked /> Merge (skip duplicate ICS)</label>
-            <label><input type="radio" name="dmMode" value="replace" /> Replace (overwrite duplicate ICS)</label>
+            <label><input type="radio" name="dmMode" value="merge" checked /> Merge (skip duplicate ICS/PAR)</label>
+            <label><input type="radio" name="dmMode" value="replace" /> Replace (overwrite duplicate ICS/PAR)</label>
           </div>
           <div class="dm-inline-status" id="dmInlineStatus"></div>
           <p class="dm-muted">After choosing a file, open Validation Preview to review rows and conflicts before applying import.</p>
@@ -8055,7 +8984,10 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
         <section class="dm-section">
           <div class="dm-section-head">
             <h4>3) Recent Import Activity</h4>
-            <p>Last import actions from this device.</p>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+              <p style="margin:0">Last import actions from this device.</p>
+              <button class="btn btn-sm btn-secondary" id="dmOpenImportHistoryBtn" type="button">Import History</button>
+            </div>
           </div>
           <ul class="dm-history-list" id="dmImportHistoryList">
             <li><span class="dm-history-time">No import history yet.</span></li>
@@ -8075,12 +9007,24 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
     </div>
   </div>
 </div>
+<div class="actions-modal-overlay" id="dmImportHistoryOverlay">
+  <div class="actions-modal modal-lg import-history-modal">
+    <div class="modal-head">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <h3>Import History</h3>
+        <button class="btn btn-sm btn-secondary modal-close-btn" id="dmImportHistoryCloseBtn"><i data-lucide="x" aria-hidden="true"></i>Close</button>
+      </div>
+      <p class="modal-sub">Full import audit trail for this workspace.</p>
+    </div>
+    <div class="modal-body" id="dmImportHistoryBody"></div>
+  </div>
+</div>
 <div class="actions-modal-overlay" id="dataValidationOverlay">
   <div class="actions-modal modal-xl">
     <div class="modal-head">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <h3>Validation Preview</h3>
-        <button class="btn btn-sm btn-secondary" id="dataValidationCloseBtn">Close</button>
+        <button class="btn btn-sm btn-secondary modal-close-btn" id="dataValidationCloseBtn"><i data-lucide="x" aria-hidden="true"></i>Close</button>
       </div>
       <p class="modal-sub">Review validation results and conflicts before applying import.</p>
     </div>
@@ -8098,7 +9042,7 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
       <div class="detail-table-wrap">
         <table class="dm-preview-table">
           <thead>
-            <tr><th>#</th><th>ICS No.</th><th>Entity</th><th>Status</th><th>Notes</th></tr>
+            <tr><th>#</th><th>ICS/PAR No.</th><th>Entity</th><th>Status</th><th>Notes</th></tr>
           </thead>
           <tbody id="dmPreviewBody">
             <tr><td colspan="5" class="empty-cell">No preview yet.</td></tr>
@@ -8125,16 +9069,16 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
     <div class="modal-head">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <h3>Export Center</h3>
-        <button class="btn btn-sm btn-secondary" id="dataExportCloseBtn">Close</button>
+        <button class="btn btn-sm btn-secondary modal-close-btn" id="dataExportCloseBtn"><i data-lucide="x" aria-hidden="true"></i>Close</button>
       </div>
-      <p class="modal-sub">Export records package by period or full unfiltered workspace backup.</p>
+      <p class="modal-sub">Export ICS/PAR records package by period or full unfiltered workspace backup.</p>
     </div>
     <div class="modal-body">
       <div class="dm-layout">
         <section class="dm-section">
           <div class="dm-section-head">
             <h4>1) Export Filters</h4>
-            <p>Year/Month filters apply to Records Package only.</p>
+            <p>Year/Month filters apply to ICS/PAR Records Package only.</p>
           </div>
           <div class="data-manager-export-filters">
             <label>Export Year
@@ -8165,14 +9109,14 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
         <section class="dm-section">
           <div class="dm-section-head">
             <h4>2) Export Actions</h4>
-            <p>Choose records-only export or full backup.</p>
+            <p>Choose ICS/PAR records export or full backup.</p>
           </div>
           <div class="dm-export-actions" style="margin-top:0">
             <button class="btn btn-sm btn-secondary" id="dmExportRecordsBtn" type="button">Export Records Package</button>
             <button class="btn btn-sm btn-secondary" id="dmExportFullBtn" type="button">Export Full Package</button>
           </div>
           <p class="dm-muted" style="margin:8px 0 0">
-            <strong>Export Records Package:</strong> exports ICS records only and applies the selected Year/Month filter.
+            <strong>Export Records Package:</strong> exports ICS and PAR records and applies the selected Year/Month filter.
             <br />
             <strong>Export Full Package:</strong> exports the complete workspace backup (records, archives, notifications, and audit logs) without filters.
           </p>

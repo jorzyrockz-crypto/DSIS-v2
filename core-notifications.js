@@ -186,9 +186,27 @@ function notify(type, message){
   showActiveModalToast(type, message);
 }
 
+function notifyCenter(type, message){
+  const now = new Date();
+  notifications.push(normalizeNotificationEntry({
+    id: `n_${now.getTime()}_${Math.floor(Math.random() * 1000)}`,
+    type,
+    message,
+    time: now.toLocaleString(),
+    createdAt: now.toISOString(),
+    read: false,
+    actorProfileKey: getCurrentActorProfileKey()
+  }));
+  if (notifications.length > NOTIFICATION_LIMIT) notifications = notifications.slice(-NOTIFICATION_LIMIT);
+  saveNotifications();
+  renderNotifications();
+}
+
 function getTopShownOverlay(){
   const ids = [
     'setupOverlay',
+    'auditLogsOverlay',
+    'helpDocsOverlay',
     'dataHubOverlay',
     'dataImportOverlay',
     'dataValidationOverlay',

@@ -74,6 +74,8 @@ function printActiveICSShortcut(){
 function getOpenOverlayIds(){
   return [
     'setupOverlay',
+    'auditLogsOverlay',
+    'helpDocsOverlay',
     'dataHubOverlay',
     'dataImportOverlay',
     'dataValidationOverlay',
@@ -82,6 +84,7 @@ function getOpenOverlayIds(){
     'archiveOverlay',
     'inspectionOverlay',
     'inspectionHistoryOverlay',
+    'myProfileOverlay',
     'profileOverlay',
     'loginOverlay',
     'icsRecordHistoryOverlay',
@@ -114,6 +117,8 @@ function handleOverlayKeydown(e){
   if (e.key === 'Escape'){
     e.preventDefault();
     if (top === 'setupOverlay') closeSetupModal();
+    else if (top === 'auditLogsOverlay') closeAuditLogsModal();
+    else if (top === 'helpDocsOverlay') closeHelpDocsModal();
     else if (top === 'loginOverlay') closeLoginModal();
     else if (top === 'dataHubOverlay') closeDataHubModal();
     else if (top === 'dataImportOverlay') closeDataImportModal();
@@ -126,6 +131,7 @@ function handleOverlayKeydown(e){
     else if (top === 'archiveOverlay') closeArchiveModal(true);
     else if (top === 'inspectionOverlay') closeInspectionModal();
     else if (top === 'inspectionHistoryOverlay') closeInspectionHistory();
+    else if (top === 'myProfileOverlay') closeMyProfileModal();
     else if (top === 'profileOverlay') closeProfileModal();
     else if (top === 'icsRecordHistoryOverlay') closeICSRecordHistoryModal();
     else if (top === 'archivedHistoryOverlay') closeArchivedHistoryModal();
@@ -155,6 +161,11 @@ function handleOverlayKeydown(e){
       if (e.target?.closest?.('.wmr-batch-item-input')) commitWmrBatchItemInput(e.target);
     } else if (e.ctrlKey || e.metaKey) saveWasteReportMetadata(true);
     else saveWasteReportMetadata(false);
+    return true;
+  }
+  if (top === 'myProfileOverlay'){
+    e.preventDefault();
+    saveMyProfileModal();
     return true;
   }
   if (top === 'profileOverlay'){

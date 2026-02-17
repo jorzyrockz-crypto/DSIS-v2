@@ -5,12 +5,25 @@ function normalizeImportPackage(payload){
   });
   const hasSchoolIdentity = !!((payload?.schoolIdentity?.schoolId || payload?.school?.schoolId || payload?.meta?.schoolId || '').toString().trim());
   if (Array.isArray(payload)){
-    return { records: payload, schemaVersion: 'legacy', packageType: 'array', integrity: null, schoolIdentity: null, exportedByProfileKey: '' };
+    return {
+      records: payload,
+      icsRecords: payload,
+      parRecords: [],
+      schemaVersion: 'legacy',
+      packageType: 'array',
+      integrity: null,
+      schoolIdentity: null,
+      exportedByProfileKey: ''
+    };
   }
   if (payload && typeof payload === 'object'){
-    if (Array.isArray(payload.data?.records)){
+    if (Array.isArray(payload.data?.records) || Array.isArray(payload.data?.parRecords)){
+      const icsRecords = Array.isArray(payload.data?.records) ? payload.data.records : [];
+      const parRecords = Array.isArray(payload.data?.parRecords) ? payload.data.parRecords : [];
       return {
-        records: payload.data.records,
+        records: icsRecords,
+        icsRecords,
+        parRecords,
         schemaVersion: payload.schemaVersion || payload.version || 'legacy',
         packageType: payload.packageType || 'schema-package',
         integrity: payload.integrity || null,
@@ -23,9 +36,13 @@ function normalizeImportPackage(payload){
         }
       };
     }
-    if (Array.isArray(payload.records)){
+    if (Array.isArray(payload.records) || Array.isArray(payload.parRecords)){
+      const icsRecords = Array.isArray(payload.records) ? payload.records : [];
+      const parRecords = Array.isArray(payload.parRecords) ? payload.parRecords : [];
       return {
-        records: payload.records,
+        records: icsRecords,
+        icsRecords,
+        parRecords,
         schemaVersion: payload.schemaVersion || payload.version || 'legacy',
         packageType: payload.packageType || 'records',
         integrity: payload.integrity || null,
@@ -33,9 +50,12 @@ function normalizeImportPackage(payload){
         exportedByProfileKey: normalizeProfileKeyValue(payload.exportedByProfileKey || payload.exportedBy || '')
       };
     }
-    if (payload.icsNo || payload.id){
+    if (payload.icsNo || payload.parNo || payload.id){
+      const isPar = !!((payload.parNo || '').toString().trim());
       return {
         records: [payload],
+        icsRecords: isPar ? [] : [payload],
+        parRecords: isPar ? [payload] : [],
         schemaVersion: payload.schemaVersion || payload.version || 'legacy',
         packageType: 'single-record',
         integrity: payload.integrity || null,
@@ -45,6 +65,18 @@ function normalizeImportPackage(payload){
     }
   }
   return null;
+}
+
+function resolveImportRecordType(type){
+  return (type || 'ics').toString().toLowerCase() === 'par' ? 'par' : 'ics';
+}
+
+function resolveImportRecordNo(record, type = 'ics'){
+  const recordType = resolveImportRecordType(type);
+  if (recordType === 'par'){
+    return ((record?.parNo || record?.icsNo || '').toString()).trim();
+  }
+  return ((record?.icsNo || '').toString()).trim();
 }
 
 function sortKeysDeep(value){
@@ -151,7 +183,7 @@ function updateDataManagerApplyState(){
 async function verifyImportPackageIntegrity(payload, parsed){
   const packageType = ((parsed?.packageType || payload?.packageType || '') + '').toLowerCase();
   const sourceIntegrity = parsed?.integrity || payload?.integrity || null;
-  const isSchemaPackage = !!(payload && typeof payload === 'object' && !Array.isArray(payload) && (payload.data || payload.records));
+  const isSchemaPackage = !!(payload && typeof payload === 'object' && !Array.isArray(payload) && (payload.data || payload.records || payload.parRecords));
 
   if (!isSchemaPackage){
     return {
@@ -308,13 +340,19 @@ async function verifyImportPackageForRestore(payload, parsed, summary){
 
 function analyzeImportPayload(payload, sourceName = ''){
   const parsed = normalizeImportPackage(payload);
-  if (!parsed || !Array.isArray(parsed.records)){
-    return { ok: false, reason: 'Unsupported payload. Expected ICS record, records array, or schema package.' };
+  if (!parsed){
+    return { ok: false, reason: 'Unsupported payload. Expected ICS/PAR record, records array, or schema package.' };
   }
   const packageExportedBy = normalizeProfileKeyValue(parsed.exportedByProfileKey || payload?.exportedByProfileKey || '');
-  const existingRecords = JSON.parse(localStorage.getItem('icsRecords') || '[]');
-  const existingKeys = new Set(existingRecords.map((r) => normalizeICSKey(r.icsNo || '')));
-  const incomingSeen = new Set();
+  const existingByType = {
+    ics: JSON.parse(localStorage.getItem('icsRecords') || '[]'),
+    par: JSON.parse(localStorage.getItem('parRecords') || '[]')
+  };
+  const existingKeysByType = {
+    ics: new Set((existingByType.ics || []).map((r) => normalizeICSKey(resolveImportRecordNo(r, 'ics')))),
+    par: new Set((existingByType.par || []).map((r) => normalizeICSKey(resolveImportRecordNo(r, 'par'))))
+  };
+  const incomingSeenByType = { ics: new Set(), par: new Set() };
   const rows = [];
   const validRows = [];
   const migrationRows = [];
@@ -322,53 +360,78 @@ function analyzeImportPayload(payload, sourceName = ''){
   let conflictCount = 0;
   let inFileDuplicateCount = 0;
   let migratedTraceKeys = 0;
+  let incomingICS = 0;
+  let incomingPAR = 0;
+  let validICS = 0;
+  let validPAR = 0;
 
-  parsed.records.forEach((raw, idx) => {
-    const out = validateAndNormalizeICSRecord(raw, { strict: true });
-    const migration = migrateRecordTraceProfileKeysForImport(out.record, packageExportedBy);
-    const normalizedRecord = migration.record;
-    migratedTraceKeys += migration.migrated;
-    const key = normalizeICSKey(normalizedRecord?.icsNo || '');
-    const notes = [];
-    if (out.errors.length) notes.push(...out.errors);
-    if (out.warnings.length) notes.push(...out.warnings);
-    if (migration.migrated){
-      notes.push(`Auto-migrated ${migration.migrated} missing profile-key field(s).`);
-      migrationRows.push({
-        index: idx + 1,
-        icsNo: normalizedRecord?.icsNo || '',
-        migrated: migration.migrated,
-        fields: migration.fields || []
-      });
-    }
-    let status = out.ok ? 'valid' : 'invalid';
-    if (status === 'invalid') invalidCount += 1;
-    if (status === 'valid' && key){
-      if (incomingSeen.has(key)){
-        status = 'duplicate-in-file';
-        inFileDuplicateCount += 1;
-        notes.push('Duplicate ICS found in import file.');
-      } else {
-        incomingSeen.add(key);
-        if (existingKeys.has(key)){
-          status = 'conflict-existing';
-          conflictCount += 1;
-          notes.push('ICS already exists in local records.');
+  const analyzeSet = (rawRecords, type) => {
+    const recordType = resolveImportRecordType(type);
+    const recordCode = recordType === 'par' ? 'PAR' : 'ICS';
+    (rawRecords || []).forEach((raw) => {
+      const out = validateAndNormalizeICSRecord(raw, { strict: true });
+      const migration = migrateRecordTraceProfileKeysForImport(out.record, packageExportedBy);
+      const normalizedRecord = migration.record;
+      if (recordType === 'par'){
+        normalizedRecord.parNo = normalizedRecord.parNo || normalizedRecord.icsNo || '';
+      }
+      migratedTraceKeys += migration.migrated;
+      const recordNo = resolveImportRecordNo(normalizedRecord, recordType);
+      const key = normalizeICSKey(recordNo || '');
+      const notes = [];
+      if (out.errors.length) notes.push(...out.errors);
+      if (out.warnings.length) notes.push(...out.warnings);
+      if (migration.migrated){
+        notes.push(`Auto-migrated ${migration.migrated} missing profile-key field(s).`);
+        migrationRows.push({
+          index: rows.length + 1,
+          recordType,
+          icsNo: recordNo || '',
+          recordNo: recordNo || '',
+          migrated: migration.migrated,
+          fields: migration.fields || []
+        });
+      }
+      let status = out.ok ? 'valid' : 'invalid';
+      if (status === 'invalid') invalidCount += 1;
+      if (status === 'valid' && key){
+        if (incomingSeenByType[recordType].has(key)){
+          status = 'duplicate-in-file';
+          inFileDuplicateCount += 1;
+          notes.push(`Duplicate ${recordCode} found in import file.`);
+        } else {
+          incomingSeenByType[recordType].add(key);
+          if (existingKeysByType[recordType].has(key)){
+            status = 'conflict-existing';
+            conflictCount += 1;
+            notes.push(`${recordCode} already exists in local records.`);
+          }
         }
       }
-    }
-    const row = {
-      index: idx,
-      status,
-      notes,
-      key,
-      record: normalizedRecord,
-      icsNo: normalizedRecord?.icsNo || '',
-      entity: normalizedRecord?.entity || ''
-    };
-    if (status === 'valid' || status === 'conflict-existing') validRows.push(row);
-    rows.push(row);
-  });
+      const row = {
+        index: rows.length,
+        status,
+        notes,
+        key,
+        record: normalizedRecord,
+        recordType,
+        recordNo: recordNo || '',
+        icsNo: recordNo || '',
+        entity: normalizedRecord?.entity || ''
+      };
+      if (recordType === 'par') incomingPAR += 1;
+      else incomingICS += 1;
+      if (status === 'valid'){
+        if (recordType === 'par') validPAR += 1;
+        else validICS += 1;
+      }
+      if (status === 'valid' || status === 'conflict-existing') validRows.push(row);
+      rows.push(row);
+    });
+  };
+
+  analyzeSet(Array.isArray(parsed.icsRecords) ? parsed.icsRecords : [], 'ics');
+  analyzeSet(Array.isArray(parsed.parRecords) ? parsed.parRecords : [], 'par');
 
   const summary = {
     sourceName,
@@ -377,6 +440,10 @@ function analyzeImportPayload(payload, sourceName = ''){
     schoolIdentity: parsed.schoolIdentity || null,
     packageExportedByProfileKey: packageExportedBy || '',
     totalIncoming: rows.length,
+    incomingICS,
+    incomingPAR,
+    validICS,
+    validPAR,
     valid: rows.filter((r) => r.status === 'valid').length,
     invalid: invalidCount,
     conflicts: conflictCount,
@@ -393,25 +460,38 @@ function analyzeImportPayload(payload, sourceName = ''){
 
 function analyzeTraceCoverageForPayload(payload, sourceName = ''){
   const parsed = normalizeImportPackage(payload);
-  if (!parsed || !Array.isArray(parsed.records)){
-    return { ok: false, reason: 'Unsupported payload. Expected ICS record, records array, or schema package.' };
+  if (!parsed){
+    return { ok: false, reason: 'Unsupported payload. Expected ICS/PAR record, records array, or schema package.' };
   }
   const normalizedRecords = [];
   const missingRows = [];
   let invalidRecords = 0;
-  parsed.records.forEach((raw, idx) => {
-    const out = validateAndNormalizeICSRecord(raw, { strict: true });
-    if (!out.ok) invalidRecords += 1;
-    normalizedRecords.push(out.record);
-    const rowStats = getTraceIntegrityStatsForRecords([out.record]);
-    if (rowStats.totalMissing > 0){
-      missingRows.push({
-        index: idx + 1,
-        icsNo: (out.record?.icsNo || '').toString().trim(),
-        missing: rowStats.totalMissing
-      });
-    }
-  });
+  let incomingICS = 0;
+  let incomingPAR = 0;
+  const inspectSet = (rawRecords, type) => {
+    const recordType = resolveImportRecordType(type);
+    (rawRecords || []).forEach((raw) => {
+      const out = validateAndNormalizeICSRecord(raw, { strict: true });
+      if (recordType === 'par' && out.record){
+        out.record.parNo = out.record.parNo || out.record.icsNo || '';
+      }
+      if (!out.ok) invalidRecords += 1;
+      normalizedRecords.push(out.record);
+      const rowStats = getTraceIntegrityStatsForRecords([out.record]);
+      if (rowStats.totalMissing > 0){
+        missingRows.push({
+          index: missingRows.length + 1,
+          recordType,
+          recordNo: resolveImportRecordNo(out.record, recordType),
+          missing: rowStats.totalMissing
+        });
+      }
+      if (recordType === 'par') incomingPAR += 1;
+      else incomingICS += 1;
+    });
+  };
+  inspectSet(Array.isArray(parsed.icsRecords) ? parsed.icsRecords : [], 'ics');
+  inspectSet(Array.isArray(parsed.parRecords) ? parsed.parRecords : [], 'par');
   const stats = getTraceIntegrityStatsForRecords(normalizedRecords);
   return {
     ok: true,
@@ -420,7 +500,9 @@ function analyzeTraceCoverageForPayload(payload, sourceName = ''){
       packageType: parsed.packageType || 'unknown',
       schemaVersion: parsed.schemaVersion || 'legacy',
       exportedByProfileKey: normalizeProfileKeyValue(parsed.exportedByProfileKey || payload?.exportedByProfileKey || ''),
-      totalIncoming: parsed.records.length,
+      totalIncoming: normalizedRecords.length,
+      incomingICS,
+      incomingPAR,
       invalidRecords,
       stats,
       missingRows
@@ -440,7 +522,7 @@ function updateDataManagerPreview(summary){
   const exporterText = summary.packageExportedByProfileKey
     ? ` | Exported By: ${summary.packageExportedByProfileKey}`
     : '';
-  summaryText.textContent = `Package: ${summary.packageType} | Schema: ${summary.schemaVersion || 'legacy'}${schoolText}${exporterText} | Incoming: ${summary.totalIncoming}`;
+  summaryText.textContent = `Package: ${summary.packageType} | Schema: ${summary.schemaVersion || 'legacy'}${schoolText}${exporterText} | Incoming: ${summary.totalIncoming} (ICS: ${summary.incomingICS || 0}, PAR: ${summary.incomingPAR || 0})`;
   kpis.innerHTML = `
     <div class="dm-kpi"><div class="k">Incoming</div><div class="v">${summary.totalIncoming}</div></div>
     <div class="dm-kpi"><div class="k">Valid</div><div class="v">${summary.valid}</div></div>
@@ -453,9 +535,11 @@ function updateDataManagerPreview(summary){
   const rows = summary.rows.slice(0, 120);
   previewBody.innerHTML = rows.length ? rows.map((r, idx) => {
     const note = r.notes.length ? r.notes.join(' | ') : '-';
+    const recordCode = (r.recordType || 'ics') === 'par' ? 'PAR' : 'ICS';
+    const recordNo = r.recordNo || r.icsNo || '';
     return `<tr>
       <td>${idx + 1}</td>
-      <td>${escapeHTML(r.icsNo || '')}</td>
+      <td>${escapeHTML(`${recordCode}-${recordNo}`)}</td>
       <td>${escapeHTML(r.entity || '')}</td>
       <td>${escapeHTML(r.status)}</td>
       <td>${escapeHTML(note)}</td>
@@ -491,17 +575,58 @@ function renderDataImportHistory(){
   if (!list) return;
   const logs = getAuditLogs()
     .filter((log) => (log?.type || '').toString().toLowerCase() === 'import')
-    .slice(-10)
     .reverse();
+  const recent = logs.slice(0, 5);
   if (!logs.length){
     list.innerHTML = '<li><span class="dm-history-time">No import history yet.</span></li>';
     return;
   }
-  list.innerHTML = logs.map((log) => {
+  list.innerHTML = recent.map((log) => {
     const detail = escapeHTML((log?.detail || '').toString());
     const time = escapeHTML((log?.time || '').toString());
     return `<li>${detail}<br /><span class="dm-history-time">${time}</span></li>`;
-  }).join('');
+  }).join('') + (logs.length > 5 ? '<li><span class="dm-history-time">Showing latest 5 entries. Open Import History for full list.</span></li>' : '');
+}
+
+function renderImportHistoryModal(){
+  const body = document.getElementById('dmImportHistoryBody');
+  if (!body) return;
+  const logs = getAuditLogs()
+    .filter((log) => (log?.type || '').toString().toLowerCase() === 'import')
+    .reverse();
+  if (!logs.length){
+    body.innerHTML = '<div class="inspection-history-empty">No import history yet.</div>';
+    return;
+  }
+  body.innerHTML = `
+    <div class="detail-table-wrap">
+      <table class="dm-preview-table">
+        <thead>
+          <tr><th>#</th><th>Detail</th><th>Time</th></tr>
+        </thead>
+        <tbody>
+          ${logs.map((log, idx) => `
+            <tr>
+              <td>${idx + 1}</td>
+              <td>${escapeHTML((log?.detail || '').toString())}</td>
+              <td>${escapeHTML((log?.time || '').toString())}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openImportHistoryModal(){
+  const overlay = document.getElementById('dmImportHistoryOverlay');
+  if (!overlay) return;
+  renderImportHistoryModal();
+  overlay.classList.add('show');
+}
+
+function closeImportHistoryModal(){
+  document.getElementById('dmImportHistoryOverlay')?.classList?.remove('show');
 }
 
 function resetDataManagerPreview(){
@@ -520,6 +645,8 @@ function resetDataManagerPreview(){
     packageType: 'none',
     schemaVersion: '-',
     totalIncoming: 0,
+    incomingICS: 0,
+    incomingPAR: 0,
     valid: 0,
     invalid: 0,
     conflicts: 0,
@@ -579,6 +706,7 @@ function openDataImportModal(){
 function closeDataImportModal(){
   if (!dataImportOverlay) return;
   dataImportOverlay.classList.remove('show');
+  closeImportHistoryModal();
 }
 
 function openDataValidationModal(){
@@ -681,13 +809,16 @@ function handleDataManagerValidateFile(event){
       }
       const s = result.summary;
       const rows = s.missingRows || [];
-      const sample = rows.slice(0, 12).map((row) => `${row.icsNo || `Row ${row.index}`}: ${row.missing}`).join(' | ');
+      const sample = rows.slice(0, 12).map((row) => {
+        const code = (row.recordType || 'ics') === 'par' ? 'PAR' : 'ICS';
+        return `${code}-${row.recordNo || `Row ${row.index}`}: ${row.missing}`;
+      }).join(' | ');
       const more = rows.length > 12 ? ` | +${rows.length - 12} more` : '';
       const exportedBy = s.exportedByProfileKey ? ` | ExportedBy: ${s.exportedByProfileKey}` : '';
       const msg = [
         `File: ${s.sourceName || file.name}`,
         `Package: ${s.packageType} | Schema: ${s.schemaVersion}${exportedBy}`,
-        `Incoming: ${s.totalIncoming} | Invalid records: ${s.invalidRecords}`,
+        `Incoming: ${s.totalIncoming} (ICS: ${s.incomingICS || 0}, PAR: ${s.incomingPAR || 0}) | Invalid records: ${s.invalidRecords}`,
         `Missing trace fields: ${s.stats.totalMissing}`,
         `StatusMeta missing: ${s.stats.statusMetaMissingByProfileKey}`,
         `Inspection logs missing: ${s.stats.inspectionLogsMissingProfileKey}`,
@@ -750,7 +881,12 @@ function handleDataManagerFile(event){
       dataManagerState.migrationRows = Array.isArray(result.summary?.migrationRows) ? result.summary.migrationRows : [];
       dataManagerState.conflicts = result.summary.rows
         .filter((r) => r.status !== 'valid')
-        .map((r) => ({ icsNo: r.icsNo, status: r.status, notes: r.notes }));
+        .map((r) => ({
+          recordType: r.recordType || 'ics',
+          recordNo: r.recordNo || r.icsNo || '',
+          status: r.status,
+          notes: r.notes
+        }));
       const verification = await verifyImportPackageForRestore(payload, result.parsed, result.summary);
       dataManagerState.verification = verification;
       updateDataManagerPreview(result.summary);
@@ -758,14 +894,14 @@ function handleDataManagerFile(event){
       setDataManagerInlineStatus(
         verification.ok ? (verification.level === 'warn' ? 'info' : 'success') : 'error',
         verification.ok
-          ? `Preview ready for ${result.summary.totalIncoming} record(s). Verification: ${verification.message}`
+          ? `Preview ready for ${result.summary.totalIncoming} record(s) (ICS: ${result.summary.incomingICS || 0}, PAR: ${result.summary.incomingPAR || 0}). Verification: ${verification.message}`
           : `Preview blocked. ${verification.message}`
       );
       setDataManagerStep3Ready(verification.ok);
       openDataValidationModal();
       updateDataManagerApplyState();
       if (verification.ok){
-        notify('success', `Preview loaded: ${result.summary.totalIncoming} record(s).`);
+        notify('success', `Preview loaded: ${result.summary.totalIncoming} record(s) (ICS: ${result.summary.incomingICS || 0}, PAR: ${result.summary.incomingPAR || 0}).`);
       } else {
         notify('error', verification.message || 'Restore verification failed.');
       }
@@ -828,44 +964,70 @@ function applyDataManagerImport(){
   const mode = document.querySelector('input[name="dmMode"]:checked')?.value || 'merge';
   dataManagerState.mode = mode;
   const migratedTraceKeys = Number(summary.migratedTraceKeys || 0);
-  const records = JSON.parse(localStorage.getItem('icsRecords') || '[]');
-  const byKey = new Map(records.map((r, i) => [normalizeICSKey(r.icsNo || ''), i]));
+  const recordsByType = {
+    ics: JSON.parse(localStorage.getItem('icsRecords') || '[]'),
+    par: JSON.parse(localStorage.getItem('parRecords') || '[]')
+  };
+  const byKeyByType = {
+    ics: new Map((recordsByType.ics || []).map((r, i) => [normalizeICSKey(resolveImportRecordNo(r, 'ics')), i])),
+    par: new Map((recordsByType.par || []).map((r, i) => [normalizeICSKey(resolveImportRecordNo(r, 'par')), i]))
+  };
   let added = 0;
   let replaced = 0;
   let skipped = 0;
+  let addedICS = 0;
+  let addedPAR = 0;
+  let replacedICS = 0;
+  let replacedPAR = 0;
 
   summary.rows.forEach((row) => {
     if (row.status !== 'valid' && row.status !== 'conflict-existing'){
       skipped += 1;
       return;
     }
-    const key = normalizeICSKey(row.record?.icsNo || '');
+    const recordType = resolveImportRecordType(row.recordType || 'ics');
+    const key = normalizeICSKey(resolveImportRecordNo(row.record, recordType));
     if (!key){
       skipped += 1;
       return;
     }
+    const records = recordsByType[recordType] || [];
+    const byKey = byKeyByType[recordType];
     const existingIdx = byKey.has(key) ? byKey.get(key) : -1;
+    const normalizedRecord = JSON.parse(JSON.stringify(row.record || {}));
+    if (recordType === 'par'){
+      normalizedRecord.parNo = normalizedRecord.parNo || normalizedRecord.icsNo || '';
+    }
     if (existingIdx >= 0){
       if (mode === 'replace'){
-        records[existingIdx] = attachRecordStatusMeta(row.record, 'imported');
+        records[existingIdx] = attachRecordStatusMeta(normalizedRecord, 'imported');
         replaced += 1;
+        if (recordType === 'par') replacedPAR += 1;
+        else replacedICS += 1;
       } else {
         skipped += 1;
       }
       return;
     }
-    records.push(attachRecordStatusMeta(row.record, 'imported'));
+    records.push(attachRecordStatusMeta(normalizedRecord, 'imported'));
     byKey.set(key, records.length - 1);
     added += 1;
+    if (recordType === 'par') addedPAR += 1;
+    else addedICS += 1;
   });
 
-  localStorage.setItem('icsRecords', JSON.stringify(records));
+  localStorage.setItem('icsRecords', JSON.stringify(recordsByType.ics || []));
+  localStorage.setItem('parRecords', JSON.stringify(recordsByType.par || []));
   localStorage.setItem('icsLastImportAt', new Date().toISOString());
-  recordAudit('import', `Data Manager import (${mode}) from ${dataManagerState.sourceName || 'JSON'}: +${added}, replaced ${replaced}, skipped ${skipped}`, {
+  recordAudit('import', `Data Manager import (${mode}) from ${dataManagerState.sourceName || 'JSON'}: +${added} (ICS:${addedICS}, PAR:${addedPAR}), replaced ${replaced} (ICS:${replacedICS}, PAR:${replacedPAR}), skipped ${skipped}`, {
     mode,
     sourceName: dataManagerState.sourceName || 'JSON',
     added,
+    addedICS,
+    addedPAR,
     replaced,
+    replacedICS,
+    replacedPAR,
     skipped
   });
   renderDataImportHistory();
@@ -873,8 +1035,8 @@ function applyDataManagerImport(){
   closeDataValidationModal();
   if (!dataImportOverlay?.classList?.contains('show')) openDataImportModal();
   else renderDataImportHistory();
-  setDataManagerInlineStatus('success', `Import successful. Added: ${added}, Replaced: ${replaced}, Skipped: ${skipped}.`);
-  notify('success', `Data import complete. Added: ${added}, Replaced: ${replaced}, Skipped: ${skipped}.`);
+  setDataManagerInlineStatus('success', `Import successful. Added: ${added} (ICS:${addedICS}, PAR:${addedPAR}), Replaced: ${replaced} (ICS:${replacedICS}, PAR:${replacedPAR}), Skipped: ${skipped}.`);
+  notify('success', `Data import complete. Added: ${added} (ICS:${addedICS}, PAR:${addedPAR}), Replaced: ${replaced} (ICS:${replacedICS}, PAR:${replacedPAR}), Skipped: ${skipped}.`);
   if (migratedTraceKeys > 0){
     notify('info', `Legacy trace migration applied: ${migratedTraceKeys} missing profile-key field(s) auto-filled.`);
   }
@@ -1006,21 +1168,26 @@ function filterRecordsByYearMonth(records, filters){
 function updateDataManagerExportFilterHint(){
   const hint = document.getElementById('dmExportFilterHint');
   if (!hint) return;
-  const records = JSON.parse(localStorage.getItem('icsRecords') || '[]');
+  const icsRecords = JSON.parse(localStorage.getItem('icsRecords') || '[]');
+  const parRecords = JSON.parse(localStorage.getItem('parRecords') || '[]');
   const filters = getDataManagerExportFilters();
-  const filtered = filterRecordsByYearMonth(records, filters);
+  const filteredICS = filterRecordsByYearMonth(icsRecords, filters);
+  const filteredPAR = filterRecordsByYearMonth(parRecords, filters);
+  const filteredTotal = filteredICS.length + filteredPAR.length;
   const labelYear = filters.year === 'all' ? 'All Years' : filters.year;
   const labelMonth = filters.month === 'all'
     ? 'All Months'
     : (document.querySelector(`#dmExportMonth option[value="${filters.month}"]`)?.textContent || filters.month);
-  hint.textContent = `Records export filter: ${labelYear} / ${labelMonth} (${filtered.length} record(s)). Full package export remains unfiltered.`;
+  hint.textContent = `Records export filter: ${labelYear} / ${labelMonth} (${filteredTotal} total: ICS ${filteredICS.length}, PAR ${filteredPAR.length}). Full package export remains unfiltered.`;
 }
 
 function refreshDataManagerExportFilters(){
   const yearSelect = document.getElementById('dmExportYear');
   const monthSelect = document.getElementById('dmExportMonth');
   if (!yearSelect || !monthSelect) return;
-  const records = JSON.parse(localStorage.getItem('icsRecords') || '[]');
+  const icsRecords = JSON.parse(localStorage.getItem('icsRecords') || '[]');
+  const parRecords = JSON.parse(localStorage.getItem('parRecords') || '[]');
+  const records = [...icsRecords, ...parRecords];
   const selectedYear = yearSelect.value || 'all';
   const selectedMonth = monthSelect.value || 'all';
   const years = [...new Set(records.map((record) => getRecordYearMonth(record).year).filter(Boolean))]
@@ -1054,12 +1221,17 @@ function refreshDataManagerExportFilters(){
 }
 
 function buildSchemaVersionedExport(scope = 'records', options = {}){
-  const allRecords = JSON.parse(localStorage.getItem('icsRecords') || '[]');
+  const allIcsRecords = JSON.parse(localStorage.getItem('icsRecords') || '[]');
+  const allParRecords = JSON.parse(localStorage.getItem('parRecords') || '[]');
   const filters = options?.recordFilters || { year: 'all', month: 'all' };
-  const records = scope === 'records'
-    ? filterRecordsByYearMonth(allRecords, filters)
-    : allRecords;
-  const exportRecords = ensureRecordTraceProfileKeysForExport(records);
+  const icsRecords = scope === 'records'
+    ? filterRecordsByYearMonth(allIcsRecords, filters)
+    : allIcsRecords;
+  const parRecords = scope === 'records'
+    ? filterRecordsByYearMonth(allParRecords, filters)
+    : allParRecords;
+  const exportIcsRecords = ensureRecordTraceProfileKeysForExport(icsRecords);
+  const exportParRecords = ensureRecordTraceProfileKeysForExport(parRecords);
   const base = {
     schemaVersion: ICS_SCHEMA_VERSION,
     packageType: scope === 'full' ? 'full-backup' : 'records',
@@ -1068,7 +1240,8 @@ function buildSchemaVersionedExport(scope = 'records', options = {}){
     app: 'DSIS V1',
     schoolIdentity: normalizeSchoolIdentity(schoolIdentity),
     data: {
-      records: exportRecords
+      records: exportIcsRecords,
+      parRecords: exportParRecords
     }
   };
   if (scope === 'records'){
@@ -1096,9 +1269,15 @@ async function exportSchemaVersionedData(scope = 'records'){
     return;
   }
   const payload = integrityResult.payload;
-  if (scope === 'records' && (!payload.data.records || payload.data.records.length === 0)){
-    notify('error', 'No records match the selected Year/Month filter.');
-    setDataManagerInlineStatus('error', 'No records match the selected Year/Month filter.');
+  const filteredIcsCount = Array.isArray(payload?.data?.records) ? payload.data.records.length : 0;
+  const filteredParCount = Array.isArray(payload?.data?.parRecords) ? payload.data.parRecords.length : 0;
+  const filteredTotal = filteredIcsCount + filteredParCount;
+  const exportTypeTag = filteredIcsCount && filteredParCount
+    ? 'ics-par'
+    : (filteredParCount ? 'par' : 'ics');
+  if (scope === 'records' && filteredTotal === 0){
+    notify('error', 'No ICS/PAR records match the selected Year/Month filter.');
+    setDataManagerInlineStatus('error', 'No ICS/PAR records match the selected Year/Month filter.');
     return;
   }
   const d = new Date();
@@ -1107,8 +1286,8 @@ async function exportSchemaVersionedData(scope = 'records'){
     ? `-${filters.year || 'all'}-${filters.month || 'all'}`
     : '';
   const fileName = scope === 'full'
-    ? `dsis-schema-v${ICS_SCHEMA_VERSION.replace(/\./g,'_')}-full-${stamp}.json`
-    : `dsis-schema-v${ICS_SCHEMA_VERSION.replace(/\./g,'_')}-records${suffix}-${stamp}.json`;
+    ? `dsis-schema-v${ICS_SCHEMA_VERSION.replace(/\./g,'_')}-full-${exportTypeTag}-${stamp}.json`
+    : `dsis-schema-v${ICS_SCHEMA_VERSION.replace(/\./g,'_')}-records-${exportTypeTag}${suffix}-${stamp}.json`;
   downloadJSONPayload(payload, fileName);
   if (scope === 'full'){
     localStorage.setItem('icsLastFullBackupAt', new Date().toISOString());
@@ -1117,7 +1296,7 @@ async function exportSchemaVersionedData(scope = 'records'){
   const checksumShort = (payload.integrity?.checksum || '').slice(0, 12);
   recordAudit('backup', `Exported ${scope} package (${fileName}) [sha256:${checksumShort}]`);
   if (scope === 'records'){
-    setDataManagerInlineStatus('success', `Exported ${payload.data.records.length} filtered record(s): ${fileName}`);
+    setDataManagerInlineStatus('success', `Exported ${filteredTotal} filtered record(s): ICS ${filteredIcsCount}, PAR ${filteredParCount} (${fileName})`);
   } else {
     setDataManagerInlineStatus('success', `Exported full package: ${fileName}`);
   }
@@ -1140,13 +1319,14 @@ function downloadDataManagerConflictReport(){
     mode: dataManagerState.mode || 'merge',
     schemaVersion: dataManagerState.summary.schemaVersion || 'legacy',
     issues: items.map((r) => ({
-      icsNo: r.icsNo,
+      recordType: r.recordType || 'ics',
+      recordNo: r.recordNo || r.icsNo,
       entity: r.entity,
       status: r.status,
       notes: r.notes
     }))
   };
-  downloadJSONPayload(payload, 'ics-import-conflict-report.json');
+  downloadJSONPayload(payload, 'dsis-import-conflict-report.json');
   notify('success', `Conflict report exported (${items.length} row(s)).`);
 }
 
@@ -1176,7 +1356,8 @@ function openDataManagerMigrationReport(){
   ];
 
   rows.slice(0, limitRows).forEach((row, idx) => {
-    const id = row.icsNo || `Row ${row.index || (idx + 1)}`;
+    const code = (row.recordType || 'ics') === 'par' ? 'PAR' : 'ICS';
+    const id = row.recordNo ? `${code}-${row.recordNo}` : (row.icsNo || `Row ${row.index || (idx + 1)}`);
     const fields = Array.isArray(row.fields) ? row.fields : [];
     const grouped = {};
     fields.forEach((fieldPath) => {

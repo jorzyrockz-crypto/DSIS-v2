@@ -37,6 +37,41 @@ function bootAppWithUserPreferences(){
 
 const LAST_SEEN_APP_VERSION_STORAGE_KEY = 'icsLastSeenAppVersion';
 const RELEASE_NOTES_BY_VERSION = {
+  '1.2.1': [
+    'Patched modal/UI consistency updates across Data Hub, Import/Export, and archived history views.',
+    'Improved archived inspection logs table fitting and readability for all columns.',
+    'Standardized modal close-button implementation across major modal surfaces.',
+    'Adjusted modal layering/fit behavior and dark-theme contrast follow-up fixes.'
+  ],
+  '1.2': [
+    'Action Center archive flow now supports PAR records (not ICS-only):',
+    'enabled PAR archive action path with same inspection/remarks gating used by ICS',
+    'archive persistence now writes back to correct source store (`icsRecords` or `parRecords`)',
+    'archived entries now persist source metadata (`sourceType`, `parNo` where applicable)',
+    'unarchive now resolves and restores to original source set (`icsRecords` or `parRecords`)',
+    'Waste Materials Report workflow aligned for PAR and ICS using shared form:'
+  ],  '1.1': [
+    'Inventory view spacing and PAR visual distinction:',
+    'increased inventory container gap for better separation between staged/records cards',
+    'added theme-aware PAR card accent styling (`.par-records`) distinct from ICS records',
+    'upgraded `Finalize PAR Data` button to theme-aware PAR accent tokens (no fixed hardcoded color)',
+    'PAR records table interaction parity:',
+    'made `PAR No.` clickable to open details modal'
+  ],  '1.0.2': [
+    'Inventory view spacing and PAR visual distinction:',
+    'increased inventory container gap for better separation between staged/records cards',
+    'added theme-aware PAR card accent styling (`.par-records`) distinct from ICS records',
+    'upgraded `Finalize PAR Data` button to theme-aware PAR accent tokens (no fixed hardcoded color)',
+    'PAR records table interaction parity:',
+    'made `PAR No.` clickable to open details modal'
+  ],  '1.0.1': [
+    'DSIS branding and version-reset alignment:',
+    'user-facing app identity moved from legacy ICS naming to `DSIS V1`',
+    'runtime/display version baseline reset to `1` with schema baseline `1.0.0`',
+    'service worker cache namespace reset to `dsis-v1-pwa-v1`',
+    'browser/page title now `Digital School Inventory System v1.0`',
+    'Dynamic version label behavior restored/enhanced:'
+  ],
   '1': [
     'Branding reset to DSIS V1 with version baseline set to 1.',
     'Schema/export baseline reset to 1.0.0 for new data packages.',
@@ -63,12 +98,80 @@ function getReleaseNotesForVersion(version){
   return Array.isArray(RELEASE_NOTES_BY_VERSION[key]) ? RELEASE_NOTES_BY_VERSION[key] : [];
 }
 
+function parseSemverLike(version){
+  const normalized = String(version || '').trim();
+  if (!normalized) return null;
+  const parts = normalized.split('.').map((part) => Number.parseInt(part, 10));
+  if (!parts.length || Number.isNaN(parts[0])) return null;
+  return {
+    raw: normalized,
+    major: Number.isNaN(parts[0]) ? 0 : parts[0],
+    minor: Number.isNaN(parts[1]) ? 0 : parts[1],
+    patch: Number.isNaN(parts[2]) ? 0 : parts[2],
+    partCount: parts.length
+  };
+}
+
+function compareParsedVersions(a, b){
+  if (a.major !== b.major) return b.major - a.major;
+  if (a.minor !== b.minor) return b.minor - a.minor;
+  if (a.patch !== b.patch) return b.patch - a.patch;
+  return 0;
+}
+
+function compareParsedVersionsAsc(a, b){
+  if (a.major !== b.major) return a.major - b.major;
+  if (a.minor !== b.minor) return a.minor - b.minor;
+  if (a.patch !== b.patch) return a.patch - b.patch;
+  return 0;
+}
+
+function classifyReleaseType(parsed){
+  if (!parsed) return 'minor';
+  return parsed.patch > 0 ? 'patch' : 'minor';
+}
+
 function buildReleaseNotesText(version){
-  const notes = getReleaseNotesForVersion(version);
-  const fallbackNote = ['General quality, reliability, and UX improvements.'];
-  const entries = notes.length ? notes : fallbackNote;
-  const lines = entries.map((line, idx) => `${idx + 1}. ${line}`).join('\n');
-  return { entries, lines };
+  const parsedCurrent = parseSemverLike(version);
+  const releases = Object.entries(RELEASE_NOTES_BY_VERSION)
+    .map(([releaseVersion, entries]) => ({
+      version: releaseVersion,
+      entries: Array.isArray(entries) ? entries : [],
+      parsed: parseSemverLike(releaseVersion)
+    }))
+    .filter((release) => release.parsed && release.parsed.major === (parsedCurrent?.major ?? release.parsed.major))
+    .filter((release) => !parsedCurrent || compareParsedVersionsAsc(release.parsed, parsedCurrent) <= 0)
+    .sort((left, right) => compareParsedVersions(left.parsed, right.parsed));
+
+  const lines = [];
+  const currentRelease = releases.find((release) => release.version === String(version || '').trim());
+  if (currentRelease){
+    lines.push(`Current Version (v${currentRelease.version})`);
+    currentRelease.entries.slice(0, 6).forEach((entry, idx) => {
+      lines.push(`${idx + 1}. ${entry}`);
+    });
+    lines.push('');
+  }
+
+  const recentReleases = releases
+    .filter((release) => release.version !== String(version || '').trim())
+    .slice(0, 2);
+  if (recentReleases.length){
+    lines.push('Recent Changes');
+    recentReleases.forEach((release) => {
+      lines.push(`v${release.version}`);
+      release.entries.slice(0, 3).forEach((entry, idx) => {
+        lines.push(`${idx + 1}. ${entry}`);
+      });
+      lines.push('');
+    });
+  }
+
+  if (!lines.length){
+    lines.push('No release notes available for this version yet.');
+  }
+
+  return { lines: lines.join('\n').trim() };
 }
 
 function showReleaseNotesModalForVersion(version, options = {}){
@@ -76,6 +179,8 @@ function showReleaseNotesModalForVersion(version, options = {}){
   if (!normalizedVersion) return;
   const details = buildReleaseNotesText(normalizedVersion);
   showModal(`What\'s New in v${normalizedVersion}`, details.lines);
+  const m = document.getElementById('modal');
+  if (m) m.classList.add('modal-release-notes');
 }
 
 async function getRuntimeAppVersion(){
@@ -103,11 +208,8 @@ async function announceReleaseNotesIfNeeded(){
 }
 
 function initializeReleaseNotesQuickAccess(){
-  if (!brandSub) return;
-  brandSub.setAttribute('role', 'button');
-  brandSub.setAttribute('tabindex', '0');
-  brandSub.title = 'Show What\'s New';
-  brandSub.style.cursor = 'pointer';
+  const targets = [brandSub, topbarVersionLink].filter(Boolean);
+  if (!targets.length) return;
 
   const openLatestReleaseNotes = async () => {
     const version = await getRuntimeAppVersion();
@@ -115,13 +217,19 @@ function initializeReleaseNotesQuickAccess(){
     showReleaseNotesModalForVersion(version, { includeNotification: false });
   };
 
-  brandSub.addEventListener('click', () => {
-    openLatestReleaseNotes();
-  });
-  brandSub.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    event.preventDefault();
-    openLatestReleaseNotes();
+  targets.forEach((target) => {
+    target.setAttribute('role', 'button');
+    target.setAttribute('tabindex', '0');
+    target.title = 'Show What\'s New';
+    target.style.cursor = 'pointer';
+    target.addEventListener('click', () => {
+      openLatestReleaseNotes();
+    });
+    target.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      openLatestReleaseNotes();
+    });
   });
 }
 

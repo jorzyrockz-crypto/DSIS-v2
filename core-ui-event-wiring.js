@@ -31,6 +31,15 @@ function initializeUIEventWiring(){
   document.getElementById('profileOverlay')?.addEventListener('click', (e) => {
     if (e.target?.id === 'profileOverlay') closeProfileModal();
   });
+  document.getElementById('myProfileOverlay')?.addEventListener('click', (e) => {
+    if (e.target?.id === 'myProfileOverlay') closeMyProfileModal();
+  });
+  document.getElementById('auditLogsOverlay')?.addEventListener('click', (e) => {
+    if (e.target?.id === 'auditLogsOverlay') closeAuditLogsModal();
+  });
+  document.getElementById('helpDocsOverlay')?.addEventListener('click', (e) => {
+    if (e.target?.id === 'helpDocsOverlay') closeHelpDocsModal();
+  });
   document.querySelectorAll('#profileSideMenu .profile-menu-btn').forEach((btn) => {
     btn.addEventListener('click', () => setProfileSettingsTab(btn.dataset.profileTab || 'identity', true));
   });
@@ -60,6 +69,9 @@ function initializeUIEventWiring(){
   });
   document.getElementById('dataImportOverlay')?.addEventListener('click', (e) => {
     if (e.target?.id === 'dataImportOverlay') closeDataImportModal();
+  });
+  document.getElementById('dmImportHistoryOverlay')?.addEventListener('click', (e) => {
+    if (e.target?.id === 'dmImportHistoryOverlay') closeImportHistoryModal();
   });
   document.getElementById('dataValidationOverlay')?.addEventListener('click', (e) => {
     if (e.target?.id === 'dataValidationOverlay') closeDataValidationModal();
@@ -93,6 +105,9 @@ function initializeUIEventWiring(){
     renderUserAvatar(sidebarUserAvatar, e.target?.value || currentUser.name || '', type);
     renderTopbarProfileAvatar(topbarUserAvatar, profileDraftTopbarAvatarDataUrl || '', e.target?.value || currentUser.name || '', type);
   });
+  document.getElementById('myProfileName')?.addEventListener('input', (e) => {
+    renderMyProfilePhotoPreview(myProfileDraftPhotoDataUrl || '', e.target?.value || currentUser?.name || '');
+  });
   document.querySelectorAll('#profileAvatarPicker .avatar-picker-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const next = (btn.dataset.avatar || 'initials').toLowerCase();
@@ -109,6 +124,7 @@ function initializeUIEventWiring(){
   });
   document.getElementById('profileSchoolLogoInput')?.addEventListener('change', (e) => handleSchoolLogoUpload(e));
   document.getElementById('profileTopbarAvatarInput')?.addEventListener('change', (e) => handleTopbarAvatarUpload(e));
+  document.getElementById('myProfilePhotoInput')?.addEventListener('change', (e) => handleMyProfilePhotoUpload(e));
   document.getElementById('setupSchoolId')?.addEventListener('input', (e) => {
     const next = normalizeSchoolId(e.target?.value || '');
     if (e.target.value !== next) e.target.value = next;
@@ -150,6 +166,49 @@ function initializeUIEventWiring(){
   document.getElementById('profileSignOutBtn')?.addEventListener('click', () => signOutSession());
   document.getElementById('profileCancelBtn')?.addEventListener('click', () => closeProfileModal());
   document.getElementById('profileSaveBtn')?.addEventListener('click', () => saveProfileSettings());
+  document.getElementById('myProfileCloseBtn')?.addEventListener('click', () => closeMyProfileModal());
+  document.getElementById('myProfileCancelBtn')?.addEventListener('click', () => closeMyProfileModal());
+  document.getElementById('myProfileSaveBtn')?.addEventListener('click', () => saveMyProfileModal());
+  document.getElementById('myProfilePhotoButton')?.addEventListener('click', () => triggerMyProfilePhotoUpload());
+  document.getElementById('auditLogsCloseBtn')?.addEventListener('click', () => closeAuditLogsModal());
+  document.getElementById('helpDocsCloseBtn')?.addEventListener('click', () => closeHelpDocsModal());
+  document.getElementById('helpDocsPrintBtn')?.addEventListener('click', () => printHelpDocsModal());
+  document.getElementById('auditLogsRefreshBtn')?.addEventListener('click', () => renderAuditLogsModal());
+  document.getElementById('auditLogsExportJsonBtn')?.addEventListener('click', () => exportAuditLogsModalData());
+  document.getElementById('auditLogsExportCsvBtn')?.addEventListener('click', () => exportAuditLogsCsv());
+  document.getElementById('auditLogsSearchInput')?.addEventListener('input', (e) => {
+    auditLogsViewState.query = (e.target?.value || '').toString();
+    auditLogsViewState.page = 1;
+    renderAuditLogsModal();
+  });
+  document.getElementById('auditLogsTypeFilter')?.addEventListener('change', (e) => {
+    auditLogsViewState.type = (e.target?.value || 'all').toString().toLowerCase();
+    auditLogsViewState.page = 1;
+    renderAuditLogsModal();
+  });
+  document.getElementById('auditLogsActorFilter')?.addEventListener('change', (e) => {
+    auditLogsViewState.actor = (e.target?.value || 'all').toString();
+    auditLogsViewState.page = 1;
+    renderAuditLogsModal();
+  });
+  document.getElementById('auditLogsFromDate')?.addEventListener('change', (e) => {
+    auditLogsViewState.fromDate = (e.target?.value || '').toString();
+    auditLogsViewState.page = 1;
+    renderAuditLogsModal();
+  });
+  document.getElementById('auditLogsToDate')?.addEventListener('change', (e) => {
+    auditLogsViewState.toDate = (e.target?.value || '').toString();
+    auditLogsViewState.page = 1;
+    renderAuditLogsModal();
+  });
+  document.getElementById('auditLogsPrevBtn')?.addEventListener('click', () => {
+    auditLogsViewState.page = Math.max(1, (Number(auditLogsViewState.page) || 1) - 1);
+    renderAuditLogsModal();
+  });
+  document.getElementById('auditLogsNextBtn')?.addEventListener('click', () => {
+    auditLogsViewState.page = (Number(auditLogsViewState.page) || 1) + 1;
+    renderAuditLogsModal();
+  });
   document.getElementById('dataHubCloseBtn')?.addEventListener('click', () => closeDataHubModal());
   document.getElementById('dataHubOpenImportBtn')?.addEventListener('click', () => openDataImportModal());
   document.getElementById('dataHubOpenExportBtn')?.addEventListener('click', () => openDataExportModal());
@@ -157,6 +216,8 @@ function initializeUIEventWiring(){
   document.getElementById('dataImportCloseBtn')?.addEventListener('click', () => closeDataImportModal());
   document.getElementById('dmChooseFileBtn')?.addEventListener('click', () => triggerDataManagerFile());
   document.getElementById('dmValidateFileBtn')?.addEventListener('click', () => triggerDataManagerValidateFile());
+  document.getElementById('dmOpenImportHistoryBtn')?.addEventListener('click', () => openImportHistoryModal());
+  document.getElementById('dmImportHistoryCloseBtn')?.addEventListener('click', () => closeImportHistoryModal());
   document.getElementById('dmOpenExportBtn')?.addEventListener('click', () => openDataExportModal());
   document.getElementById('dmOpenValidationBtn')?.addEventListener('click', () => openDataValidationModal());
   document.getElementById('dataValidationCloseBtn')?.addEventListener('click', () => closeDataValidationModal());
@@ -184,6 +245,7 @@ function invokeDelegatedAction(action, target, args){
   switch (action){
     case 'openSearchOverlay': return openSearchOverlay();
     case 'openProfileModal': return openProfileModal();
+    case 'openMyProfileFromMenu': return typeof openMyProfileFromMenu === 'function' ? openMyProfileFromMenu() : undefined;
     case 'toggleProfileMenu': return typeof toggleTopbarProfileMenu === 'function' ? toggleTopbarProfileMenu() : undefined;
     case 'openProfileFromMenu': return typeof openProfileFromMenu === 'function' ? openProfileFromMenu(args[0]) : undefined;
     case 'openAuditLogsFromMenu': return typeof openAuditLogsFromMenu === 'function' ? openAuditLogsFromMenu() : undefined;
@@ -200,6 +262,7 @@ function invokeDelegatedAction(action, target, args){
     case 'dashboardOpenArchives': return dashboardOpenArchives();
     case 'clearInventoryFilter': return clearInventoryFilter();
     case 'finalizeICS': return finalizeICS();
+    case 'finalizePAR': return finalizePAR();
     case 'clearArchivesFilter': return clearArchivesFilter();
     case 'clearActionCenterICSFilter': return clearActionCenterICSFilter();
     case 'setTableDensity': return setTableDensity(args[0]);
@@ -208,7 +271,7 @@ function invokeDelegatedAction(action, target, args){
     case 'saveInspection': return saveInspection();
     case 'saveInspectionAndArchive': return saveInspectionAndArchive();
     case 'closeInspectionHistory': return closeInspectionHistory();
-    case 'openArchiveModal': return openArchiveModal(args[0], args[1]);
+    case 'openArchiveModal': return openArchiveModal(args[0], args[1], args[2]);
     case 'closeArchiveModal': return closeArchiveModal(args[0]);
     case 'confirmArchiveItem': return confirmArchiveItem();
     case 'closeWasteReportModal': return closeWasteReportModal();
@@ -218,21 +281,26 @@ function invokeDelegatedAction(action, target, args){
     case 'exitWmrBatchBuilderMode': return exitWmrBatchBuilderMode();
     case 'openICSDetailsByKey': return openICSDetailsByKey(args[0], args[1]);
     case 'openICSDetailsByIndex': return openICSDetailsByIndex(args[0]);
-    case 'openPastEULForItem': return openPastEULForItem(args[0], args[1]);
-    case 'openNearEULForItem': return openNearEULForItem(args[0], args[1]);
+    case 'openPARDetailsByIndex': return openPARDetailsByIndex(args[0]);
+    case 'openPastEULForItem': return openPastEULForItem(args[0], args[1], args[2]);
+    case 'openNearEULForItem': return openNearEULForItem(args[0], args[1], args[2]);
     case 'editICS': return editICS(args[0]);
+    case 'editPAR': return editPAR(args[0]);
     case 'printICS': return printICS(args[0]);
+    case 'printPAR': return printPAR(args[0]);
     case 'exportICS': return exportICS(args[0]);
+    case 'exportPAR': return exportPAR(args[0]);
     case 'deleteICS': return deleteICS(args[0]);
+    case 'deletePAR': return deletePAR(args[0]);
     case 'openArchivedItemHistory': return openArchivedItemHistory(args[0]);
     case 'unarchiveItem': return unarchiveItem(args[0]);
-    case 'openInspectionHistory': return openInspectionHistory(args[0], args[1]);
+    case 'openInspectionHistory': return openInspectionHistory(args[0], args[1], args[2]);
     case 'activateSearchResult': return activateSearchResult(args[0]);
     case 'icsDetailsEditFromTitle': return icsDetailsEditFromTitle();
     case 'openICSRecordHistoryModal': return openICSRecordHistoryModal();
     case 'exportArchivedHistoryReport': return exportArchivedHistoryReport();
-    case 'printWasteMaterialsReport': return printWasteMaterialsReport(args[0], args[1]);
-    case 'printWasteMaterialsReportForICS': return printWasteMaterialsReportForICS(args[0]);
+    case 'printWasteMaterialsReport': return printWasteMaterialsReport(args[0], args[1], args[2]);
+    case 'printWasteMaterialsReportForICS': return printWasteMaterialsReportForICS(args[0], args[1]);
     case 'printWasteMaterialsReportArchived': return printWasteMaterialsReportArchived(args[0]);
     case 'printBatchWasteMaterialsReportArchived': return printBatchWasteMaterialsReportArchived();
     case 'closeModal': return closeModal();
@@ -290,11 +358,21 @@ function initializeDelegatedActionRouting(){
     if (!target || !target.matches) return;
     const action = target.getAttribute('data-action-change');
     if (action === 'onInspectionChange'){
-      onInspectionChange(target, target.getAttribute('data-arg1') || '', target.getAttribute('data-arg2') || '');
+      onInspectionChange(
+        target,
+        target.getAttribute('data-arg1') || '',
+        target.getAttribute('data-arg2') || '',
+        target.getAttribute('data-arg3') || 'ics'
+      );
       return;
     }
     if (action === 'toggleActionCenterSelection'){
-      toggleActionCenterSelection(target.getAttribute('data-arg1') || '', target.getAttribute('data-arg2') || '', !!target.checked);
+      toggleActionCenterSelection(
+        target.getAttribute('data-arg1') || '',
+        target.getAttribute('data-arg2') || '',
+        !!target.checked,
+        target.getAttribute('data-arg3') || 'ics'
+      );
     }
   });
 
