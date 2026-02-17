@@ -464,7 +464,9 @@ function registerPWAServiceWorker(){
     updateAppBtn && (updateAppBtn.disabled = true);
     showModal('App Update', 'Checking for updates...\nPlease wait.');
     try {
-      const registration = pwaRegistration || await navigator.serviceWorker.getRegistration('./');
+      const registration = pwaRegistration
+        || await navigator.serviceWorker.getRegistration('./')
+        || await navigator.serviceWorker.getRegistration();
       if (!registration){
         showModal('App Update', 'Update service is not ready yet.\nReload once, then try again.');
         return;
