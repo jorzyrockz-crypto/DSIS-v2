@@ -675,6 +675,11 @@ function openDataHubModal(){
   closeDataImportModal();
   closeDataValidationModal();
   closeDataExportModal();
+  const isDev = typeof isDeveloperUser === 'function' && isDeveloperUser();
+  const autoBtn = document.getElementById('dataHubAutoPopulateBtn');
+  const deleteBtn = document.getElementById('dataHubDeleteAllDataBtn');
+  if (autoBtn) autoBtn.hidden = !isDev;
+  if (deleteBtn) deleteBtn.hidden = !isDev;
   dataHubOverlay.classList.add('show');
 }
 

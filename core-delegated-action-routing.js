@@ -27,6 +27,20 @@ function invokeDelegatedAction(action, target, args){
     case 'openDataManagerModal': return openDataManagerModal(args[0], args[1]);
     case 'dashboardOpenActions': return dashboardOpenActions();
     case 'dashboardOpenArchives': return dashboardOpenArchives();
+    case 'suppliesAddRow': return typeof suppliesAddRow === 'function' ? suppliesAddRow(args[0]) : undefined;
+    case 'suppliesSaveStaged': return typeof suppliesSaveStaged === 'function' ? suppliesSaveStaged() : undefined;
+    case 'suppliesDeleteItem': return typeof suppliesDeleteItem === 'function' ? suppliesDeleteItem(args[0]) : undefined;
+    case 'suppliesEditSaved': return typeof suppliesEditSaved === 'function' ? suppliesEditSaved(args[0]) : undefined;
+    case 'suppliesUpdateSaved': return typeof suppliesUpdateSaved === 'function' ? suppliesUpdateSaved(args[0]) : undefined;
+    case 'suppliesSaveSheetUpdate': return typeof suppliesSaveSheetUpdate === 'function' ? suppliesSaveSheetUpdate() : undefined;
+    case 'suppliesCancelSheetUpdate': return typeof closeSuppliesSheet === 'function' ? closeSuppliesSheet(true) : undefined;
+    case 'suppliesPrintSaved': return typeof suppliesPrintSaved === 'function' ? suppliesPrintSaved(args[0]) : undefined;
+    case 'suppliesExportSaved': return typeof suppliesExportSaved === 'function' ? suppliesExportSaved(args[0]) : undefined;
+    case 'suppliesDeleteSaved': return typeof suppliesDeleteSaved === 'function' ? suppliesDeleteSaved(args[0]) : undefined;
+    case 'openStockCardByIndex': return typeof openStockCardByIndex === 'function' ? openStockCardByIndex(args[0]) : undefined;
+    case 'stockLedgerPrintRow': return typeof stockLedgerPrintRow === 'function' ? stockLedgerPrintRow(args[0], args[1]) : undefined;
+    case 'stockLedgerEditRow': return typeof stockLedgerEditRow === 'function' ? stockLedgerEditRow(args[0], args[1]) : undefined;
+    case 'stockLedgerDeleteRow': return typeof stockLedgerDeleteRow === 'function' ? stockLedgerDeleteRow(args[0], args[1]) : undefined;
     case 'clearInventoryFilter': return clearInventoryFilter();
     case 'finalizeICS': return finalizeICS();
     case 'finalizePAR': return finalizePAR();
@@ -159,6 +173,14 @@ function initializeDelegatedActionRouting(){
 
   document.addEventListener('input', (e) => {
     const target = e.target;
+    if (target?.matches?.('.supplies-stage-input')){
+      suppliesUpdateStageField(
+        target.getAttribute('data-supplies-index'),
+        target.getAttribute('data-supplies-field'),
+        target.value
+      );
+      return;
+    }
     if (!target || !target.matches || !target.closest('#icsBody')) return;
     if (target.matches('.stage-desc')){
       handleDescInput(target);

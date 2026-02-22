@@ -2,11 +2,65 @@ function renderSuppliesView(){
   return `
 ${renderWelcomeBanner('Supplies')}
 
-<section class="ics-card">
-  <h3>Supplies</h3>
-  <p class="card-subtext">This workspace is ready for consumables tracking and stock monitoring.</p>
-  <p class="card-subtext">Next step: wire supply categories, stock-in/out logs, and low-stock alerts.</p>
-</section>`;
+<div class="ics-card staged">
+  <div class="ics-card-head">
+    <span class="card-title">Supply Entry (Start Here) <span class="card-badge staged">ENCODING</span></span>
+    <span class="stage-context">Supplies encoding workspace</span>
+  </div>
+  <p class="card-subtext">Record of Receipts, Issuances, and Running Balances of Consumable Supplies</p>
+
+  <div class="stage-table-wrap">
+    <table class="ics-table staged-items-table supplies-staged-items-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Stock No.</th>
+          <th>Date</th>
+          <th>Reference</th>
+          <th>Item</th>
+          <th>Description</th>
+          <th>Unit</th>
+          <th>Receipt (QTY)</th>
+          <th>Price</th>
+          <th>Re-order Point</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="suppliesStageBody"></tbody>
+    </table>
+  </div>
+
+  <div class="ics-card-actions">
+    <button class="btn btn-sm btn-primary" data-action="suppliesSaveStaged"><i data-lucide="save" aria-hidden="true"></i>Add New Stocks</button>
+  </div>
+</div>
+
+<div class="ics-card records">
+  <div class="ics-card-head"><span class="card-title">Supplies Saved <span class="card-badge records">SAVED</span></span></div>
+  <p class="card-subtext">Finalized supplies are listed here for tracking and inventory operations.</p>
+
+  <div class="records-table-wrap">
+    <table class="ics-table ics-records-table supplies-records-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Stock No.</th>
+          <th>Date</th>
+          <th>Item</th>
+          <th>Unit</th>
+          <th>Price</th>
+          <th>Receipt (QTY)</th>
+          <th>Balance (QTY)</th>
+          <th>Latest Issued Office</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="suppliesRecordsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+</div>`;
 }
 
 function renderDashboardView(){

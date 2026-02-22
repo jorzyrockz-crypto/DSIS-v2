@@ -2801,6 +2801,20 @@ body[data-theme="crimson-black"] .welcome-icon{
   box-shadow:0 6px 14px rgba(15,23,42,.12);
   transform:translateY(-1px);
 }
+.dm-hub-btn.danger{
+  border-color:#fecaca;
+  background:#fff7f7;
+}
+.dm-hub-ico.danger{
+  background:#fee2e2;
+  color:#b91c1c;
+}
+.dm-hub-btn.danger .dm-hub-copy strong{
+  color:#991b1b;
+}
+.dm-hub-btn.danger .dm-hub-copy span{
+  color:#7f1d1d;
+}
 body[data-theme="dracula"] .dm-hub-btn,
 body[data-theme="crimson-black"] .dm-hub-btn,
 body[data-theme="dracula-nocturne"] .dm-hub-btn{
@@ -2816,6 +2830,28 @@ body[data-theme="dracula"] .dm-hub-btn:hover,
 body[data-theme="crimson-black"] .dm-hub-btn:hover,
 body[data-theme="dracula-nocturne"] .dm-hub-btn:hover{
   border-color:var(--a);
+}
+body[data-theme="dracula"] .dm-hub-btn.danger,
+body[data-theme="crimson-black"] .dm-hub-btn.danger,
+body[data-theme="dracula-nocturne"] .dm-hub-btn.danger{
+  border-color:#7f1d1d;
+  background:#2a151a;
+}
+body[data-theme="dracula"] .dm-hub-ico.danger,
+body[data-theme="crimson-black"] .dm-hub-ico.danger,
+body[data-theme="dracula-nocturne"] .dm-hub-ico.danger{
+  background:#3a1f26;
+  color:#fca5a5;
+}
+body[data-theme="dracula"] .dm-hub-btn.danger .dm-hub-copy strong,
+body[data-theme="crimson-black"] .dm-hub-btn.danger .dm-hub-copy strong,
+body[data-theme="dracula-nocturne"] .dm-hub-btn.danger .dm-hub-copy strong{
+  color:#fecaca;
+}
+body[data-theme="dracula"] .dm-hub-btn.danger .dm-hub-copy span,
+body[data-theme="crimson-black"] .dm-hub-btn.danger .dm-hub-copy span,
+body[data-theme="dracula-nocturne"] .dm-hub-btn.danger .dm-hub-copy span{
+  color:#fca5a5;
 }
 .dm-hub-modal{
   width:min(860px,94vw);
@@ -6453,6 +6489,11 @@ body[data-theme="dracula-nocturne"] .dm-hub-btn:hover{
 .records .ics-records-table td:nth-child(7){
   vertical-align:top;
 }
+.records .supplies-records-table th:nth-child(7),
+.records .supplies-records-table td:nth-child(7){
+  text-align:center;
+  vertical-align:middle;
+}
 .eul-stack{
   display:flex;
   flex-direction:column;
@@ -8741,6 +8782,167 @@ body[data-theme="crimson-black"] .wmr-modal .detail-table tbody tr:hover td{
 }
 .add-btn.is-par-update:hover.enabled{
   background:var(--par-accent-hover);
+}
+
+.supplies-sheet .form-col{
+  gap:5px;
+}
+
+.supplies-sheet-pill{
+  display:inline-flex;
+  align-items:center;
+  min-height:30px;
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:700;
+  color:var(--sheet-input-text);
+  background:var(--sheet-input-bg);
+  border:1px solid var(--sheet-input-border);
+}
+
+.supplies-sheet-issuance-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.supplies-sheet-label-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:6px;
+}
+
+.supplies-sheet-qty-pill{
+  display:inline-flex;
+  align-items:center;
+  border-radius:999px;
+  padding:2px 8px;
+  font-size:10px;
+  font-weight:700;
+  color:var(--sheet-input-text);
+  background:var(--sheet-input-bg);
+  border:1px solid var(--sheet-input-border);
+  white-space:nowrap;
+}
+.supplies-sheet-qty-pill.over{
+  color:#b91c1c;
+  border-color:#fca5a5;
+  background:#fee2e2;
+}
+
+.supplies-sheet-actions{
+  position:static;
+  margin-top:8px;
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+}
+
+.stock-card-modal .stock-card-shell{
+  display:grid;
+  gap:12px;
+}
+.stock-card-modal #stockCardTitle{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.stock-card-title-text{
+  font-weight:800;
+  color:var(--t);
+}
+.stock-card-title-pill{
+  display:inline-flex;
+  align-items:center;
+  border-radius:999px;
+  padding:3px 10px;
+  font-size:12px;
+  font-weight:700;
+  color:var(--ah);
+  background:var(--as);
+  border:1px solid color-mix(in srgb, var(--a) 34%, var(--border));
+}
+.stock-card-title-pill.stock{
+  color:var(--t);
+  background:var(--surface-soft);
+  border-color:var(--border);
+}
+.stock-card-modal .stock-card-head-card{
+  padding:12px;
+}
+.stock-card-modal .stock-card-head-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px 14px;
+}
+.stock-card-modal .stock-card-kv{
+  display:grid;
+  gap:3px;
+}
+.stock-card-modal .stock-card-kv .k{
+  font-size:11px;
+  color:var(--tm);
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.stock-card-modal .stock-card-kv .v{
+  font-size:12px;
+  color:var(--t);
+  font-weight:700;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:var(--surface-soft);
+  padding:7px 9px;
+}
+.stock-card-modal .stock-card-item-kv{
+  grid-column:1 / -1;
+}
+.stock-card-modal .stock-card-item-kv .k{
+  color:var(--a);
+}
+.stock-card-modal .stock-card-item-value{
+  font-size:16px !important;
+  font-weight:900 !important;
+  line-height:1.25;
+  border-color:color-mix(in srgb, var(--a) 52%, var(--border));
+  background:linear-gradient(180deg, color-mix(in srgb, var(--as) 72%, var(--surface-soft)) 0%, var(--surface-soft) 100%);
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--a) 28%, transparent) inset;
+}
+.stock-card-modal .stock-card-kv:nth-child(5){
+  grid-column:1 / -1;
+}
+.stock-card-modal .stock-card-kv.stock-card-uo,
+.stock-card-modal .stock-card-kv.stock-card-rop{
+  grid-column:auto;
+}
+.stock-card-modal .stock-card-ledger-card{
+  padding:12px;
+}
+.stock-card-modal .stock-card-table th:nth-child(1),
+.stock-card-modal .stock-card-table td:nth-child(1){min-width:100px}
+.stock-card-modal .stock-card-table th:nth-child(2),
+.stock-card-modal .stock-card-table td:nth-child(2){min-width:120px}
+.stock-card-modal .stock-card-table th:nth-child(3),
+.stock-card-modal .stock-card-table td:nth-child(3),
+.stock-card-modal .stock-card-table th:nth-child(4),
+.stock-card-modal .stock-card-table td:nth-child(4),
+.stock-card-modal .stock-card-table th:nth-child(6),
+.stock-card-modal .stock-card-table td:nth-child(6){min-width:92px}
+.stock-card-modal .stock-card-table th:nth-child(5),
+.stock-card-modal .stock-card-table td:nth-child(5){min-width:120px}
+.stock-card-modal .stock-card-table th:nth-child(7),
+.stock-card-modal .stock-card-table td:nth-child(7){min-width:140px}
+.stock-card-modal .stock-card-table th:nth-child(8),
+.stock-card-modal .stock-card-table td:nth-child(8){min-width:132px;white-space:nowrap}
+
+@media (max-width: 900px){
+  .stock-card-modal .stock-card-head-grid{
+    grid-template-columns:1fr;
+  }
 }
 
 /* Developer Tools */

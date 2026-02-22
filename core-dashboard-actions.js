@@ -67,10 +67,60 @@ function dashboardImportJSON(){
 }
 
 function openAutoPopulateFromDataHub(){
+  if (!(typeof isDeveloperUser === 'function' && isDeveloperUser())){
+    notify('error', 'Auto-Populate is available only for developer account.');
+    return;
+  }
   if (!requireAccess('auto_populate_records')) return;
   closeDataHubModal();
   goToView('Manage Inventory');
   setTimeout(() => confirmAutoPopulateICS(), 0);
+}
+
+function deleteAllDataFromDataHub(){
+  if (!(typeof isDeveloperUser === 'function' && isDeveloperUser())){
+    notify('error', 'Delete All Data is available only for developer account.');
+    return;
+  }
+  showConfirm(
+    'Delete All Data',
+    'This will permanently delete all local records, supplies, archives, notifications, and audit logs in this workspace. Continue?',
+    () => {
+      const keysToReset = [
+        'icsRecords',
+        'parRecords',
+        'icsSuppliesRecords',
+        'icsSuppliesHistoryByStockNo',
+        'icsSuppliesStagedItems',
+        'icsArchivedItems',
+        'icsNotifications',
+        'icsAuditLogs',
+        'icsUndoSnapshot',
+        'icsActionCenterSelection'
+      ];
+      keysToReset.forEach((key) => {
+        if (key === 'icsSuppliesHistoryByStockNo'){
+          localStorage.setItem(key, '{}');
+        } else if (key === 'icsActionCenterSelection'){
+          localStorage.removeItem(key);
+        } else {
+          localStorage.setItem(key, '[]');
+        }
+      });
+      notifications = [];
+      saveNotifications();
+      renderNotifications();
+      closeDataHubModal();
+      if (activeViewKey() === 'Supplies') initSuppliesView();
+      if (activeViewKey() === 'Manage Inventory') loadICSRecords();
+      if (activeViewKey() === 'Action Center') initActionsView();
+      if (activeViewKey() === 'Archives') initArchivesView();
+      if (activeViewKey() === 'Dashboard') initDashboardView();
+      recordAudit('maintenance', 'Developer deleted all workspace data from Data Hub.');
+      notify('success', 'All workspace data has been deleted.');
+    },
+    'Delete All'
+  );
 }
 
 function dashboardOpenActions(){

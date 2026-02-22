@@ -39,7 +39,28 @@ function bootAppWithUserPreferences(){
 
 const LAST_SEEN_APP_VERSION_STORAGE_KEY = 'icsLastSeenAppVersion';
 const RELEASE_NOTES_BY_VERSION = {
-  '1.5.6': [
+  '1.8': [
+    'Supplies workflow finalized as staged-first entry:',
+    'removed active Supplies floating-form dependency from entry flow',
+    'encoding now starts directly in `Supply Entry (Start Here)` staged table',
+    'staged rows are inline-editable and persist live to `icsSuppliesStagedItems`',
+    '`Add New Stocks` commits staged rows to `Supplies Saved`',
+    'Supplies saved ledger behavior:'
+  ],  '1.7': [
+    'Supplies workflow finalized as staged-first entry:',
+    'removed active Supplies floating-form dependency from entry flow',
+    'encoding now starts directly in `Supply Entry (Start Here)` staged table',
+    'staged rows are inline-editable and persist live to `icsSuppliesStagedItems`',
+    '`Add New Stocks` commits staged rows to `Supplies Saved`',
+    'Supplies saved ledger behavior:'
+  ],  '1.6': [
+    'Supplies workflow finalized as staged-first entry:',
+    'removed active Supplies floating-form dependency from entry flow',
+    'encoding now starts directly in `Supply Entry (Start Here)` staged table',
+    'staged rows are inline-editable and persist live to `icsSuppliesStagedItems`',
+    '`Add New Stocks` commits staged rows to `Supplies Saved`',
+    'Supplies saved ledger behavior:'
+  ],  '1.5.6': [
     'Versioning decision for this commit batch:',
     'minor bumped for new feature bundles and patch bumped for grouped fixes',
     'target release set to `1.5.6` (features + stability/UI fix pass)',

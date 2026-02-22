@@ -241,7 +241,7 @@
       </div>
       <div>
         <label id="recordNoLabel">ICS NO.</label>
-        <input id="icsNo" placeholder="YYYY-MM-XXX (2026+)" maxlength="12" inputmode="numeric" autocomplete="off" />
+        <input id="icsNo" placeholder="Enter ICS number" maxlength="64" autocomplete="off" />
       </div>
     </div>
   </div>
@@ -265,6 +265,53 @@
   </div>
   <div class="form-alert" id="formAlert"></div>
 </div>
+<div class="sheet supplies-sheet" id="suppliesSheet">
+  <div class="form-col">
+    <h4>Supply Reference</h4>
+    <label>ENTITY NAME</label>
+    <input id="suppliesSheetEntityName" placeholder="Enter entity name" list="suppliesEntityNameList" />
+    <div class="row">
+      <div>
+        <label>FUND CLUSTER</label>
+        <input id="suppliesSheetFundCluster" placeholder="Fund cluster" list="suppliesFundClusterList" />
+      </div>
+      <div>
+        <label>NEW REFERENCE</label>
+        <input id="suppliesSheetReference" placeholder="Reference no." list="suppliesReferenceList" />
+      </div>
+    </div>
+    <label>UPDATING</label>
+    <div id="suppliesSheetStockNoPill" class="supplies-sheet-pill">Updating Stock No. -</div>
+  </div>
+  <div class="form-col">
+    <h4>Issuance Details</h4>
+    <div class="supplies-sheet-issuance-grid">
+      <div>
+        <div class="supplies-sheet-label-row">
+          <label>ISSUED QTY.</label>
+          <span id="suppliesSheetAvailableQtyPill" class="supplies-sheet-qty-pill">Available Qty: -</span>
+        </div>
+        <input id="suppliesSheetIssuedQty" placeholder="0" />
+      </div>
+      <div>
+        <label>ISSUED OFFICE</label>
+        <input id="suppliesSheetIssuedOffice" placeholder="Office" list="suppliesIssuedOfficeList" />
+      </div>
+      <div>
+        <label>ISSUED DATE</label>
+        <input id="suppliesSheetIssuedDate" type="date" />
+      </div>
+      <div>
+        <label>NO. OF DAYS TO CONSUME</label>
+        <input id="suppliesSheetDaysToConsume" placeholder="0" />
+      </div>
+    </div>
+    <div class="form-action supplies-sheet-actions">
+      <button class="btn btn-sm btn-secondary" data-action="suppliesCancelSheetUpdate"><i data-lucide="x" aria-hidden="true"></i>Cancel</button>
+      <button class="btn btn-sm btn-primary" data-action="suppliesSaveSheetUpdate"><i data-lucide="save" aria-hidden="true"></i>Add New Stock Entry</button>
+    </div>
+  </div>
+</div>
 <input id="icsImportInput" type="file" accept=".json,application/json" style="display:none" />
 <input id="dataManagerImportInput" type="file" accept=".json,application/json" style="display:none" />
 <input id="dataManagerValidateInput" type="file" accept=".json,application/json" style="display:none" />
@@ -276,6 +323,14 @@
 <datalist id="receivedByPosList"></datalist>
 <datalist id="stageDescList"></datalist>
 <datalist id="stageUnitList"></datalist>
+<datalist id="suppliesStockNoList"></datalist>
+<datalist id="suppliesEntityNameList"></datalist>
+<datalist id="suppliesFundClusterList"></datalist>
+<datalist id="suppliesReferenceList"></datalist>
+<datalist id="suppliesItemList"></datalist>
+<datalist id="suppliesDescriptionList"></datalist>
+<datalist id="suppliesUnitList"></datalist>
+<datalist id="suppliesIssuedOfficeList"></datalist>
 <div class="search-overlay" id="searchOverlay">
   <div class="search-box">
     <input id="searchInput" class="search-input" placeholder="Search ICS/PAR No., entity, accountable person, item description, item no..." />
@@ -300,6 +355,15 @@
       <button class="archived-history-close modal-close-btn" id="icsRecordHistoryCloseBtn" aria-label="Close record history"><i data-lucide="x" aria-hidden="true"></i>Close</button>
     </div>
     <div class="modal-body" id="icsRecordHistoryBody"></div>
+  </div>
+</div>
+<div class="actions-modal-overlay" id="stockCardOverlay">
+  <div class="actions-modal modal-xl ics-details-modal stock-card-modal">
+    <div class="modal-head actions-hero" style="margin:0">
+      <h3 id="stockCardTitle">Stock Card</h3>
+      <button class="archived-history-close modal-close-btn" id="stockCardCloseBtn" aria-label="Close stock card"><i data-lucide="x" aria-hidden="true"></i>Close</button>
+    </div>
+    <div class="modal-body" id="stockCardBody"></div>
   </div>
 </div>
 <div class="actions-modal-overlay" id="archivedHistoryOverlay">
@@ -892,8 +956,15 @@
         <button class="dm-hub-btn" id="dataHubAutoPopulateBtn" type="button">
           <span class="dm-hub-ico export" aria-hidden="true"><i data-lucide="plus" aria-hidden="true"></i></span>
           <span class="dm-hub-copy">
-            <strong>Auto-Populate x6</strong>
-            <span>Generate 3 sample ICS and 3 sample PAR records for stress testing and demo data.</span>
+            <strong>Auto-Populate x9</strong>
+            <span>Generate 3 sample Supplies (consumable), 3 sample ICS (non-consumable below 50k/item), and 3 sample PAR (non-consumable above 50k/item).</span>
+          </span>
+        </button>
+        <button class="dm-hub-btn danger" id="dataHubDeleteAllDataBtn" type="button">
+          <span class="dm-hub-ico danger" aria-hidden="true"><i data-lucide="trash-2" aria-hidden="true"></i></span>
+          <span class="dm-hub-copy">
+            <strong>Delete All Data</strong>
+            <span>Delete all local records, supplies, archives, notifications, and audit logs in this workspace.</span>
           </span>
         </button>
       </div>

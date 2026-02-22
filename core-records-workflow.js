@@ -272,9 +272,9 @@ function confirmAutoPopulateICS(){
   if (!requireAccess('auto_populate_records')) return;
   showConfirm(
     'Auto-Populate Stress Data',
-    'Generate and add 3 complete ICS records and 3 complete PAR records for stress testing?',
+    'Generate and add 3 Supplies (consumable), 3 ICS (non-consumable below 50k/item), and 3 PAR (non-consumable above 50k/item) records for stress testing?',
     autoPopulateICSData,
-    'Generate 6'
+    'Generate 9'
   );
 }
 
@@ -282,12 +282,16 @@ function autoPopulateICSData(){
   if (!requireAccess('auto_populate_records')) return;
   const records = JSON.parse(localStorage.getItem('icsRecords') || '[]');
   const parRecords = JSON.parse(localStorage.getItem('parRecords') || '[]');
+  const supplyRecords = JSON.parse(localStorage.getItem('icsSuppliesRecords') || '[]');
+  const supplyHistoryByStockNo = JSON.parse(localStorage.getItem('icsSuppliesHistoryByStockNo') || '{}');
   const existingNo = new Set(records.map(r => (r.icsNo || '').toLowerCase()));
   const existingParNo = new Set(parRecords.map(r => (r.parNo || r.icsNo || '').toLowerCase()));
+  const existingStockNo = new Set(supplyRecords.map((r) => (r?.stockNo || '').toString().trim().toLowerCase()));
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const prefix = `${year}-${month}`;
+  const VALUE_THRESHOLD = 50000;
 
   let nextSeq = 1;
   records.forEach((r) => {
@@ -322,12 +326,26 @@ function autoPopulateICSData(){
     { name: 'CARLO M. DE VERA', position: 'Teacher III' },
     { name: 'ANNA K. DELA TORRE', position: 'School Head' }
   ];
-  const itemSeeds = [
-    { desc: 'Laptop', unit: 'unit', qty: 1, unitCost: 58000, eul: 4 },
-    { desc: 'Printer', unit: 'unit', qty: 1, unitCost: 14500, eul: 3 },
-    { desc: 'Projector', unit: 'unit', qty: 1, unitCost: 26500, eul: 4 },
-    { desc: 'Office Chair', unit: 'piece', qty: 4, unitCost: 3200, eul: 5 },
-    { desc: 'Filing Cabinet', unit: 'unit', qty: 2, unitCost: 7800, eul: 6 }
+  const icsNonConsumableUnder50kSeeds = [
+    { desc: 'Printer', unit: 'unit', qty: 1, unitCost: 14500, eul: 3, itemType: 'non-consumable' },
+    { desc: 'Projector', unit: 'unit', qty: 1, unitCost: 26500, eul: 4, itemType: 'non-consumable' },
+    { desc: 'Filing Cabinet', unit: 'unit', qty: 2, unitCost: 7800, eul: 6, itemType: 'non-consumable' },
+    { desc: 'Office Chair', unit: 'piece', qty: 4, unitCost: 3200, eul: 5, itemType: 'non-consumable' },
+    { desc: 'Desktop Computer', unit: 'unit', qty: 1, unitCost: 48000, eul: 4, itemType: 'non-consumable' }
+  ];
+  const parNonConsumableOver50kSeeds = [
+    { desc: 'Laptop', unit: 'unit', qty: 1, unitCost: 58000, eul: 4, itemType: 'non-consumable' },
+    { desc: 'Server Rack Unit', unit: 'unit', qty: 1, unitCost: 125000, eul: 5, itemType: 'non-consumable' },
+    { desc: 'Photocopier Heavy Duty', unit: 'unit', qty: 1, unitCost: 76000, eul: 5, itemType: 'non-consumable' },
+    { desc: 'Industrial Generator', unit: 'unit', qty: 1, unitCost: 98000, eul: 7, itemType: 'non-consumable' },
+    { desc: 'Network Core Switch', unit: 'unit', qty: 1, unitCost: 52000, eul: 6, itemType: 'non-consumable' }
+  ];
+  const suppliesConsumableSeeds = [
+    { item: 'Bond Paper', description: 'A4 Bond Paper 70gsm', unit: 'ream', receiptQty: 20, price: 150, reorderPoint: 10, itemType: 'consumable' },
+    { item: 'Ballpen', description: 'Blue Ballpen 0.5mm', unit: 'box', receiptQty: 10, price: 120, reorderPoint: 5, itemType: 'consumable' },
+    { item: 'Marker', description: 'Whiteboard Marker Assorted', unit: 'box', receiptQty: 8, price: 180, reorderPoint: 3, itemType: 'consumable' },
+    { item: 'Folder', description: 'Long Brown Folder', unit: 'pack', receiptQty: 15, price: 90, reorderPoint: 6, itemType: 'consumable' },
+    { item: 'Printer Ink', description: 'Black Ink Cartridge', unit: 'piece', receiptQty: 6, price: 850, reorderPoint: 2, itemType: 'consumable' }
   ];
   const profileByIndex = [
     { label: 'near', issuedMonthsAgo: 10, itemEUL: 1 },
@@ -342,6 +360,7 @@ function autoPopulateICSData(){
 
   const added = [];
   const addedPAR = [];
+  const addedSupplies = [];
   for (let i = 0; i < 3; i++){
     let icsNo = `${prefix}-${String(nextSeq).padStart(3, '0')}`;
     while (existingNo.has(icsNo.toLowerCase())){
@@ -358,19 +377,20 @@ function autoPopulateICSData(){
     const profile = profileByIndex[i % profileByIndex.length];
     const issuedDate = shiftMonths(now, -profile.issuedMonthsAgo).toISOString().slice(0,10);
 
-    const items = itemSeeds.slice(i, i + 3).map((seed, k) => {
+    const items = icsNonConsumableUnder50kSeeds.slice(i, i + 3).map((seed, k) => {
       const qty = Number(seed.qty);
       const unitCost = Number(seed.unitCost);
-      const total = qty * unitCost;
+      const safeUnitCost = Math.min(unitCost, VALUE_THRESHOLD - 1);
       return {
         desc: seed.desc,
         itemNo: `${icsNo}-${String(k + 1).padStart(2, '0')}`,
         qty,
         qtyText: String(qty),
         unit: seed.unit,
-        unitCost,
-        total,
-        eul: profile.itemEUL
+        unitCost: safeUnitCost,
+        total: qty * safeUnitCost,
+        eul: profile.itemEUL,
+        itemType: seed.itemType
       };
     });
 
@@ -410,19 +430,21 @@ function autoPopulateICSData(){
     const profile = profileByIndex[i % profileByIndex.length];
     const issuedDate = shiftMonths(now, -(profile.issuedMonthsAgo + 1)).toISOString().slice(0,10);
 
-    const items = itemSeeds.slice(i, i + 3).map((seed, k) => {
+    const items = parNonConsumableOver50kSeeds.slice(i, i + 3).map((seed, k) => {
       const qty = Number(seed.qty);
       const unitCost = Number(seed.unitCost);
-      const total = qty * unitCost;
+      const safeUnitCost = Math.max(unitCost, VALUE_THRESHOLD + 1);
+      const total = qty * safeUnitCost;
       return {
         desc: seed.desc,
         itemNo: `${parNo}-${String(k + 1).padStart(2, '0')}`,
         qty,
         qtyText: String(qty),
         unit: seed.unit,
-        unitCost,
+        unitCost: safeUnitCost,
         total,
-        eul: profile.itemEUL
+        eul: profile.itemEUL,
+        itemType: seed.itemType
       };
     });
 
@@ -447,18 +469,75 @@ function autoPopulateICSData(){
     addedPAR.push(`${record.parNo} (${tag})`);
   }
 
+  for (let i = 0; i < 3; i++){
+    let stockNo = `STK-${year}${month}-${String(i + 1).padStart(3, '0')}`;
+    let cursor = i + 1;
+    while (existingStockNo.has(stockNo.toLowerCase())){
+      cursor += 1;
+      stockNo = `STK-${year}${month}-${String(cursor).padStart(3, '0')}`;
+    }
+    existingStockNo.add(stockNo.toLowerCase());
+    const seed = suppliesConsumableSeeds[i % suppliesConsumableSeeds.length];
+    const entity = entities[i % entities.length];
+    const fund = funds[i % funds.length];
+    const date = new Date(now.getTime() - ((i + 1) * 86400000)).toISOString().slice(0, 10);
+    const receiptQty = Number(seed.receiptQty) || 0;
+    const row = {
+      stockNo,
+      date,
+      reference: `REF-${year}${month}-${String(i + 1).padStart(3, '0')}`,
+      item: seed.item,
+      description: seed.description,
+      unit: seed.unit,
+      price: String(seed.price),
+      receiptQty: String(receiptQty),
+      reorderPoint: String(seed.reorderPoint),
+      balanceQty: String(receiptQty),
+      latestIssuedOffice: 'School Office',
+      entityName: entity,
+      fundCluster: fund,
+      daysToConsume: '',
+      itemType: seed.itemType,
+      history: []
+    };
+    const key = stockNo.toLowerCase();
+    const historyEntry = {
+      at: new Date().toISOString(),
+      action: 'create',
+      stockNo,
+      receiptQty: row.receiptQty,
+      issuedQty: '',
+      balanceQty: row.balanceQty,
+      latestIssuedOffice: 'School Office',
+      reference: row.reference,
+      date: row.date,
+      entityName: row.entityName,
+      fundCluster: row.fundCluster,
+      daysToConsume: ''
+    };
+    row.history.push(historyEntry);
+    if (!Array.isArray(supplyHistoryByStockNo[key])) supplyHistoryByStockNo[key] = [];
+    supplyHistoryByStockNo[key].push(historyEntry);
+    supplyRecords.push(row);
+    addedSupplies.push(stockNo);
+  }
+
   localStorage.setItem('icsRecords', JSON.stringify(records));
   localStorage.setItem('parRecords', JSON.stringify(parRecords));
-  recordAudit('seed', `Auto-populated ICS: ${added.join(', ')} | PAR: ${addedPAR.join(', ')}`, {
+  localStorage.setItem('icsSuppliesRecords', JSON.stringify(supplyRecords));
+  localStorage.setItem('icsSuppliesHistoryByStockNo', JSON.stringify(supplyHistoryByStockNo));
+  recordAudit('seed', `Auto-populated Supplies: ${addedSupplies.join(', ')} | ICS: ${added.join(', ')} | PAR: ${addedPAR.join(', ')}`, {
     recordType: 'mixed',
+    addedSupplies: addedSupplies.length,
     addedICS: added.length,
     addedPAR: addedPAR.length
   });
   loadICSRecords();
   const activeView = content?.getAttribute('data-view') || [...navItems].find((n) => n.classList.contains('active'))?.dataset?.view || '';
+  if (activeView === 'Supplies') initSuppliesView();
   if (activeView === 'Action Center') initActionsView();
   if (activeView === 'Archives') initArchivesView();
-  notify('success', `Stress data generated. ICS (${added.length}): ${added.join(', ')} | PAR (${addedPAR.length}): ${addedPAR.join(', ')}`);
+  notify('success', `Stress data generated. Supplies (${addedSupplies.length}): ${addedSupplies.join(', ')} | ICS (${added.length}): ${added.join(', ')} | PAR (${addedPAR.length}): ${addedPAR.join(', ')}`);
 }
 
 

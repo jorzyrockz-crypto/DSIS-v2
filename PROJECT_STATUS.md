@@ -1,7 +1,77 @@
 # Project ICS v3 - Status Checkpoint
 
-Last updated: 2026-02-17
+Last updated: 2026-02-21
 Main file: `ics_v_3_standalone_index.html`
+
+## Newly Implemented (2026-02-21, supplies flow stabilization: staged-first encoding + stock card modal + autosuggest)
+- Supplies workflow finalized as staged-first entry:
+  - removed active Supplies floating-form dependency from entry flow
+  - encoding now starts directly in `Supply Entry (Start Here)` staged table
+  - staged rows are inline-editable and persist live to `icsSuppliesStagedItems`
+  - `Add New Stocks` commits staged rows to `Supplies Saved`
+- Supplies saved ledger behavior:
+  - saved table keeps one active row per `Stock No.` (upsert behavior)
+  - save operations append ledger/history entries for the same `Stock No.` instead of creating duplicate stock records
+  - per-stock history map stored in `icsSuppliesHistoryByStockNo` and mirrored in record-level history payload
+- Stock Card modal added (ICS Details-style UI reuse):
+  - clicking `Stock No.` in `Supplies Saved` opens Stock Card modal
+  - modal title now includes both item and stock number (`Stock Card <Item> - <Stock No.>`)
+  - modal body now excludes duplicate `Item` and `Stock No.` fields (kept in title)
+  - header layout includes two-column row for `Unit of Measurement` and `Re-order Point`
+  - ledger section renders transaction rows (`Date`, `Reference`, `Receipt Qty.`, `Issue Qty.`, `Office`, `Balance Qty.`, `No. of Days to Consume`)
+- Supplies saved table row actions expanded and wired:
+  - `Update`, `Print`, `Export`, `Delete`
+  - `Update` now routes record back into staged items for update workflow
+- Supplies entry autosuggest added:
+  - datalist autosuggest in staged table for `Stock No.`, `Reference`, `Item`, `Description`, `Unit`
+  - suggestions are built from both staged rows and saved supplies records and refreshed on row/data mutations
+
+## Newly Implemented (2026-02-21, supplies workflow activation: staged-first encoding + saved ledger + per-stock history)
+- Supplies view is now operational with staged-first encoding flow:
+  - removed Supplies auto-floating-form dependency from active flow
+  - encoding starts directly in staged table (`Supply Entry (Start Here)`)
+  - staged rows are now inline-editable and persist live to `icsSuppliesStagedItems`
+- Supplies staged table enhancements:
+  - columns expanded to include `Price` and row-level `Action` controls
+  - per-row actions include `Add Row` and `Delete Item`
+  - staging action button updated: `Add New Stocks` now commits staged rows to saved records
+- Supplies saved ledger table introduced:
+  - added `Supplies Saved` table with columns:
+    - `# | Stock No. | Date | Item | Unit | Price | Receipt (QTY) | Balance (QTY) | Latest Issued Office | Action`
+  - row actions added:
+    - `Update` (loads record back into staged items for update flow)
+    - `Print` (single-row print layout)
+    - `Export` (single-row JSON export)
+    - `Delete`
+- Per-stock history tracking added:
+  - save/update operations append history entries per `Stock No.`
+  - delete operations append deletion entry per `Stock No.`
+  - centralized history map stored in `icsSuppliesHistoryByStockNo`
+  - record-level history snapshots retained in each saved row payload
+
+## Newly Implemented (2026-02-21, modular boundary cleanup + regression guardrails)
+- Completed shell boundary cleanup:
+  - moved shell chrome/navigation sync concerns from `core-main-entry.js` to `core-shell-init.js`
+  - centralized sidebar collapse, topbar button sync, and developer-nav visibility in shell-init module
+- Added regression coverage for modular boundaries and load order:
+  - `tests/runtime-load-order.test.js` (script order/no-inline-script/duplicate script include checks)
+  - `tests/modular-boundaries.test.js` (shell ownership assertions between main-entry and shell-init)
+
+## Newly Implemented (2026-02-17, status save: panel motion polish + year-aware record-number validation)
+- Topbar interaction polish:
+  - added smooth open/close transitions for Notification Center panel and topbar Profile menu
+  - moved from `display` toggles to animated `opacity + transform + visibility` state transitions
+  - added reduced-motion fallback for accessibility (`prefers-reduced-motion`)
+- Import Center UX follow-up:
+  - Import Center modal positioned to centered alignment for consistent modal presentation
+  - opening Import Center from dashboard widget now routes info to Notification Center (no modal toast popup)
+- Record-number validation update (new entries):
+  - ICS validation is now year-aware:
+    - `2026+` must use strict `YYYY-MM-XXX`
+    - pre-`2026` legacy sequence formats remain allowed
+  - auto-padding to `XXX` is now applied only for `2026+` entries
+  - input handling now allows legacy suffix length for older years (`maxlength` adjusted)
+  - current implementation note: PAR new-entry path shares this same year-aware validator; PAR edit mode remains non-empty based in edit flow
 
 ## Newly Implemented (2026-02-17, dashboard/topbar UX polish + modal/toast routing + release bump prep)
 - Versioning decision for this commit batch:

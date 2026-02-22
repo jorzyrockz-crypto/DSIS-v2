@@ -24,6 +24,16 @@ const FLOATING_FORM_ORDER = [
   'receivedByDate'
 ];
 
+const SUPPLIES_FLOATING_FORM_ORDER = [
+  'suppliesSheetEntityName',
+  'suppliesSheetFundCluster',
+  'suppliesSheetReference',
+  'suppliesSheetIssuedQty',
+  'suppliesSheetIssuedOffice',
+  'suppliesSheetIssuedDate',
+  'suppliesSheetDaysToConsume'
+];
+
 function keyComboFromEvent(e){
   const parts = [];
   if (e.ctrlKey) parts.push('ctrl');
@@ -96,7 +106,14 @@ function getOpenOverlayIds(){
 
 function handleOverlayKeydown(e){
   const confirmModal = document.getElementById('modal');
-  if (confirmModal && confirmModal.style.display === 'flex'){
+  const isConfirmModalOpen = !!(
+    confirmModal
+    && (
+      confirmModal.classList.contains('show')
+      || confirmModal.style.display === 'flex'
+    )
+  );
+  if (isConfirmModalOpen){
     if (e.key === 'Escape'){
       e.preventDefault();
       closeModal();
@@ -232,6 +249,55 @@ function handleFloatingFormEnter(e){
   return continueFlow();
 }
 
+function focusNextSuppliesFloatingFormField(currentId){
+  const idx = SUPPLIES_FLOATING_FORM_ORDER.indexOf(currentId);
+  if (idx < 0) return false;
+  const nextId = SUPPLIES_FLOATING_FORM_ORDER[idx + 1];
+  if (!nextId) return false;
+  const next = document.getElementById(nextId);
+  if (!next) return false;
+  next.focus();
+  if (typeof next.select === 'function') next.select();
+  return true;
+}
+
+function handleSuppliesFloatingFormKeyboard(e){
+  if (activeViewKey() !== 'Supplies') return false;
+  const suppliesSheet = document.getElementById('suppliesSheet');
+  if (!suppliesSheet || !suppliesSheet.classList.contains('show')) return false;
+
+  if (e.key === 'Escape'){
+    e.preventDefault();
+    closeSuppliesSheet(true);
+    return true;
+  }
+
+  const target = e.target;
+  if (!target || !SUPPLIES_FLOATING_FORM_ORDER.includes(target.id)) return false;
+
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+    e.preventDefault();
+    suppliesSaveSheetUpdate();
+    return true;
+  }
+
+  if (e.key !== 'Enter') return false;
+  if ((target.tagName || '').toUpperCase() === 'TEXTAREA') return false;
+  const hasDatalist = target.hasAttribute('list');
+  if (!hasDatalist) e.preventDefault();
+
+  const continueFlow = () => {
+    if (focusNextSuppliesFloatingFormField(target.id)) return true;
+    suppliesSaveSheetUpdate();
+    return true;
+  };
+  if (hasDatalist){
+    setTimeout(continueFlow, 0);
+    return true;
+  }
+  return continueFlow();
+}
+
 function getStageRowInputs(row){
   return [...row.querySelectorAll('.stage-input')];
 }
@@ -299,6 +365,7 @@ function initializeKeyboardRouting(){
       return;
     }
     if (handleFloatingFormEnter(e)) return;
+    if (handleSuppliesFloatingFormKeyboard(e)) return;
     if (handleStageItemsKeyboard(e)) return;
 
     if (keymapHas('openSearch', combo)){

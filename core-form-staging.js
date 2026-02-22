@@ -1,13 +1,12 @@
 function isValidICSNo(v){
   const value = (v || '').trim();
-  const m = value.match(/^(\d{4})-\d{2}-(\d{1,4})$/);
-  if (!m) return false;
-  const year = Number(m[1]);
-  if (!Number.isFinite(year)) return false;
-  // Enforce new strict format starting 2026 onward.
-  if (year >= 2026) return /^\d{4}-\d{2}-\d{3}$/.test(value);
-  // Legacy formats remain valid for older years.
-  return /^\d{4}-\d{2}-\d{1,4}$/.test(value);
+  if (!value) return false;
+  const yearPrefix = value.match(/^(\d{4})/);
+  const year = Number(yearPrefix?.[1] || '');
+  if (Number.isFinite(year) && year >= 2026){
+    return /^\d{4}-\d{2}-\d{3}$/.test(value);
+  }
+  return true;
 }
 
 function normalizeNewICSNoValue(v){
@@ -45,7 +44,7 @@ function prepareNewICS(){
   clearForm();
   const icsInput = document.getElementById('icsNo');
   icsInput.value = '';
-  icsInput.placeholder = 'YYYY-MM-XXX (2026+)';
+  icsInput.placeholder = 'Enter record number';
   syncFormEditModeUI();
   validateForm();
 }
@@ -143,8 +142,8 @@ function syncFormEditModeUI(){
     recordNoLabelEl.textContent = isPAREdit ? 'PAR NO.' : 'ICS NO.';
   }
   if (recordNoInput){
-    recordNoInput.placeholder = isPAREdit ? 'YYYY-MM-XXXX' : 'YYYY-MM-XXX (2026+)';
-    recordNoInput.maxLength = 12;
+    recordNoInput.placeholder = isPAREdit ? 'Enter PAR number' : 'Enter ICS number';
+    recordNoInput.maxLength = 64;
   }
   syncInventoryFinalizeButtons();
 }
@@ -208,10 +207,11 @@ function validateFormForStaging(){
     }
     icsNo = normalizedICSNo;
     if (!isValidICSNo(normalizedICSNo)){
-      const year = Number((normalizedICSNo.match(/^(\d{4})-/) || [])[1] || '');
+      const yearPrefix = normalizedICSNo.match(/^(\d{4})/);
+      const year = Number(yearPrefix?.[1] || '');
       const msg = Number.isFinite(year) && year >= 2026
-        ? 'Invalid ICS No. For 2026 and above, use format YYYY-MM-XXX.'
-        : 'Invalid ICS No. Use YYYY-MM plus sequence (legacy allowed before 2026).';
+        ? 'Invalid ICS No. For 2026 and above, use strict format YYYY-MM-XXX.'
+        : 'Invalid ICS No. Record number is required.';
       showFormAlert(msg, 'error');
       notify('error', msg);
       validateForm();

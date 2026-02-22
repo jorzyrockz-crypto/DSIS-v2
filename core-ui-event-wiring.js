@@ -55,6 +55,9 @@ function initializeUIEventWiring(){
   document.getElementById('icsRecordHistoryOverlay')?.addEventListener('click', (e) => {
     if (e.target?.id === 'icsRecordHistoryOverlay') closeICSRecordHistoryModal();
   });
+  document.getElementById('stockCardOverlay')?.addEventListener('click', (e) => {
+    if (e.target?.id === 'stockCardOverlay') closeStockCardModal();
+  });
   document.getElementById('archivedHistoryOverlay')?.addEventListener('click', (e) => {
     if (e.target?.id === 'archivedHistoryOverlay') closeArchivedHistoryModal();
   });
@@ -154,6 +157,7 @@ function initializeUIEventWiring(){
   });
   document.getElementById('icsDetailsCloseBtn')?.addEventListener('click', () => closeICSDetailsModal());
   document.getElementById('icsRecordHistoryCloseBtn')?.addEventListener('click', () => closeICSRecordHistoryModal());
+  document.getElementById('stockCardCloseBtn')?.addEventListener('click', () => closeStockCardModal());
   document.getElementById('archivedHistoryCloseBtn')?.addEventListener('click', () => closeArchivedHistoryModal());
   document.getElementById('setupCloseBtn')?.addEventListener('click', () => closeSetupModal());
   document.getElementById('setupCancelBtn')?.addEventListener('click', () => closeSetupModal());
@@ -221,6 +225,7 @@ function initializeUIEventWiring(){
   document.getElementById('dataHubOpenImportBtn')?.addEventListener('click', () => openDataImportModal());
   document.getElementById('dataHubOpenExportBtn')?.addEventListener('click', () => openDataExportModal());
   document.getElementById('dataHubAutoPopulateBtn')?.addEventListener('click', () => openAutoPopulateFromDataHub());
+  document.getElementById('dataHubDeleteAllDataBtn')?.addEventListener('click', () => deleteAllDataFromDataHub());
   document.getElementById('dataImportCloseBtn')?.addEventListener('click', () => closeDataImportModal());
   document.getElementById('dmChooseFileBtn')?.addEventListener('click', () => triggerDataManagerFile());
   document.getElementById('dmValidateFileBtn')?.addEventListener('click', () => triggerDataManagerValidateFile());
@@ -237,6 +242,9 @@ function initializeUIEventWiring(){
   document.getElementById('dmExportRecordsBtn')?.addEventListener('click', () => exportSchemaVersionedData('records'));
   document.getElementById('dmExportFullBtn')?.addEventListener('click', () => exportSchemaVersionedData('full'));
   document.getElementById('dmOpenImportBtn')?.addEventListener('click', () => openDataImportModal());
+  document.getElementById('suppliesSheetIssuedQty')?.addEventListener('input', () => {
+    if (typeof updateSuppliesIssuedQtyPreview === 'function') updateSuppliesIssuedQtyPreview();
+  });
   initializeDelegatedActionRouting();
   initializeModalScrollShadows();
 }
