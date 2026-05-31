@@ -58,6 +58,9 @@ function initializeUIEventWiring(){
   document.getElementById('stockCardOverlay')?.addEventListener('click', (e) => {
     if (e.target?.id === 'stockCardOverlay') closeStockCardModal();
   });
+  document.getElementById('suppliesMovementOverlay')?.addEventListener('click', (e) => {
+    if (e.target?.id === 'suppliesMovementOverlay') closeSuppliesMovementModal();
+  });
   document.getElementById('archivedHistoryOverlay')?.addEventListener('click', (e) => {
     if (e.target?.id === 'archivedHistoryOverlay') closeArchivedHistoryModal();
   });
@@ -98,6 +101,9 @@ function initializeUIEventWiring(){
   });
   document.getElementById('dmExportYear')?.addEventListener('change', () => refreshDataManagerExportFilters());
   document.getElementById('dmExportMonth')?.addEventListener('change', () => updateDataManagerExportFilterHint());
+  document.querySelectorAll('input[name="dmMode"]').forEach((el) => {
+    el.addEventListener('change', () => refreshImportCenterUXState());
+  });
   document.getElementById('icsImportInput')?.addEventListener('change', (e) => handleImportFile(e));
   dataManagerImportInput?.addEventListener('change', (e) => handleDataManagerFile(e));
   dataManagerValidateInput?.addEventListener('change', (e) => handleDataManagerValidateFile(e));
@@ -158,6 +164,7 @@ function initializeUIEventWiring(){
   document.getElementById('icsDetailsCloseBtn')?.addEventListener('click', () => closeICSDetailsModal());
   document.getElementById('icsRecordHistoryCloseBtn')?.addEventListener('click', () => closeICSRecordHistoryModal());
   document.getElementById('stockCardCloseBtn')?.addEventListener('click', () => closeStockCardModal());
+  document.getElementById('suppliesMovementCloseBtn')?.addEventListener('click', () => closeSuppliesMovementModal());
   document.getElementById('archivedHistoryCloseBtn')?.addEventListener('click', () => closeArchivedHistoryModal());
   document.getElementById('setupCloseBtn')?.addEventListener('click', () => closeSetupModal());
   document.getElementById('setupCancelBtn')?.addEventListener('click', () => closeSetupModal());
@@ -233,17 +240,23 @@ function initializeUIEventWiring(){
   document.getElementById('dmImportHistoryCloseBtn')?.addEventListener('click', () => closeImportHistoryModal());
   document.getElementById('dmOpenExportBtn')?.addEventListener('click', () => openDataExportModal());
   document.getElementById('dmOpenValidationBtn')?.addEventListener('click', () => openDataValidationModal());
+  document.getElementById('dmApplyImportInlineBtn')?.addEventListener('click', () => applyDataManagerImport());
   document.getElementById('dataValidationCloseBtn')?.addEventListener('click', () => closeDataValidationModal());
   document.getElementById('dmBackToImportBtn')?.addEventListener('click', () => openDataImportModal());
   document.getElementById('dmMigrationDetailsBtn')?.addEventListener('click', () => openDataManagerMigrationReport());
   document.getElementById('dmConflictReportBtn')?.addEventListener('click', () => downloadDataManagerConflictReport());
   document.getElementById('dmApplyImportBtn')?.addEventListener('click', () => applyDataManagerImport());
   document.getElementById('dataExportCloseBtn')?.addEventListener('click', () => closeDataExportModal());
-  document.getElementById('dmExportRecordsBtn')?.addEventListener('click', () => exportSchemaVersionedData('records'));
-  document.getElementById('dmExportFullBtn')?.addEventListener('click', () => exportSchemaVersionedData('full'));
+  document.getElementById('dmExportSuppliesBtn')?.addEventListener('click', () => exportSchemaVersionedData('supplies'));
+  document.getElementById('dmExportICSBtn')?.addEventListener('click', () => exportSchemaVersionedData('ics'));
+  document.getElementById('dmExportPARBtn')?.addEventListener('click', () => exportSchemaVersionedData('par'));
+  document.getElementById('dmExportAllBtn')?.addEventListener('click', () => exportSchemaVersionedData('all'));
   document.getElementById('dmOpenImportBtn')?.addEventListener('click', () => openDataImportModal());
   document.getElementById('suppliesSheetIssuedQty')?.addEventListener('input', () => {
     if (typeof updateSuppliesIssuedQtyPreview === 'function') updateSuppliesIssuedQtyPreview();
+  });
+  document.getElementById('suppliesMovementIssuedQty')?.addEventListener('input', () => {
+    if (typeof updateSuppliesMovementQtyPreview === 'function') updateSuppliesMovementQtyPreview();
   });
   initializeDelegatedActionRouting();
   initializeModalScrollShadows();

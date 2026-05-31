@@ -1,4 +1,10 @@
 function renderInventoryView(){
+  const reporting = typeof getSuppliesReportingConfig === 'function'
+    ? getSuppliesReportingConfig(schoolIdentity)
+    : { showQuarterColumn: false };
+  const showQuarterColumn = !!reporting.showQuarterColumn;
+  const quarterCol = showQuarterColumn ? '<col class="c-stage-report-quarter">' : '';
+  const quarterHead = showQuarterColumn ? '<th>Report Quarter</th>' : '';
   const canEditRecords = hasRoleCapability('edit_records');
   const filterInfo = inventoryFilter === 'missing'
     ? `<span class="risk-badge warn">Filtered: Missing Data</span> <button class="btn btn-sm btn-secondary" data-action="clearInventoryFilter"><i data-lucide="x" aria-hidden="true"></i>Clear Filter</button>`
@@ -25,6 +31,8 @@ ${renderWelcomeBanner('Manage Inventory')}
         <col class="c-stage-itemno">
         <col class="c-stage-qty">
         <col class="c-stage-unit">
+        <col class="c-stage-report-month">
+        ${quarterCol}
         <col class="c-stage-unitcost">
         <col class="c-stage-total">
         <col class="c-stage-eul">
@@ -32,7 +40,7 @@ ${renderWelcomeBanner('Manage Inventory')}
       </colgroup>
       <thead>
         <tr>
-          <th>#</th><th>Description</th><th>Item No.</th><th>Qty</th><th>Unit</th><th>Unit Cost</th><th>Total</th><th>EUL</th><th>Actions</th>
+          <th>#</th><th>Description</th><th>Item No.</th><th>Qty</th><th>Unit</th><th>Report Month</th>${quarterHead}<th>Unit Cost</th><th>Total</th><th>EUL</th><th>Actions</th>
         </tr>
       </thead>
       <tbody id="icsBody"></tbody>

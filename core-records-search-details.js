@@ -47,7 +47,7 @@ function renderSearchResults(query){
       i: x.i,
       sourceNo: x.r.icsNo || '',
       title: `${x.r.icsNo || 'No ICS No.'} - ${x.r.entity || 'Unknown Entity'}`,
-      meta: `${x.r.issuedDate || ''} | ${x.r.accountable || ''} | Items: ${(x.r.items || []).length}`,
+      meta: `${formatDateForDisplay(x.r.issuedDate || '', '')} | ${x.r.accountable || ''} | Items: ${(x.r.items || []).length}`,
       focusItemNo: findFocusedItemNo(x.r, q)
     }));
   const parHits = parRecords
@@ -58,7 +58,7 @@ function renderSearchResults(query){
       i: x.i,
       sourceNo: x.r.parNo || x.r.icsNo || '',
       title: `${x.r.parNo || x.r.icsNo || 'No PAR No.'} - ${x.r.entity || 'Unknown Entity'}`,
-      meta: `${x.r.issuedDate || ''} | ${x.r.accountable || ''} | Items: ${(x.r.items || []).length}`,
+      meta: `${formatDateForDisplay(x.r.issuedDate || '', '')} | ${x.r.accountable || ''} | Items: ${(x.r.items || []).length}`,
       focusItemNo: findFocusedItemNo(x.r, q)
     }));
 
@@ -79,7 +79,7 @@ function renderSearchResults(query){
       type: 'archive',
       i: x.i,
       title: `${((x.a.source?.sourceType || 'ics').toString().toLowerCase() === 'par' ? 'PAR-' : 'ICS-')}${x.a.source?.icsNo || 'No Record No.'} - ${x.a.item?.itemNo || 'No Item No.'}`,
-      meta: `${x.a.source?.entity || ''} | Archived: ${(x.a.archivedAt || '').slice(0, 10)}`
+      meta: `${x.a.source?.entity || ''} | Archived: ${formatDateForDisplay(x.a.archivedAt || '', '')}`
     }));
 
   searchMatches = [...recordHits, ...parHits, ...archiveHits].slice(0, 30);
@@ -193,7 +193,7 @@ function getRecordStatusMetaTitle(record){
   const sourceBy = normalizeProfileKeyValue(meta.sourceByProfileKey || meta.sourceBy || '');
   const atRaw = (meta.at || '').toString().trim();
   const atDate = atRaw ? new Date(atRaw) : null;
-  const at = atDate && Number.isFinite(atDate.getTime()) ? atDate.toLocaleString() : 'Unknown time';
+  const at = atDate && Number.isFinite(atDate.getTime()) ? formatDateTimeForDisplay(atDate, 'Unknown time') : 'Unknown time';
   const sourceText = sourceBy && sourceBy !== by ? ` | source profile: ${sourceBy}` : '';
   return `${label} by ${by} on ${at}${sourceText}`;
 }
@@ -297,7 +297,7 @@ function openICSDetailsModal(record, focusItemNo, recordIndex, sourceType = 'ics
   };
   const lineageRows = (lineage?.versions || []).slice().reverse().slice(0, 8).map((entry) => {
     const parsedAt = new Date(entry.at || '');
-    const at = Number.isFinite(parsedAt.getTime()) ? parsedAt.toLocaleString() : '-';
+    const at = Number.isFinite(parsedAt.getTime()) ? formatDateTimeForDisplay(parsedAt, '-') : '-';
     const actor = (entry.byProfileKey || '').toString().trim() || '-';
     const device = (entry.deviceId || '').toString().trim() || '-';
     const session = (entry.sessionId || '').toString().trim() || '-';
@@ -340,7 +340,7 @@ function openICSDetailsModal(record, focusItemNo, recordIndex, sourceType = 'ics
   const totalValue = formatCurrencyValue(computeRecordMetrics(record).totalValue) || '0.00';
   const latestEntry = (lineage?.versions || []).slice().reverse()[0] || null;
   const latestAtRaw = latestEntry?.at ? new Date(latestEntry.at) : null;
-  const latestAt = latestAtRaw && Number.isFinite(latestAtRaw.getTime()) ? latestAtRaw.toLocaleString() : '-';
+  const latestAt = latestAtRaw && Number.isFinite(latestAtRaw.getTime()) ? formatDateTimeForDisplay(latestAtRaw, '-') : '-';
   const latestActor = normalizeProfileKeyValue(latestEntry?.byProfileKey || '');
   const latestSummary = latestEntry?.summary ? escapeHTML(latestEntry.summary) : '-';
   const latestVersionLabel = `Latest ${lineage?.versions?.length ? 1 : 0}`;
@@ -377,7 +377,7 @@ function openICSDetailsModal(record, focusItemNo, recordIndex, sourceType = 'ics
           <section class="icsd-card">
             <div class="icsd-card-title">${iconSummary}Summary</div>
             <div class="icsd-summary-grid">
-              <div class="icsd-kv"><div class="k">Issued Date</div><div class="v">${escapeHTML(record.issuedDate || '-')}</div></div>
+              <div class="icsd-kv"><div class="k">Issued Date</div><div class="v">${escapeHTML(formatDateForDisplay(record.issuedDate || '', '-'))}</div></div>
               <div class="icsd-kv"><div class="k">Total Value</div><div class="v">${totalValue}</div></div>
               <div class="icsd-kv"><div class="k">Issued By</div><div class="v u-truncate" title="${escapeHTML(issuedBy.name || '-')}">${escapeHTML(issuedBy.name || '-')}</div></div>
               <div class="icsd-kv"><div class="k">Received By</div><div class="v u-truncate" title="${escapeHTML(receivedBy.name || '-')}">${escapeHTML(receivedBy.name || '-')}</div></div>
@@ -519,7 +519,7 @@ function openICSRecordHistoryModal(){
   const lineage = normalizeRecordLineage(record?._lineage || record?.lineage);
   const rows = (lineage?.versions || []).slice().reverse().map((entry) => {
     const parsedAt = new Date(entry.at || '');
-    const at = Number.isFinite(parsedAt.getTime()) ? parsedAt.toLocaleString() : '-';
+    const at = Number.isFinite(parsedAt.getTime()) ? formatDateTimeForDisplay(parsedAt, '-') : '-';
     const actor = normalizeProfileKeyValue(entry.byProfileKey || '') || 'unknown';
     return `<div class="lineage-row">
       <div class="lineage-row-main">
@@ -577,9 +577,8 @@ function openArchivedItemHistory(index){
     return value || '-';
   };
   const toNiceDate = (dateText) => {
-    const d = new Date((dateText || '').toString().trim());
-    if (!Number.isFinite(d.getTime())) return textOrDash(dateText);
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    const next = formatDateForDisplay(dateText, '');
+    return next || textOrDash(dateText);
   };
   const toNiceTime = (dateText) => {
     const d = new Date((dateText || '').toString().trim());
@@ -587,8 +586,7 @@ function openArchivedItemHistory(index){
     return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
   };
 
-  const archivedAtIso = (entry.archivedAt || '').toString().trim();
-  const archivedAt = archivedAtIso ? archivedAtIso.replace('T', ' ').slice(0, 19) : '';
+  const archivedAt = formatDateTimeForDisplay(entry.archivedAt || '', '');
   const disposalStatus = disp.status === 'approved' ? 'Approved' : (disp.status === 'not_approved' ? 'Not Approved' : 'Pending');
   const statusClass = disp.status === 'approved' ? 'approved' : 'pending';
   const refNo = textOrDash(disp.referenceNo || entry.referenceNo || '');
@@ -607,7 +605,7 @@ function openArchivedItemHistory(index){
     { label: `${sourceCode} Number`, value: textOrDash(src.icsNo) },
     { label: 'Entity', value: textOrDash(src.entity) },
     { label: 'Fund Cluster', value: textOrDash(src.fund) },
-    { label: 'Issued Date', value: textOrDash(src.issuedDate) },
+    { label: 'Issued Date', value: formatDateForDisplay(src.issuedDate || '', '-') },
     { label: 'Unit Cost', value: moneyOrDash(it.unitCost) },
     { label: 'Total Value', value: moneyOrDash(it.total) },
     { label: 'Archived At', value: textOrDash(archivedAt) },

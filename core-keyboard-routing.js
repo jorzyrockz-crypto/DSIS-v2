@@ -93,13 +93,14 @@ function getOpenOverlayIds(){
     'wasteReportOverlay',
     'archiveOverlay',
     'inspectionOverlay',
-    'inspectionHistoryOverlay',
-    'myProfileOverlay',
-    'profileOverlay',
-    'loginOverlay',
-    'icsRecordHistoryOverlay',
-    'archivedHistoryOverlay',
-    'icsDetailsOverlay',
+      'inspectionHistoryOverlay',
+      'myProfileOverlay',
+      'profileOverlay',
+      'loginOverlay',
+      'suppliesMovementOverlay',
+      'icsRecordHistoryOverlay',
+      'archivedHistoryOverlay',
+      'icsDetailsOverlay',
     'searchOverlay'
   ].filter((id) => document.getElementById(id)?.classList?.contains('show'));
 }
@@ -147,12 +148,13 @@ function handleOverlayKeydown(e){
     }
     else if (top === 'archiveOverlay') closeArchiveModal(true);
     else if (top === 'inspectionOverlay') closeInspectionModal();
-    else if (top === 'inspectionHistoryOverlay') closeInspectionHistory();
-    else if (top === 'myProfileOverlay') closeMyProfileModal();
-    else if (top === 'profileOverlay') closeProfileModal();
-    else if (top === 'icsRecordHistoryOverlay') closeICSRecordHistoryModal();
-    else if (top === 'archivedHistoryOverlay') closeArchivedHistoryModal();
-    else if (top === 'icsDetailsOverlay') closeICSDetailsModal();
+      else if (top === 'inspectionHistoryOverlay') closeInspectionHistory();
+      else if (top === 'myProfileOverlay') closeMyProfileModal();
+      else if (top === 'profileOverlay') closeProfileModal();
+      else if (top === 'suppliesMovementOverlay') closeSuppliesMovementModal();
+      else if (top === 'icsRecordHistoryOverlay') closeICSRecordHistoryModal();
+      else if (top === 'archivedHistoryOverlay') closeArchivedHistoryModal();
+      else if (top === 'icsDetailsOverlay') closeICSDetailsModal();
     else if (top === 'searchOverlay') closeSearchOverlay();
     return true;
   }
@@ -198,6 +200,11 @@ function handleOverlayKeydown(e){
   if (top === 'loginOverlay'){
     e.preventDefault();
     submitLogin();
+    return true;
+  }
+  if (top === 'suppliesMovementOverlay'){
+    e.preventDefault();
+    saveSuppliesMovement();
     return true;
   }
   if (top === 'searchOverlay') return true;

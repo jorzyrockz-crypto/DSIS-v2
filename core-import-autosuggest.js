@@ -93,7 +93,7 @@ function fillDatalistOptions(listId, values){
 }
 
 function refreshAutoSuggest(){
-  const records = JSON.parse(localStorage.getItem('icsRecords') || '[]');
+  const records = loadLocalJSON('icsRecords', []);
   fillDatalistOptions('entityNameList', records.map((r) => r.entity));
   fillDatalistOptions('fundClusterList', records.map((r) => r.fund));
   fillDatalistOptions('issuedByNameList', records.map((r) => r.signatories?.issuedBy?.name));

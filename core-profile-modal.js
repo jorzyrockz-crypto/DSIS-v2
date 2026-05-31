@@ -203,9 +203,11 @@ function openProfileModal(){
   const email = document.getElementById('profileEmail');
   const schoolNameEl = document.getElementById('profileSchoolName');
   const schoolIdEl = document.getElementById('profileSchoolId');
+  const suppliesQuarterToggleEl = document.getElementById('profileSuppliesShowQuarterColumn');
   const schoolLogoInput = document.getElementById('profileSchoolLogoInput');
   const topbarAvatarInput = document.getElementById('profileTopbarAvatarInput');
   const density = document.getElementById('profileDensity');
+  const dateFormatEl = document.getElementById('profileDateFormat');
   const accent = document.getElementById('profileAccent');
   const defaultView = document.getElementById('profileDefaultView');
   const passwordEl = document.getElementById('profilePassword');
@@ -218,11 +220,16 @@ function openProfileModal(){
   if (email) email.value = currentUser.email || '';
   if (schoolNameEl) schoolNameEl.value = schoolIdentity.schoolName || '';
   if (schoolIdEl) schoolIdEl.value = schoolIdentity.schoolId || '';
+  if (suppliesQuarterToggleEl){
+    const reporting = getSuppliesReportingConfig(schoolIdentity);
+    suppliesQuarterToggleEl.checked = !!reporting.showQuarterColumn;
+  }
   profileDraftSchoolLogoDataUrl = sanitizeSchoolLogoDataUrl(schoolIdentity.logoDataUrl || '');
   profileDraftTopbarAvatarDataUrl = sanitizeProfileAvatarDataUrl(currentUser.topbarAvatarDataUrl || '');
   if (schoolLogoInput) schoolLogoInput.value = '';
   if (topbarAvatarInput) topbarAvatarInput.value = '';
   if (density) density.value = currentUser.preferences?.tableDensity || 'comfortable';
+  if (dateFormatEl) dateFormatEl.value = normalizeDateFormatPreference(currentUser.preferences?.dateFormat || '');
   if (accent) accent.value = normalizeThemeAccentKey(currentUser.preferences?.themeAccent || 'elegant-white');
   if (defaultView) defaultView.value = currentUser.preferences?.defaultView || 'Dashboard';
   if (passwordEl) passwordEl.value = '';
@@ -233,7 +240,7 @@ function openProfileModal(){
   const profileMenuProfileKey = document.getElementById('profileMenuProfileKey');
   const profileMenuSchoolId = document.getElementById('profileMenuSchoolId');
   if (lastLogin){
-    lastLogin.textContent = `Last login: ${currentUser.lastLogin ? new Date(currentUser.lastLogin).toLocaleString() : 'Unknown'}`;
+    lastLogin.textContent = `Last login: ${currentUser.lastLogin ? formatDateTimeForDisplay(currentUser.lastLogin, 'Unknown') : 'Unknown'}`;
   }
   if (profileKeyReadOnly) profileKeyReadOnly.textContent = currentUser.profileKey || 'Not assigned';
   if (profileSessionReadOnly){
@@ -278,6 +285,10 @@ function openProfileModal(){
     schoolLogoInput.disabled = !canManageSchool;
     schoolLogoInput.title = canManageSchool ? '' : 'Only Admin can change school logo.';
   }
+  if (suppliesQuarterToggleEl){
+    suppliesQuarterToggleEl.disabled = !canManageSchool;
+    suppliesQuarterToggleEl.title = canManageSchool ? '' : 'Only Admin can change reporting settings.';
+  }
   renderUserIdentity();
   applySchoolLogoPreview(profileDraftSchoolLogoDataUrl, true);
   updateSchoolLogoHint();
@@ -318,7 +329,9 @@ function saveProfileSettings(){
   const emailEl = document.getElementById('profileEmail');
   const schoolNameEl = document.getElementById('profileSchoolName');
   const schoolIdEl = document.getElementById('profileSchoolId');
+  const suppliesQuarterToggleEl = document.getElementById('profileSuppliesShowQuarterColumn');
   const densityEl = document.getElementById('profileDensity');
+  const dateFormatEl = document.getElementById('profileDateFormat');
   const accentEl = document.getElementById('profileAccent');
   const defaultViewEl = document.getElementById('profileDefaultView');
   const passwordEl = document.getElementById('profilePassword');
@@ -335,7 +348,12 @@ function saveProfileSettings(){
   const email = (emailEl?.value || '').trim();
   const schoolName = (schoolNameEl?.value || '').trim();
   const schoolId = normalizeSchoolId(schoolIdEl?.value || '');
+  const currentSuppliesReporting = getSuppliesReportingConfig(schoolIdentity);
+  const suppliesReporting = normalizeSuppliesReportingSettings({
+    showQuarterColumn: suppliesQuarterToggleEl ? !!suppliesQuarterToggleEl.checked : !!currentSuppliesReporting.showQuarterColumn
+  });
   const density = (densityEl?.value || 'comfortable').toLowerCase();
+  const dateFormat = normalizeDateFormatPreference(dateFormatEl?.value || '');
   const accent = normalizeThemeAccentKey(accentEl?.value || 'elegant-white');
   const defaultView = defaultViewEl?.value || 'Dashboard';
   const password = normalizeProfilePassword(passwordEl?.value || '');
@@ -383,9 +401,15 @@ function saveProfileSettings(){
     const localSchoolId = normalizeSchoolId(schoolIdentity.schoolId || '');
     const localSchoolLogo = sanitizeSchoolLogoDataUrl(schoolIdentity.logoDataUrl || '');
     const draftLogo = sanitizeSchoolLogoDataUrl(profileDraftSchoolLogoDataUrl || '');
-    if (schoolName !== localSchoolName || schoolId !== localSchoolId || draftLogo !== localSchoolLogo){
+    const localSuppliesReporting = getSuppliesReportingConfig(schoolIdentity);
+    if (
+      schoolName !== localSchoolName
+      || schoolId !== localSchoolId
+      || draftLogo !== localSchoolLogo
+      || suppliesReporting.showQuarterColumn !== !!localSuppliesReporting.showQuarterColumn
+    ){
       setProfileSettingsTab('school', true);
-      notify('error', 'Only Admin can change school identity lock or logo.');
+      notify('error', 'Only Admin can change school identity lock, logo, or reporting settings.');
       return;
     }
   }
@@ -421,16 +445,27 @@ function saveProfileSettings(){
       ...currentUser.preferences,
       tableDensity: density,
       themeAccent: accent,
-      defaultView
+      defaultView,
+      dateFormat
     }
   });
   saveCurrentUser();
+  const previousSuppliesReporting = getSuppliesReportingConfig(schoolIdentity);
   schoolIdentity = normalizeSchoolIdentity({
     schoolName,
     schoolId,
-    logoDataUrl: sanitizeSchoolLogoDataUrl(profileDraftSchoolLogoDataUrl || '')
+    logoDataUrl: sanitizeSchoolLogoDataUrl(profileDraftSchoolLogoDataUrl || ''),
+    suppliesReporting
   });
   saveSchoolIdentity();
+  const nextSuppliesReporting = getSuppliesReportingConfig(schoolIdentity);
+  const reportingChanged = previousSuppliesReporting.showQuarterColumn !== nextSuppliesReporting.showQuarterColumn;
+  if (reportingChanged){
+    recordAudit(
+      'maintenance',
+      `Updated supplies reporting setting: quarter column ${nextSuppliesReporting.showQuarterColumn ? 'enabled' : 'disabled'}.`
+    );
+  }
   ensureDesignationForSchool(schoolIdentity.schoolId, designation);
   upsertCurrentUserForSchool(schoolIdentity.schoolId);
   schoolSetupEnforced = !isSchoolIdentityConfigured();
@@ -438,6 +473,19 @@ function saveProfileSettings(){
   renderUserIdentity();
   setTableDensity(currentUser.preferences.tableDensity);
   closeProfileModal(false);
+  if (reportingChanged){
+    const active = activeViewKey();
+    if (active === 'Supplies'){
+      goToView(active);
+    } else if (active === 'Manage Inventory'){
+      const draftRows = typeof getStageRows === 'function' ? getStageRows().length : 0;
+      if (draftRows <= 0){
+        goToView(active);
+      } else {
+        notify('info', 'Reporting column changes will apply to Staged Items after reopening Manage Inventory.');
+      }
+    }
+  }
   if (!isSessionActive()) openLoginModal(true);
   notify('success', 'Profile settings updated.');
 }

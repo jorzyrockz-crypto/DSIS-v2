@@ -4,7 +4,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const htmlFile = path.join(__dirname, '..', 'ics_v_3_standalone_index.html');
+const swFile = path.join(__dirname, '..', 'sw.js');
 const html = fs.readFileSync(htmlFile, 'utf8');
+const sw = fs.readFileSync(swFile, 'utf8');
 
 function extractScriptSrcs(markup){
   return [...markup.matchAll(/<script\s+src="\.\/([^"]+)"\s*><\/script>/g)].map((m) => m[1]);
@@ -35,4 +37,10 @@ test('core script load order preserves dependency boundaries', () => {
 test('core scripts are not duplicated in html', () => {
   const duplicates = scriptSrcs.filter((src, i) => scriptSrcs.indexOf(src) !== i);
   assert.deepEqual(duplicates, []);
+});
+
+test('runtime scripts are included in service worker precache', () => {
+  const precached = new Set([...sw.matchAll(/'\.\/([^']+)'/g)].map((m) => m[1]));
+  const missing = scriptSrcs.filter((src) => !precached.has(src));
+  assert.deepEqual(missing, []);
 });

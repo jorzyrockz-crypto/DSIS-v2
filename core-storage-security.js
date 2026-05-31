@@ -51,6 +51,15 @@ function safeParseJSON(raw, fallback){
   try { return JSON.parse(raw); } catch { return fallback; }
 }
 
+function loadLocalJSON(key, fallback){
+  const raw = localStorage.getItem(key);
+  return raw === null ? fallback : safeParseJSON(raw, fallback);
+}
+
+function saveLocalJSON(key, value){
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
 function normalizeRoleKey(value){
   const raw = (value || '').toString().trim().toLowerCase();
   if (!raw) return 'encoder';

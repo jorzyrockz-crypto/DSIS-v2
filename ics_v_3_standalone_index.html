@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Digital School Inventory System v1.0</title>
+<title>Digital School Inventory System</title>
 <meta name="theme-color" content="#2563eb" />
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
@@ -84,7 +84,7 @@
           <div class="topbar-menu-meta">
             <p class="topbar-menu-name" id="topbarMenuName">Custodian</p>
             <p class="topbar-menu-email" id="topbarMenuEmail">No email set</p>
-            <p class="topbar-menu-version" id="topbarMenuVersion">Version v1.0</p>
+            <p class="topbar-menu-version" id="topbarMenuVersion">Version loading</p>
           </div>
         </div>
         <div class="topbar-menu-list">
@@ -131,8 +131,8 @@
     <div class="brand">
       <div class="logo" id="appLogo">OES</div>
       <div class="brand-copy">
-        <span class="brand-title">Digital School Inventory System v1.0</span>
-        <span class="brand-sub" id="brandSub">Digital School Inventory System v1.0</span>
+        <span class="brand-title">Digital School Inventory System</span>
+        <span class="brand-sub" id="brandSub">Version loading</span>
       </div>
     </div>
     <nav class="nav sidebar-nav">
@@ -364,6 +364,43 @@
       <button class="archived-history-close modal-close-btn" id="stockCardCloseBtn" aria-label="Close stock card"><i data-lucide="x" aria-hidden="true"></i>Close</button>
     </div>
     <div class="modal-body" id="stockCardBody"></div>
+  </div>
+</div>
+<div class="actions-modal-overlay" id="suppliesMovementOverlay">
+  <div class="actions-modal modal-md supplies-movement-modal">
+    <div class="modal-head actions-hero" style="margin:0">
+      <h3 id="suppliesMovementTitle">Transfer Stock</h3>
+      <button class="archived-history-close modal-close-btn" id="suppliesMovementCloseBtn" aria-label="Close stock transfer modal"><i data-lucide="x" aria-hidden="true"></i>Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="supplies-movement-grid">
+        <div class="full">
+          <label>ITEM</label>
+          <div id="suppliesMovementItemPill" class="supplies-sheet-pill">Item -</div>
+        </div>
+        <div class="full">
+          <label>FROM OFFICE</label>
+          <input id="suppliesMovementFromOffice" class="stage-input supplies-transfer-input" list="suppliesIssuedOfficeList" />
+        </div>
+        <div class="full">
+          <div class="supplies-sheet-label-row">
+            <label>TRANSFER LINES</label>
+            <span id="suppliesMovementAvailableQtyPill" class="supplies-sheet-qty-pill">Available Qty: -</span>
+          </div>
+          <div class="supplies-transfer-lines" id="suppliesTransferLines"></div>
+          <button class="btn btn-sm btn-secondary supplies-transfer-add-btn" type="button" data-action="suppliesMovementAddLine"><i data-lucide="plus" aria-hidden="true"></i>Add Office</button>
+        </div>
+        <div>
+          <label>TRANSFER DATE</label>
+          <input id="suppliesMovementIssuedDate" class="stage-input" type="date" />
+        </div>
+      </div>
+      <div id="suppliesMovementInlineStatus" class="dm-inline-status" style="display:none;margin-top:14px"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sm btn-secondary" data-action="closeSuppliesMovementModal"><i data-lucide="x" aria-hidden="true"></i>Close</button>
+      <button class="btn btn-sm btn-primary" data-action="saveSuppliesMovement"><i data-lucide="save" aria-hidden="true"></i>Save</button>
+    </div>
   </div>
 </div>
 <div class="actions-modal-overlay" id="archivedHistoryOverlay">
@@ -643,6 +680,13 @@
                     </div>
                   </div>
                 </div>
+                <div class="full">
+                  <label style="display:flex;align-items:center;gap:8px">
+                    <input id="profileSuppliesShowQuarterColumn" type="checkbox" />
+                    <span>Show Quarter column in Supply Entry / Staged Items</span>
+                  </label>
+                  <div class="profile-head-sub">Turn on if this school reports supplies quarterly.</div>
+                </div>
               </div>
             </div>
           </div>
@@ -665,6 +709,15 @@
                   <select id="profileDensity" class="stage-input">
                     <option value="comfortable">Comfortable</option>
                     <option value="compact">Compact</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Date Format</label>
+                  <select id="profileDateFormat" class="stage-input">
+                    <option value="yyyy-mm-dd">YYYY-MM-DD</option>
+                    <option value="mm/dd/yyyy">MM/DD/YYYY</option>
+                    <option value="dd/mm/yyyy">DD/MM/YYYY</option>
+                    <option value="mmm-dd-yyyy">MMM DD, YYYY</option>
                   </select>
                 </div>
                 <div class="full">
@@ -900,7 +953,7 @@
         <section class="help-docs-card">
           <h4>4. Data & Security</h4>
           <ul>
-            <li>Use Data Hub for ICS/PAR import/export with validation preview.</li>
+            <li>Use Data Hub for Supplies/ICS/PAR/All Data import-export with validation preview.</li>
             <li>Use Profile > Security for trace checks and recovery actions.</li>
             <li>Use Audit Trail to review activity logs with filters and exports.</li>
           </ul>
@@ -943,14 +996,14 @@
           <span class="dm-hub-ico import" aria-hidden="true"><i data-lucide="download" aria-hidden="true"></i></span>
           <span class="dm-hub-copy">
             <strong>Import Center</strong>
-            <span>Validate a JSON file, review conflicts, and apply merge/replace import for ICS/PAR records.</span>
+            <span>Validate a JSON file, review conflicts, and import by scope: Supplies, ICS, PAR, or All Data.</span>
           </span>
         </button>
         <button class="dm-hub-btn" id="dataHubOpenExportBtn" type="button">
           <span class="dm-hub-ico export" aria-hidden="true"><i data-lucide="upload" aria-hidden="true"></i></span>
           <span class="dm-hub-copy">
             <strong>Export Center</strong>
-            <span>Export filtered ICS/PAR records package or full unfiltered workspace backup.</span>
+            <span>Export by scope: Supplies, ICS, PAR, or All Data backup.</span>
           </span>
         </button>
         <button class="dm-hub-btn" id="dataHubAutoPopulateBtn" type="button">
@@ -982,57 +1035,69 @@
         <h3>Import Center</h3>
         <button class="btn btn-sm btn-secondary modal-close-btn" id="dataImportCloseBtn"><i data-lucide="x" aria-hidden="true"></i>Close</button>
       </div>
-      <p class="modal-sub">Schema-validated ICS/PAR import with preview, merge/replace control, and conflict reporting.</p>
+      <p class="modal-sub">Schema-validated import with preview, scope selection, merge/replace control, and conflict reporting.</p>
     </div>
     <div class="modal-body">
       <div class="dm-layout">
-        <section class="dm-section">
+        <section class="dm-section" id="dmSourceSection">
           <div class="dm-section-head">
-            <h4>1) Import Source</h4>
-            <p>Select a JSON package to validate and preview before applying.</p>
+            <h4>1) Source and Detection</h4>
+            <p>Select a JSON package. Import target is auto-detected from package contents.</p>
           </div>
           <div class="data-manager-bar">
-            <button class="btn btn-sm btn-secondary" id="dmChooseFileBtn" type="button">Choose JSON File</button>
-            <button class="btn btn-sm btn-secondary" id="dmValidateFileBtn" type="button">Validate JSON Trace</button>
+            <button class="btn btn-sm btn-secondary" id="dmChooseFileBtn" type="button"><i data-lucide="folder-open" aria-hidden="true"></i>Choose JSON File</button>
             <div class="data-manager-file" id="dmFileName">No file selected.</div>
           </div>
+          <p class="dm-muted" id="dmDetectedInfo" style="margin:8px 0 0">No package detected yet.</p>
         </section>
 
         <section class="dm-section" id="dmStep3Section">
           <div class="dm-section-head" style="margin-bottom:4px">
-            <h4>2) Import Rules and Result</h4>
-            <span class="dm-step-mark" id="dmStep3Mark">Ready to Apply</span>
+            <h4>2) Review and Rules</h4>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+              <span class="dm-step-mark" id="dmStep3Mark">Awaiting File</span>
+              <button class="btn btn-sm btn-primary" id="dmApplyImportInlineBtn" disabled><i data-lucide="check-check" aria-hidden="true"></i>Apply Import</button>
+            </div>
           </div>
-          <p class="dm-muted" style="margin:0 0 8px">Choose how duplicate ICS/PAR record numbers should be handled.</p>
+          <p class="dm-muted" id="dmScopeSummary" style="margin:0 0 8px">Import target will be auto-detected after loading a file.</p>
           <div class="data-manager-mode">
-            <label><input type="radio" name="dmMode" value="merge" checked /> Merge (skip duplicate ICS/PAR)</label>
-            <label><input type="radio" name="dmMode" value="replace" /> Replace (overwrite duplicate ICS/PAR)</label>
+            <label><input type="radio" name="dmMode" value="merge" checked /> Merge (skip duplicates in detected target)</label>
+            <label><input type="radio" name="dmMode" value="replace" /> Replace (overwrite duplicates in detected target)</label>
           </div>
           <div class="dm-inline-status" id="dmInlineStatus"></div>
-          <p class="dm-muted">After choosing a file, open Validation Preview to review rows and conflicts before applying import.</p>
+          <p class="dm-muted">When status shows Ready to Apply, click Apply Import. Validation Preview is optional.</p>
         </section>
 
         <section class="dm-section">
           <div class="dm-section-head">
-            <h4>3) Recent Import Activity</h4>
+            <h4>Advanced</h4>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-              <p style="margin:0">Last import actions from this device.</p>
-              <button class="btn btn-sm btn-secondary" id="dmOpenImportHistoryBtn" type="button">Import History</button>
+              <p style="margin:0">Use only when needed.</p>
             </div>
           </div>
-          <ul class="dm-history-list" id="dmImportHistoryList">
-            <li><span class="dm-history-time">No import history yet.</span></li>
-          </ul>
+          <details>
+            <summary class="dm-muted" style="cursor:pointer">Trace validation and import history</summary>
+            <div style="margin-top:8px">
+              <div class="data-manager-bar" style="padding:0;background:transparent;border:none">
+                <button class="btn btn-sm btn-secondary" id="dmValidateFileBtn" type="button"><i data-lucide="shield-check" aria-hidden="true"></i>Validate JSON Trace</button>
+                <button class="btn btn-sm btn-secondary" id="dmOpenImportHistoryBtn" type="button"><i data-lucide="history" aria-hidden="true"></i>Import History</button>
+              </div>
+              <ul class="dm-history-list" id="dmImportHistoryList" style="margin-top:8px">
+                <li><span class="dm-history-time">No import history yet.</span></li>
+              </ul>
+            </div>
+          </details>
         </section>
       </div>
     </div>
     <div class="modal-foot">
       <div class="ics-card-actions dm-foot-actions">
         <div class="dm-foot-left">
-          <button class="btn btn-sm btn-secondary dm-switch-btn" id="dmOpenExportBtn">Open Export Center</button>
+          <span class="dm-muted" id="dmImportFooterSummary">Target: ALL | File: Not selected | Status: Waiting for file</span>
+          <button class="btn btn-sm btn-secondary dm-switch-btn" id="dmOpenExportBtn"><i data-lucide="arrow-right-left" aria-hidden="true"></i>Open Export Center</button>
         </div>
         <div class="dm-foot-right">
-          <button class="btn btn-sm btn-primary" id="dmOpenValidationBtn"><i data-lucide="clipboard-check" aria-hidden="true"></i>Open Validation Preview</button>
+          <button class="btn btn-sm btn-secondary" id="dmOpenValidationBtn" disabled><i data-lucide="clipboard-check" aria-hidden="true"></i>Open Validation Preview</button>
         </div>
       </div>
     </div>
@@ -1084,12 +1149,9 @@
     <div class="modal-foot">
       <div class="ics-card-actions dm-foot-actions">
         <div class="dm-foot-left">
-          <button class="btn btn-sm btn-secondary" id="dmBackToImportBtn">Back to Import Center</button>
-          <button class="btn btn-sm btn-secondary" id="dmMigrationDetailsBtn">Migration Details</button>
-          <button class="btn btn-sm btn-secondary" id="dmConflictReportBtn">Download Conflict Report</button>
-        </div>
-        <div class="dm-foot-right">
-          <button class="btn btn-sm btn-primary" id="dmApplyImportBtn" disabled><i data-lucide="check-check" aria-hidden="true"></i>Apply Import</button>
+          <button class="btn btn-sm btn-secondary" id="dmBackToImportBtn"><i data-lucide="arrow-left" aria-hidden="true"></i>Back to Import Center</button>
+          <button class="btn btn-sm btn-secondary" id="dmMigrationDetailsBtn"><i data-lucide="git-compare" aria-hidden="true"></i>Migration Details</button>
+          <button class="btn btn-sm btn-secondary" id="dmConflictReportBtn"><i data-lucide="file-warning" aria-hidden="true"></i>Download Conflict Report</button>
         </div>
       </div>
     </div>
@@ -1102,14 +1164,14 @@
         <h3>Export Center</h3>
         <button class="btn btn-sm btn-secondary modal-close-btn" id="dataExportCloseBtn"><i data-lucide="x" aria-hidden="true"></i>Close</button>
       </div>
-      <p class="modal-sub">Export ICS/PAR records package by period or full unfiltered workspace backup.</p>
+      <p class="modal-sub">Export by scope: Supplies, ICS, PAR, or All Data backup.</p>
     </div>
     <div class="modal-body">
       <div class="dm-layout">
         <section class="dm-section">
           <div class="dm-section-head">
             <h4>1) Export Filters</h4>
-            <p>Year/Month filters apply to ICS/PAR Records Package only.</p>
+            <p>Year/Month filters apply to Supplies, ICS, and PAR exports.</p>
           </div>
           <div class="data-manager-export-filters">
             <label>Export Year
@@ -1140,16 +1202,20 @@
         <section class="dm-section">
           <div class="dm-section-head">
             <h4>2) Export Actions</h4>
-            <p>Choose ICS/PAR records export or full backup.</p>
+            <p>Choose exactly what to export.</p>
           </div>
           <div class="dm-export-actions" style="margin-top:0">
-            <button class="btn btn-sm btn-secondary" id="dmExportRecordsBtn" type="button">Export Records Package</button>
-            <button class="btn btn-sm btn-secondary" id="dmExportFullBtn" type="button">Export Full Package</button>
+            <button class="btn btn-sm btn-secondary dm-export-btn dm-export-supplies" id="dmExportSuppliesBtn" type="button"><i data-lucide="boxes" aria-hidden="true"></i>Export Supplies</button>
+            <button class="btn btn-sm btn-secondary dm-export-btn dm-export-ics" id="dmExportICSBtn" type="button"><i data-lucide="file-text" aria-hidden="true"></i>Export ICS</button>
+            <button class="btn btn-sm btn-secondary dm-export-btn dm-export-par" id="dmExportPARBtn" type="button"><i data-lucide="file-badge" aria-hidden="true"></i>Export PAR</button>
+            <button class="btn btn-sm btn-secondary dm-export-btn dm-export-all" id="dmExportAllBtn" type="button"><i data-lucide="database" aria-hidden="true"></i>Export All Data</button>
           </div>
           <p class="dm-muted" style="margin:8px 0 0">
-            <strong>Export Records Package:</strong> exports ICS and PAR records and applies the selected Year/Month filter.
+            <strong>Export Supplies:</strong> exports Supplies saved records, Supplies history map, and Supplies staged rows.
             <br />
-            <strong>Export Full Package:</strong> exports the complete workspace backup (records, archives, notifications, and audit logs) without filters.
+            <strong>Export Supplies/ICS/PAR:</strong> exports selected dataset with Year/Month filter.
+            <br />
+            <strong>Export All Data:</strong> exports complete workspace backup (Supplies, ICS, PAR, archives, notifications, and audit logs).
           </p>
         </section>
       </div>
@@ -1157,7 +1223,7 @@
     <div class="modal-foot">
       <div class="ics-card-actions dm-foot-actions">
         <div class="dm-foot-left">
-          <button class="btn btn-sm btn-secondary dm-switch-btn" id="dmOpenImportBtn">Open Import Center</button>
+          <button class="btn btn-sm btn-secondary dm-switch-btn" id="dmOpenImportBtn"><i data-lucide="arrow-right-left" aria-hidden="true"></i>Open Import Center</button>
         </div>
       </div>
     </div>

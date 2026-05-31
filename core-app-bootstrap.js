@@ -39,6 +39,13 @@ function bootAppWithUserPreferences(){
 
 const LAST_SEEN_APP_VERSION_STORAGE_KEY = 'icsLastSeenAppVersion';
 const RELEASE_NOTES_BY_VERSION = {
+  '1.8.1-dev-stability': [
+    'Development stability checkpoint; not a deployment-ready school release.',
+    'Added safer localStorage JSON helpers and adopted them in common data paths.',
+    'Added regression coverage for safe storage parsing and service worker script precache coverage.',
+    'Cleaned stale hardcoded v1.0 shell labels so runtime version display is manifest-driven.',
+    'Advanced schema baseline to 1.8.1 and service worker cache to dsis-v1-pwa-v45.'
+  ],
   '1.8': [
     'Supplies workflow finalized as staged-first entry:',
     'removed active Supplies floating-form dependency from entry flow',

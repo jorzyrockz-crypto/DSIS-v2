@@ -13,6 +13,43 @@ function monthsUntil(dateIso){
   return yearDiff * 12 + monthDiff + dayAdj;
 }
 
+function isInventoryQuarterToneEnabled(){
+  const identity = typeof schoolIdentity === 'object' && schoolIdentity ? schoolIdentity : {};
+  const reporting = typeof getSuppliesReportingConfig === 'function'
+    ? getSuppliesReportingConfig(identity)
+    : { showQuarterColumn: false };
+  return !!reporting.showQuarterColumn;
+}
+
+function deriveInventoryQuarterFromRecordNo(value){
+  const raw = (value || '').toString().trim().toUpperCase();
+  if (!raw) return '';
+  const normalized = typeof normalizeSupplyReportQuarter === 'function'
+    ? normalizeSupplyReportQuarter(raw)
+    : '';
+  if (normalized) return normalized;
+  const yyyymm = raw.match(/(\d{4})[-/](0[1-9]|1[0-2])/);
+  if (!yyyymm) return '';
+  const monthValue = `${yyyymm[1]}-${yyyymm[2]}`;
+  return typeof deriveSupplyReportQuarterFromMonth === 'function'
+    ? deriveSupplyReportQuarterFromMonth(monthValue)
+    : '';
+}
+
+function resolveInventoryQuarterToneClass(record, sourceNo, enabled){
+  if (!enabled) return '';
+  const quarter = (typeof normalizeSupplyReportQuarter === 'function'
+    ? normalizeSupplyReportQuarter(record?.reportQuarter || '')
+    : '')
+    || (typeof deriveSupplyReportQuarterFromDate === 'function'
+      ? deriveSupplyReportQuarterFromDate(record?.issuedDate || '')
+      : '')
+    || deriveInventoryQuarterFromRecordNo(sourceNo);
+  if (!quarter) return '';
+  const quarterNum = quarter.slice(-1);
+  return /^[1-4]$/.test(quarterNum) ? `tone-q${quarterNum}` : '';
+}
+
 function classifyEULItem(record, item){
   const issued = new Date(record.issuedDate);
   const eulYears = Number((item.eul ?? '').toString().trim());
@@ -158,6 +195,7 @@ function loadICSRecords(){
   const canEdit = hasRoleCapability('edit_records');
   const canDelete = hasRoleCapability('delete_records');
   const canExport = hasRoleCapability('export_data');
+  const quarterToneEnabled = isInventoryQuarterToneEnabled();
   const allRecords = JSON.parse(localStorage.getItem('icsRecords') || '[]');
   const body = document.getElementById('icsRecords');
   if (!body) return;
@@ -182,12 +220,17 @@ function loadICSRecords(){
     const statusMini = renderRecordStatusMini(r);
     const safeIcs = escapeHTML(r.icsNo || '');
     const safeEntity = escapeHTML(r.entity || '');
+    const issuedDate = escapeHTML(formatDateForDisplay(r.issuedDate, '-'));
+    const icsQuarterToneClass = resolveInventoryQuarterToneClass(r, r?.icsNo || '', quarterToneEnabled);
+    const icsNoCellClass = icsQuarterToneClass
+      ? `ics-quarter-cell ${icsQuarterToneClass}`
+      : 'ics-quarter-cell';
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${rowIdx + 1}</td>
-      <td><div class="ics-no-wrap"><div class="ics-no-line"><button class="ics-link-btn" title="${safeIcs}" aria-label="Open ICS ${safeIcs}" data-action="openICSDetailsByIndex" data-arg1="${i}">${safeIcs}</button></div></div></td>
+      <td class="${icsNoCellClass}"><div class="ics-no-wrap"><div class="ics-no-line"><button class="ics-link-btn" title="${safeIcs}" aria-label="Open ICS ${safeIcs}" data-action="openICSDetailsByIndex" data-arg1="${i}">${safeIcs}</button></div></div></td>
       <td>${statusMini}</td>
-      <td>${safeEntity}</td>
-      <td>${r.issuedDate}</td>
+      <td><span class="inventory-entity-text">${safeEntity}</span></td>
+      <td>${issuedDate}</td>
       <td>${r.accountable}</td>
       <td>${renderEULStatus(r, 'ics')}</td>
       <td>${metrics.totalItems}</td>
@@ -207,6 +250,7 @@ function loadPARRecords(){
   const canEdit = hasRoleCapability('edit_records');
   const canDelete = hasRoleCapability('delete_records');
   const canExport = hasRoleCapability('export_data');
+  const quarterToneEnabled = isInventoryQuarterToneEnabled();
   const allRecords = JSON.parse(localStorage.getItem('parRecords') || '[]');
   const body = document.getElementById('parRecords');
   if (!body) return;
@@ -229,13 +273,18 @@ function loadPARRecords(){
     const statusMini = renderRecordStatusMini(r);
     const safePar = escapeHTML((r.parNo || r.icsNo || '').toString());
     const safeEntity = escapeHTML((r.entity || '').toString());
-    const issuedDate = escapeHTML((r.issuedDate || '').toString());
+    const issuedDate = escapeHTML(formatDateForDisplay(r.issuedDate, '-'));
     const accountable = escapeHTML((r.accountable || '').toString());
+    const sourceNoRaw = (r.parNo || r.icsNo || '').toString();
+    const parQuarterToneClass = resolveInventoryQuarterToneClass(r, sourceNoRaw, quarterToneEnabled);
+    const parNoCellClass = parQuarterToneClass
+      ? `ics-quarter-cell ${parQuarterToneClass}`
+      : 'ics-quarter-cell';
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${rowIdx + 1}</td>
-      <td><div class="ics-no-wrap"><div class="ics-no-line"><button class="ics-link-btn" title="${safePar}" aria-label="Open PAR ${safePar}" data-action="openPARDetailsByIndex" data-arg1="${i}">${safePar || '-'}</button></div></div></td>
+      <td class="${parNoCellClass}"><div class="ics-no-wrap"><div class="ics-no-line"><button class="ics-link-btn" title="${safePar}" aria-label="Open PAR ${safePar}" data-action="openPARDetailsByIndex" data-arg1="${i}">${safePar || '-'}</button></div></div></td>
       <td>${statusMini}</td>
-      <td>${safeEntity}</td>
+      <td><span class="inventory-entity-text">${safeEntity}</span></td>
       <td>${issuedDate || '-'}</td>
       <td>${accountable || '-'}</td>
       <td>${renderEULStatus(r, 'par')}</td>

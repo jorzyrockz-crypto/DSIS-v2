@@ -1,4 +1,19 @@
 function normalizeImportPackage(payload){
+  const readSuppliesRecords = (source) => {
+    if (!source || typeof source !== 'object') return [];
+    const rows = source.suppliesRecords ?? source.icsSuppliesRecords;
+    return Array.isArray(rows) ? rows : [];
+  };
+  const readSuppliesHistoryByStockNo = (source) => {
+    if (!source || typeof source !== 'object') return {};
+    const map = source.suppliesHistoryByStockNo ?? source.icsSuppliesHistoryByStockNo;
+    return map && typeof map === 'object' && !Array.isArray(map) ? map : {};
+  };
+  const readSuppliesStagedItems = (source) => {
+    if (!source || typeof source !== 'object') return [];
+    const rows = source.suppliesStagedItems ?? source.icsSuppliesStagedItems;
+    return Array.isArray(rows) ? rows : [];
+  };
   const packageSchoolIdentity = normalizeSchoolIdentity({
     schoolName: payload?.schoolIdentity?.schoolName || payload?.school?.schoolName || payload?.meta?.schoolName || '',
     schoolId: payload?.schoolIdentity?.schoolId || payload?.school?.schoolId || payload?.meta?.schoolId || ''
@@ -9,6 +24,9 @@ function normalizeImportPackage(payload){
       records: payload,
       icsRecords: payload,
       parRecords: [],
+      suppliesRecords: [],
+      suppliesHistoryByStockNo: {},
+      suppliesStagedItems: [],
       schemaVersion: 'legacy',
       packageType: 'array',
       integrity: null,
@@ -17,13 +35,19 @@ function normalizeImportPackage(payload){
     };
   }
   if (payload && typeof payload === 'object'){
-    if (Array.isArray(payload.data?.records) || Array.isArray(payload.data?.parRecords)){
+    if (Array.isArray(payload.data?.records) || Array.isArray(payload.data?.parRecords) || Array.isArray(payload.data?.suppliesRecords) || Array.isArray(payload.data?.icsSuppliesRecords)){
       const icsRecords = Array.isArray(payload.data?.records) ? payload.data.records : [];
       const parRecords = Array.isArray(payload.data?.parRecords) ? payload.data.parRecords : [];
+      const suppliesRecords = readSuppliesRecords(payload.data);
+      const suppliesHistoryByStockNo = readSuppliesHistoryByStockNo(payload.data);
+      const suppliesStagedItems = readSuppliesStagedItems(payload.data);
       return {
         records: icsRecords,
         icsRecords,
         parRecords,
+        suppliesRecords,
+        suppliesHistoryByStockNo,
+        suppliesStagedItems,
         schemaVersion: payload.schemaVersion || payload.version || 'legacy',
         packageType: payload.packageType || 'schema-package',
         integrity: payload.integrity || null,
@@ -36,13 +60,19 @@ function normalizeImportPackage(payload){
         }
       };
     }
-    if (Array.isArray(payload.records) || Array.isArray(payload.parRecords)){
+    if (Array.isArray(payload.records) || Array.isArray(payload.parRecords) || Array.isArray(payload.suppliesRecords) || Array.isArray(payload.icsSuppliesRecords)){
       const icsRecords = Array.isArray(payload.records) ? payload.records : [];
       const parRecords = Array.isArray(payload.parRecords) ? payload.parRecords : [];
+      const suppliesRecords = readSuppliesRecords(payload);
+      const suppliesHistoryByStockNo = readSuppliesHistoryByStockNo(payload);
+      const suppliesStagedItems = readSuppliesStagedItems(payload);
       return {
         records: icsRecords,
         icsRecords,
         parRecords,
+        suppliesRecords,
+        suppliesHistoryByStockNo,
+        suppliesStagedItems,
         schemaVersion: payload.schemaVersion || payload.version || 'legacy',
         packageType: payload.packageType || 'records',
         integrity: payload.integrity || null,
@@ -56,6 +86,9 @@ function normalizeImportPackage(payload){
         records: [payload],
         icsRecords: isPar ? [] : [payload],
         parRecords: isPar ? [payload] : [],
+        suppliesRecords: [],
+        suppliesHistoryByStockNo: {},
+        suppliesStagedItems: [],
         schemaVersion: payload.schemaVersion || payload.version || 'legacy',
         packageType: 'single-record',
         integrity: payload.integrity || null,
@@ -172,18 +205,133 @@ function updateDataManagerApplyState(){
   if (!btn) return;
   const summaryReady = !!dataManagerState.summary;
   const verified = !!dataManagerState.verification?.ok;
-  btn.disabled = !(summaryReady && verified);
+  const alreadyApplied = !!dataManagerState.importApplied;
+  btn.disabled = !(summaryReady && verified) || alreadyApplied;
   if (btn.disabled){
-    btn.title = 'Import is blocked until restore verification passes.';
+    btn.title = alreadyApplied
+      ? 'Import already applied for this loaded file. Choose a new file to import again.'
+      : 'Import is blocked until restore verification passes.';
   } else {
     btn.removeAttribute('title');
+  }
+}
+
+function getDataManagerImportScope(){
+  const summary = dataManagerState?.summary;
+  if (!summary) return 'all';
+  const hasICS = Number(summary.incomingICS || 0) > 0;
+  const hasPAR = Number(summary.incomingPAR || 0) > 0;
+  const hasSupplies = Number(summary.incomingSupplies || 0) > 0;
+  const activeCount = [hasICS, hasPAR, hasSupplies].filter(Boolean).length;
+  if (activeCount !== 1) return 'all';
+  if (hasICS) return 'ics';
+  if (hasPAR) return 'par';
+  if (hasSupplies) return 'supplies';
+  return 'all';
+}
+
+function normalizeDataManagerExportScope(scope){
+  const value = (scope || 'all').toString().toLowerCase();
+  if (value === 'full') return 'all';
+  if (value === 'records') return 'all';
+  if (value === 'ics' || value === 'par' || value === 'supplies' || value === 'all') return value;
+  return 'all';
+}
+
+function getDataManagerImportScopeLabel(scope){
+  const key = (scope || getDataManagerImportScope()).toString().toLowerCase();
+  if (key === 'ics') return 'ICS';
+  if (key === 'par') return 'PAR';
+  if (key === 'supplies') return 'SUPPLIES';
+  return 'ALL';
+}
+
+function getSelectedImportScopeIncomingCount(summary, scope){
+  if (!summary) return 0;
+  const key = (scope || getDataManagerImportScope()).toString().toLowerCase();
+  if (key === 'ics') return Number(summary.incomingICS || 0);
+  if (key === 'par') return Number(summary.incomingPAR || 0);
+  if (key === 'supplies') return Number(summary.incomingSupplies || 0);
+  return Number(summary.totalIncomingWithSupplies || summary.totalIncoming || 0);
+}
+
+function refreshImportCenterUXState(){
+  const scope = getDataManagerImportScope();
+  const scopeLabel = getDataManagerImportScopeLabel(scope);
+  const summary = dataManagerState.summary;
+  const hasPreview = !!summary;
+  const hasVerification = !!dataManagerState.verification;
+  const canOpenValidation = hasPreview && hasVerification;
+  const canApplyInline = hasPreview && !!dataManagerState.verification?.ok && !dataManagerState.importApplied;
+  const fileName = (dataManagerState.sourceName || '').toString().trim() || 'Not selected';
+
+  const stepMark = document.getElementById('dmStep3Mark');
+  if (stepMark){
+    if (!hasPreview) stepMark.textContent = 'Awaiting File';
+    else if (dataManagerState.importApplied) stepMark.textContent = 'Imported';
+    else if (dataManagerState.verification?.ok) stepMark.textContent = 'Ready to Apply';
+    else stepMark.textContent = 'Blocked';
+  }
+  const scopeSummary = document.getElementById('dmScopeSummary');
+  if (scopeSummary){
+    if (!hasPreview){
+      scopeSummary.textContent = 'Import target will be auto-detected after loading a file.';
+    } else if (dataManagerState.importApplied){
+      scopeSummary.textContent = `Detected target: ${scopeLabel}. Import already applied for this file. Choose a new file to apply again.`;
+    } else {
+      const count = getSelectedImportScopeIncomingCount(summary, scope);
+      scopeSummary.textContent = `Detected target: ${scopeLabel}. ${count} incoming item(s) ready for import.`;
+    }
+  }
+  const detectedInfo = document.getElementById('dmDetectedInfo');
+  if (detectedInfo){
+    if (!hasPreview){
+      detectedInfo.textContent = 'No package detected yet.';
+    } else {
+      detectedInfo.textContent = `Detected package: ${summary.packageType || 'unknown'} | Schema: ${summary.schemaVersion || 'legacy'} | Target: ${scopeLabel} | Contains: Supplies ${summary.incomingSupplies || 0}, ICS ${summary.incomingICS || 0}, PAR ${summary.incomingPAR || 0}.`;
+    }
+  }
+  const footerSummary = document.getElementById('dmImportFooterSummary');
+  if (footerSummary){
+    let status = 'Waiting for file';
+    if (hasPreview){
+      if (!hasVerification) status = 'Preview loaded';
+      else if (dataManagerState.importApplied) status = 'Imported';
+      else if (dataManagerState.verification?.ok) status = 'Ready';
+      else status = 'Blocked by verification';
+    }
+    footerSummary.textContent = `Target: ${scopeLabel} | File: ${fileName} | Status: ${status}`;
+  }
+  const validationBtn = document.getElementById('dmOpenValidationBtn');
+  if (validationBtn){
+    validationBtn.disabled = !canOpenValidation;
+    if (validationBtn.disabled){
+      validationBtn.title = hasPreview ? 'Validation Preview is unavailable until restore verification completes.' : 'Choose a file first.';
+    } else {
+      validationBtn.removeAttribute('title');
+    }
+  }
+  const applyInlineBtn = document.getElementById('dmApplyImportInlineBtn');
+  if (applyInlineBtn){
+    applyInlineBtn.disabled = !canApplyInline;
+    if (applyInlineBtn.disabled){
+      applyInlineBtn.title = hasPreview
+        ? (
+          dataManagerState.importApplied
+            ? 'Import already applied for this loaded file. Choose a new file to import again.'
+            : (dataManagerState.verification?.message || 'Import is blocked until restore verification passes.')
+        )
+        : 'Choose a file first.';
+    } else {
+      applyInlineBtn.removeAttribute('title');
+    }
   }
 }
 
 async function verifyImportPackageIntegrity(payload, parsed){
   const packageType = ((parsed?.packageType || payload?.packageType || '') + '').toLowerCase();
   const sourceIntegrity = parsed?.integrity || payload?.integrity || null;
-  const isSchemaPackage = !!(payload && typeof payload === 'object' && !Array.isArray(payload) && (payload.data || payload.records || payload.parRecords));
+  const isSchemaPackage = !!(payload && typeof payload === 'object' && !Array.isArray(payload) && (payload.data || payload.records || payload.parRecords || payload.suppliesRecords || payload.icsSuppliesRecords));
 
   if (!isSchemaPackage){
     return {
@@ -341,12 +489,12 @@ async function verifyImportPackageForRestore(payload, parsed, summary){
 function analyzeImportPayload(payload, sourceName = ''){
   const parsed = normalizeImportPackage(payload);
   if (!parsed){
-    return { ok: false, reason: 'Unsupported payload. Expected ICS/PAR record, records array, or schema package.' };
+    return { ok: false, reason: 'Unsupported payload. Expected ICS/PAR record, records/supplies array, or schema package.' };
   }
   const packageExportedBy = normalizeProfileKeyValue(parsed.exportedByProfileKey || payload?.exportedByProfileKey || '');
   const existingByType = {
-    ics: JSON.parse(localStorage.getItem('icsRecords') || '[]'),
-    par: JSON.parse(localStorage.getItem('parRecords') || '[]')
+    ics: loadLocalJSON('icsRecords', []),
+    par: loadLocalJSON('parRecords', [])
   };
   const existingKeysByType = {
     ics: new Set((existingByType.ics || []).map((r) => normalizeICSKey(resolveImportRecordNo(r, 'ics')))),
@@ -362,6 +510,9 @@ function analyzeImportPayload(payload, sourceName = ''){
   let migratedTraceKeys = 0;
   let incomingICS = 0;
   let incomingPAR = 0;
+  const incomingSupplies = Array.isArray(parsed.suppliesRecords) ? parsed.suppliesRecords.length : 0;
+  const incomingSuppliesHistoryKeys = Object.keys(parsed.suppliesHistoryByStockNo || {}).length;
+  const incomingSuppliesStagedItems = Array.isArray(parsed.suppliesStagedItems) ? parsed.suppliesStagedItems.length : 0;
   let validICS = 0;
   let validPAR = 0;
 
@@ -440,8 +591,12 @@ function analyzeImportPayload(payload, sourceName = ''){
     schoolIdentity: parsed.schoolIdentity || null,
     packageExportedByProfileKey: packageExportedBy || '',
     totalIncoming: rows.length,
+    totalIncomingWithSupplies: rows.length + incomingSupplies,
     incomingICS,
     incomingPAR,
+    incomingSupplies,
+    incomingSuppliesHistoryKeys,
+    incomingSuppliesStagedItems,
     validICS,
     validPAR,
     valid: rows.filter((r) => r.status === 'valid').length,
@@ -453,6 +608,11 @@ function analyzeImportPayload(payload, sourceName = ''){
     newRecords: rows.filter((r) => r.status === 'valid').length,
     rows,
     validRows,
+    suppliesRecords: Array.isArray(parsed.suppliesRecords) ? parsed.suppliesRecords : [],
+    suppliesHistoryByStockNo: parsed.suppliesHistoryByStockNo && typeof parsed.suppliesHistoryByStockNo === 'object' && !Array.isArray(parsed.suppliesHistoryByStockNo)
+      ? parsed.suppliesHistoryByStockNo
+      : {},
+    suppliesStagedItems: Array.isArray(parsed.suppliesStagedItems) ? parsed.suppliesStagedItems : [],
     extras: parsed.extras || {}
   };
   return { ok: true, summary, parsed };
@@ -461,7 +621,7 @@ function analyzeImportPayload(payload, sourceName = ''){
 function analyzeTraceCoverageForPayload(payload, sourceName = ''){
   const parsed = normalizeImportPackage(payload);
   if (!parsed){
-    return { ok: false, reason: 'Unsupported payload. Expected ICS/PAR record, records array, or schema package.' };
+    return { ok: false, reason: 'Unsupported payload. Expected ICS/PAR record, records/supplies array, or schema package.' };
   }
   const normalizedRecords = [];
   const missingRows = [];
@@ -522,9 +682,12 @@ function updateDataManagerPreview(summary){
   const exporterText = summary.packageExportedByProfileKey
     ? ` | Exported By: ${summary.packageExportedByProfileKey}`
     : '';
-  summaryText.textContent = `Package: ${summary.packageType} | Schema: ${summary.schemaVersion || 'legacy'}${schoolText}${exporterText} | Incoming: ${summary.totalIncoming} (ICS: ${summary.incomingICS || 0}, PAR: ${summary.incomingPAR || 0})`;
+  const activeScope = getDataManagerImportScope();
+  const activeScopeLabel = getDataManagerImportScopeLabel(activeScope);
+  summaryText.textContent = `Package: ${summary.packageType} | Schema: ${summary.schemaVersion || 'legacy'}${schoolText}${exporterText} | Incoming: ${summary.totalIncomingWithSupplies || summary.totalIncoming} (ICS: ${summary.incomingICS || 0}, PAR: ${summary.incomingPAR || 0}, Supplies: ${summary.incomingSupplies || 0}) | Active scope: ${activeScopeLabel}`;
   kpis.innerHTML = `
     <div class="dm-kpi"><div class="k">Incoming</div><div class="v">${summary.totalIncoming}</div></div>
+    <div class="dm-kpi"><div class="k">Supplies</div><div class="v">${summary.incomingSupplies || 0}</div></div>
     <div class="dm-kpi"><div class="k">Valid</div><div class="v">${summary.valid}</div></div>
     <div class="dm-kpi ${summary.invalid ? 'err' : ''}"><div class="k">Invalid</div><div class="v">${summary.invalid}</div></div>
     <div class="dm-kpi"><div class="k">New</div><div class="v">${summary.newRecords}</div></div>
@@ -532,10 +695,24 @@ function updateDataManagerPreview(summary){
     <div class="dm-kpi ${summary.inFileDuplicates ? 'warn' : ''}"><div class="k">In-file Duplicates</div><div class="v">${summary.inFileDuplicates}</div></div>
     <div class="dm-kpi ${summary.migratedTraceKeys ? 'warn' : ''}"><div class="k">Trace Migrated</div><div class="v">${summary.migratedTraceKeys || 0}</div></div>
   `;
-  const rows = summary.rows.slice(0, 120);
+  const rows = activeScope === 'ics'
+    ? summary.rows.filter((r) => (r.recordType || 'ics') === 'ics').slice(0, 120)
+    : activeScope === 'par'
+      ? summary.rows.filter((r) => (r.recordType || 'ics') === 'par').slice(0, 120)
+      : activeScope === 'supplies'
+        ? (summary.suppliesRecords || []).slice(0, 120).map((row, idx) => ({
+          index: idx,
+          recordType: 'supplies',
+          recordNo: (row?.stockNo || '').toString(),
+          entity: ((row?.item || row?.description || '').toString()),
+          status: 'ready',
+          notes: ['Supplies row ready for detected-target import.']
+        }))
+        : summary.rows.slice(0, 120);
   previewBody.innerHTML = rows.length ? rows.map((r, idx) => {
     const note = r.notes.length ? r.notes.join(' | ') : '-';
-    const recordCode = (r.recordType || 'ics') === 'par' ? 'PAR' : 'ICS';
+    const recordType = (r.recordType || 'ics');
+    const recordCode = recordType === 'par' ? 'PAR' : (recordType === 'supplies' ? 'SUP' : 'ICS');
     const recordNo = r.recordNo || r.icsNo || '';
     return `<tr>
       <td>${idx + 1}</td>
@@ -637,7 +814,8 @@ function resetDataManagerPreview(){
     parsedPayload: null,
     conflicts: [],
     verification: null,
-    migrationRows: []
+    migrationRows: [],
+    importApplied: false
   };
   const fileName = document.getElementById('dmFileName');
   if (fileName) fileName.textContent = 'No file selected.';
@@ -645,8 +823,12 @@ function resetDataManagerPreview(){
     packageType: 'none',
     schemaVersion: '-',
     totalIncoming: 0,
+    totalIncomingWithSupplies: 0,
     incomingICS: 0,
     incomingPAR: 0,
+    incomingSupplies: 0,
+    incomingSuppliesHistoryKeys: 0,
+    incomingSuppliesStagedItems: 0,
     valid: 0,
     invalid: 0,
     conflicts: 0,
@@ -661,6 +843,7 @@ function resetDataManagerPreview(){
   setDataManagerStep3Ready(false);
   renderDataManagerVerificationStatus(null);
   updateDataManagerApplyState();
+  refreshImportCenterUXState();
 }
 
 function openDataHubModal(){
@@ -702,6 +885,7 @@ function openDataImportModal(openSource = ''){
   dataImportOverlay.classList.add('show');
   renderDataImportHistory();
   updateDataManagerApplyState();
+  refreshImportCenterUXState();
   const fileName = document.getElementById('dmFileName');
   if (fileName && fileName.textContent === 'No file selected.'){
     const openedFromWidget = (openSource || '').toString().toLowerCase() === 'widget';
@@ -728,6 +912,7 @@ function openDataValidationModal(){
   dataValidationOverlay.classList.add('show');
   renderDataManagerVerificationStatus(dataManagerState.verification);
   updateDataManagerApplyState();
+  refreshImportCenterUXState();
 }
 
 function closeDataValidationModal(){
@@ -856,7 +1041,7 @@ function handleDataManagerValidateFile(event){
 
 function handleDataManagerFile(event){
   if (!requireAccess('import_json', { label: 'import data' })){
-    notify('error', 'Your role cannot import data.');
+    setDataManagerInlineStatus('error', 'Your role cannot import data.');
     if (event?.target) event.target.value = '';
     return;
   }
@@ -874,11 +1059,12 @@ function handleDataManagerFile(event){
         dataManagerState.parsedPayload = null;
         dataManagerState.verification = null;
         dataManagerState.migrationRows = [];
-        notify('error', result.reason || 'Import preview failed.');
+        dataManagerState.importApplied = false;
         setDataManagerInlineStatus('error', result.reason || 'Import preview failed.');
         setDataManagerStep3Ready(false);
         renderDataManagerVerificationStatus(null);
         updateDataManagerApplyState();
+        refreshImportCenterUXState();
         showModal('Import Error', result.reason || 'Unsupported JSON payload.');
         return;
       }
@@ -886,6 +1072,7 @@ function handleDataManagerFile(event){
       dataManagerState.parsedPayload = result.parsed;
       dataManagerState.sourceName = file.name;
       dataManagerState.migrationRows = Array.isArray(result.summary?.migrationRows) ? result.summary.migrationRows : [];
+      dataManagerState.importApplied = false;
       dataManagerState.conflicts = result.summary.rows
         .filter((r) => r.status !== 'valid')
         .map((r) => ({
@@ -901,27 +1088,23 @@ function handleDataManagerFile(event){
       setDataManagerInlineStatus(
         verification.ok ? (verification.level === 'warn' ? 'info' : 'success') : 'error',
         verification.ok
-          ? `Preview ready for ${result.summary.totalIncoming} record(s) (ICS: ${result.summary.incomingICS || 0}, PAR: ${result.summary.incomingPAR || 0}). Verification: ${verification.message}`
+          ? `Preview ready for ${result.summary.totalIncomingWithSupplies || result.summary.totalIncoming} item(s) (ICS: ${result.summary.incomingICS || 0}, PAR: ${result.summary.incomingPAR || 0}, Supplies: ${result.summary.incomingSupplies || 0}). Verification: ${verification.message}`
           : `Preview blocked. ${verification.message}`
       );
       setDataManagerStep3Ready(verification.ok);
-      openDataValidationModal();
       updateDataManagerApplyState();
-      if (verification.ok){
-        notify('success', `Preview loaded: ${result.summary.totalIncoming} record(s) (ICS: ${result.summary.incomingICS || 0}, PAR: ${result.summary.incomingPAR || 0}).`);
-      } else {
-        notify('error', verification.message || 'Restore verification failed.');
-      }
+      refreshImportCenterUXState();
     } catch (err){
       dataManagerState.summary = null;
       dataManagerState.parsedPayload = null;
       dataManagerState.migrationRows = [];
-      notify('error', `Import failed for ${file.name}. Invalid JSON format.`);
+      dataManagerState.importApplied = false;
       setDataManagerInlineStatus('error', `Import failed for ${file.name}. Invalid JSON format.`);
       setDataManagerStep3Ready(false);
       dataManagerState.verification = null;
       renderDataManagerVerificationStatus(null);
       updateDataManagerApplyState();
+      refreshImportCenterUXState();
       showModal('Import Error', 'Selected file is not a valid JSON package.');
     } finally {
       event.target.value = '';
@@ -932,10 +1115,12 @@ function handleDataManagerFile(event){
     dataManagerState.parsedPayload = null;
     dataManagerState.verification = null;
     dataManagerState.migrationRows = [];
-    notify('error', `Import failed for ${file.name}.`);
+    dataManagerState.importApplied = false;
+    setDataManagerInlineStatus('error', `Import failed for ${file.name}.`);
     setDataManagerStep3Ready(false);
     renderDataManagerVerificationStatus(null);
     updateDataManagerApplyState();
+    refreshImportCenterUXState();
     showModal('Import Error', 'Unable to read selected file.');
     event.target.value = '';
   };
@@ -948,6 +1133,7 @@ function refreshAfterDataImport(){
   renderProfileTraceIntegritySummary();
   const active = activeViewKey();
   if (active === 'Dashboard') initDashboardView();
+  if (active === 'Supplies' && typeof initSuppliesView === 'function') initSuppliesView();
   if (active === 'Action Center') initActionsView();
   if (active === 'Archives') initArchivesView();
 }
@@ -956,24 +1142,31 @@ function applyDataManagerImport(){
   if (!requireAccess('apply_import', { label: 'applying import' })) return;
   const summary = dataManagerState.summary;
   if (!summary){
-    notify('error', 'No import preview available. Choose a file first.');
     setDataManagerInlineStatus('error', 'No import preview available. Choose a file first.');
     return;
   }
   if (!dataManagerState.verification?.ok){
     const msg = dataManagerState.verification?.message || 'Restore verification failed. Import blocked.';
-    notify('error', msg);
     setDataManagerInlineStatus('error', msg);
     openDataValidationModal();
     return;
   }
+  if (dataManagerState.importApplied){
+    setDataManagerInlineStatus('info', 'Import already applied for this loaded file. Choose a new file to import again.');
+    refreshImportCenterUXState();
+    return;
+  }
   captureUndoSnapshot(`import-apply:${dataManagerState.sourceName || 'json'}`);
   const mode = document.querySelector('input[name="dmMode"]:checked')?.value || 'merge';
+  const importScope = getDataManagerImportScope();
+  const allowICS = importScope === 'all' || importScope === 'ics';
+  const allowPAR = importScope === 'all' || importScope === 'par';
+  const allowSupplies = importScope === 'all' || importScope === 'supplies';
   dataManagerState.mode = mode;
   const migratedTraceKeys = Number(summary.migratedTraceKeys || 0);
   const recordsByType = {
-    ics: JSON.parse(localStorage.getItem('icsRecords') || '[]'),
-    par: JSON.parse(localStorage.getItem('parRecords') || '[]')
+    ics: loadLocalJSON('icsRecords', []),
+    par: loadLocalJSON('parRecords', [])
   };
   const byKeyByType = {
     ics: new Map((recordsByType.ics || []).map((r, i) => [normalizeICSKey(resolveImportRecordNo(r, 'ics')), i])),
@@ -986,6 +1179,12 @@ function applyDataManagerImport(){
   let addedPAR = 0;
   let replacedICS = 0;
   let replacedPAR = 0;
+  let skippedByScope = 0;
+  let addedSupplies = 0;
+  let replacedSupplies = 0;
+  let skippedSupplies = 0;
+  let importedSuppliesHistoryKeys = 0;
+  let importedSuppliesStagedItems = 0;
 
   summary.rows.forEach((row) => {
     if (row.status !== 'valid' && row.status !== 'conflict-existing'){
@@ -993,6 +1192,10 @@ function applyDataManagerImport(){
       return;
     }
     const recordType = resolveImportRecordType(row.recordType || 'ics');
+    if ((recordType === 'ics' && !allowICS) || (recordType === 'par' && !allowPAR)){
+      skippedByScope += 1;
+      return;
+    }
     const key = normalizeICSKey(resolveImportRecordNo(row.record, recordType));
     if (!key){
       skipped += 1;
@@ -1023,11 +1226,93 @@ function applyDataManagerImport(){
     else addedICS += 1;
   });
 
+  const incomingSupplyRows = Array.isArray(summary.suppliesRecords) ? summary.suppliesRecords : [];
+  const incomingSupplyHistoryMap = summary.suppliesHistoryByStockNo && typeof summary.suppliesHistoryByStockNo === 'object' && !Array.isArray(summary.suppliesHistoryByStockNo)
+    ? summary.suppliesHistoryByStockNo
+    : {};
+  const incomingSupplyStagedItems = Array.isArray(summary.suppliesStagedItems) ? summary.suppliesStagedItems : [];
+
+  const localSupplyRows = loadLocalJSON('icsSuppliesRecords', []);
+  const localSupplyRowsSafe = Array.isArray(localSupplyRows) ? localSupplyRows : [];
+  const localSupplyByKey = new Map(
+    localSupplyRowsSafe
+      .map((row, idx) => [normalizeICSKey(((row?.stockNo || '').toString()).trim()), idx])
+      .filter(([key]) => !!key)
+  );
+  incomingSupplyRows.forEach((incomingRow) => {
+    if (!allowSupplies){
+      skippedSupplies += 1;
+      return;
+    }
+    if (!incomingRow || typeof incomingRow !== 'object'){
+      skippedSupplies += 1;
+      return;
+    }
+    const stockNoKey = normalizeICSKey((((incomingRow || {}).stockNo || '').toString()).trim());
+    if (!stockNoKey){
+      skippedSupplies += 1;
+      return;
+    }
+    const existingIdx = localSupplyByKey.has(stockNoKey) ? localSupplyByKey.get(stockNoKey) : -1;
+    const nextRow = JSON.parse(JSON.stringify(incomingRow));
+    if (existingIdx >= 0){
+      if (mode === 'replace'){
+        localSupplyRowsSafe[existingIdx] = nextRow;
+        replacedSupplies += 1;
+      } else {
+        skippedSupplies += 1;
+      }
+      return;
+    }
+    localSupplyRowsSafe.push(nextRow);
+    localSupplyByKey.set(stockNoKey, localSupplyRowsSafe.length - 1);
+    addedSupplies += 1;
+  });
+
+  const existingSupplyHistoryRaw = loadLocalJSON('icsSuppliesHistoryByStockNo', {});
+  const localSupplyHistory = existingSupplyHistoryRaw && typeof existingSupplyHistoryRaw === 'object' && !Array.isArray(existingSupplyHistoryRaw)
+    ? existingSupplyHistoryRaw
+    : {};
+  if (allowSupplies && mode === 'replace'){
+    const nextHistory = JSON.parse(JSON.stringify(incomingSupplyHistoryMap));
+    localStorage.setItem('icsSuppliesHistoryByStockNo', JSON.stringify(nextHistory));
+    importedSuppliesHistoryKeys = Object.keys(nextHistory).length;
+  } else if (allowSupplies){
+    const localHistoryKeys = new Set(Object.keys(localSupplyHistory).map((key) => normalizeICSKey(key)));
+    Object.keys(incomingSupplyHistoryMap).forEach((stockNoKeyRaw) => {
+      const stockNoKey = normalizeICSKey(stockNoKeyRaw);
+      if (!stockNoKey || localHistoryKeys.has(stockNoKey)) return;
+      localSupplyHistory[stockNoKeyRaw] = JSON.parse(JSON.stringify(incomingSupplyHistoryMap[stockNoKeyRaw]));
+      localHistoryKeys.add(stockNoKey);
+      importedSuppliesHistoryKeys += 1;
+    });
+    localStorage.setItem('icsSuppliesHistoryByStockNo', JSON.stringify(localSupplyHistory));
+  }
+
+  const existingSupplyStagedRaw = loadLocalJSON('icsSuppliesStagedItems', []);
+  const localSupplyStaged = Array.isArray(existingSupplyStagedRaw) ? existingSupplyStagedRaw : [];
+  if (allowSupplies && mode === 'replace'){
+    const nextStaged = JSON.parse(JSON.stringify(incomingSupplyStagedItems));
+    localStorage.setItem('icsSuppliesStagedItems', JSON.stringify(nextStaged));
+    importedSuppliesStagedItems = nextStaged.length;
+  } else if (allowSupplies && incomingSupplyStagedItems.length){
+    const appended = incomingSupplyStagedItems
+      .filter((row) => row && typeof row === 'object')
+      .map((row) => JSON.parse(JSON.stringify(row)));
+    importedSuppliesStagedItems = appended.length;
+    localStorage.setItem('icsSuppliesStagedItems', JSON.stringify([...localSupplyStaged, ...appended]));
+  }
+
+  if (allowSupplies){
+    localStorage.setItem('icsSuppliesRecords', JSON.stringify(localSupplyRowsSafe));
+  }
+
   localStorage.setItem('icsRecords', JSON.stringify(recordsByType.ics || []));
   localStorage.setItem('parRecords', JSON.stringify(recordsByType.par || []));
   localStorage.setItem('icsLastImportAt', new Date().toISOString());
-  recordAudit('import', `Data Manager import (${mode}) from ${dataManagerState.sourceName || 'JSON'}: +${added} (ICS:${addedICS}, PAR:${addedPAR}), replaced ${replaced} (ICS:${replacedICS}, PAR:${replacedPAR}), skipped ${skipped}`, {
+  recordAudit('import', `Data Manager import (${mode}, scope:${importScope}) from ${dataManagerState.sourceName || 'JSON'}: +${added} (ICS:${addedICS}, PAR:${addedPAR}, Supplies:${addedSupplies}), replaced ${replaced} (ICS:${replacedICS}, PAR:${replacedPAR}, Supplies:${replacedSupplies}), skipped ${skipped} (scope:${skippedByScope}, Supplies:${skippedSupplies}), Supplies history keys imported: ${importedSuppliesHistoryKeys}, Supplies staged rows imported: ${importedSuppliesStagedItems}`, {
     mode,
+    importScope,
     sourceName: dataManagerState.sourceName || 'JSON',
     added,
     addedICS,
@@ -1035,19 +1320,24 @@ function applyDataManagerImport(){
     replaced,
     replacedICS,
     replacedPAR,
-    skipped
+    skipped,
+    skippedByScope,
+    addedSupplies,
+    replacedSupplies,
+    skippedSupplies,
+    importedSuppliesHistoryKeys,
+    importedSuppliesStagedItems
   });
+  dataManagerState.importApplied = true;
   renderDataImportHistory();
   refreshAfterDataImport();
   closeDataValidationModal();
   if (!dataImportOverlay?.classList?.contains('show')) openDataImportModal();
   else renderDataImportHistory();
-  setDataManagerInlineStatus('success', `Import successful. Added: ${added} (ICS:${addedICS}, PAR:${addedPAR}), Replaced: ${replaced} (ICS:${replacedICS}, PAR:${replacedPAR}), Skipped: ${skipped}.`);
-  notify('success', `Data import complete. Added: ${added} (ICS:${addedICS}, PAR:${addedPAR}), Replaced: ${replaced} (ICS:${replacedICS}, PAR:${replacedPAR}), Skipped: ${skipped}.`);
-  if (migratedTraceKeys > 0){
-    notify('info', `Legacy trace migration applied: ${migratedTraceKeys} missing profile-key field(s) auto-filled.`);
-  }
+  setDataManagerInlineStatus('success', `Import successful [scope: ${importScope.toUpperCase()}]. Added: ${added} (ICS:${addedICS}, PAR:${addedPAR}, Supplies:${addedSupplies}), Replaced: ${replaced} (ICS:${replacedICS}, PAR:${replacedPAR}, Supplies:${replacedSupplies}), Skipped: ${skipped} (scope:${skippedByScope}, Supplies:${skippedSupplies}). Supplies history keys imported: ${importedSuppliesHistoryKeys}, staged rows imported: ${importedSuppliesStagedItems}.`);
+  if (migratedTraceKeys > 0) setDataManagerInlineStatus('info', `Import complete. Legacy trace migration applied: ${migratedTraceKeys} missing profile-key field(s) auto-filled.`);
   renderProfileTraceIntegritySummary();
+  refreshImportCenterUXState();
 }
 
 function downloadJSONPayload(payload, fileName){
@@ -1154,6 +1444,22 @@ function getRecordYearMonth(record){
   return { year: '', month: '' };
 }
 
+function getSupplyYearMonth(row){
+  if (typeof getSupplyReportedYearMonth === 'function'){
+    const derived = getSupplyReportedYearMonth(row);
+    if (derived?.year || derived?.month) return derived;
+  }
+  const fromDate = normalizeDateYMD(row?.date || '').match(/^(\d{4})-(\d{2})-/);
+  if (fromDate){
+    return { year: fromDate[1], month: fromDate[2] };
+  }
+  const fromStockNo = ((row?.stockNo || '').toString().trim()).match(/^(\d{4})-(\d{2})-/);
+  if (fromStockNo){
+    return { year: fromStockNo[1], month: fromStockNo[2] };
+  }
+  return { year: '', month: '' };
+}
+
 function getDataManagerExportFilters(){
   const year = (document.getElementById('dmExportYear')?.value || 'all').trim();
   const month = (document.getElementById('dmExportMonth')?.value || 'all').trim();
@@ -1172,38 +1478,58 @@ function filterRecordsByYearMonth(records, filters){
   });
 }
 
+function filterSuppliesByYearMonth(rows, filters){
+  const year = filters?.year || 'all';
+  const month = filters?.month || 'all';
+  return (rows || []).filter((row) => {
+    const ym = getSupplyYearMonth(row);
+    if (!ym.year && !ym.month) return year === 'all' && month === 'all';
+    if (year !== 'all' && ym.year !== year) return false;
+    if (month !== 'all' && ym.month !== month) return false;
+    return true;
+  });
+}
+
 function updateDataManagerExportFilterHint(){
   const hint = document.getElementById('dmExportFilterHint');
   if (!hint) return;
-  const icsRecords = JSON.parse(localStorage.getItem('icsRecords') || '[]');
-  const parRecords = JSON.parse(localStorage.getItem('parRecords') || '[]');
+  const icsRecords = loadLocalJSON('icsRecords', []);
+  const parRecords = loadLocalJSON('parRecords', []);
+  const suppliesRecords = loadLocalJSON('icsSuppliesRecords', []);
   const filters = getDataManagerExportFilters();
   const filteredICS = filterRecordsByYearMonth(icsRecords, filters);
   const filteredPAR = filterRecordsByYearMonth(parRecords, filters);
+  const filteredSupplies = filterSuppliesByYearMonth(suppliesRecords, filters);
   const filteredTotal = filteredICS.length + filteredPAR.length;
   const labelYear = filters.year === 'all' ? 'All Years' : filters.year;
   const labelMonth = filters.month === 'all'
     ? 'All Months'
     : (document.querySelector(`#dmExportMonth option[value="${filters.month}"]`)?.textContent || filters.month);
-  hint.textContent = `Records export filter: ${labelYear} / ${labelMonth} (${filteredTotal} total: ICS ${filteredICS.length}, PAR ${filteredPAR.length}). Full package export remains unfiltered.`;
+  hint.textContent = `Export filter: ${labelYear} / ${labelMonth} (ICS ${filteredICS.length}, PAR ${filteredPAR.length}, Supplies ${filteredSupplies.length}). All Data export remains unfiltered.`;
 }
 
 function refreshDataManagerExportFilters(){
   const yearSelect = document.getElementById('dmExportYear');
   const monthSelect = document.getElementById('dmExportMonth');
   if (!yearSelect || !monthSelect) return;
-  const icsRecords = JSON.parse(localStorage.getItem('icsRecords') || '[]');
-  const parRecords = JSON.parse(localStorage.getItem('parRecords') || '[]');
+  const icsRecords = loadLocalJSON('icsRecords', []);
+  const parRecords = loadLocalJSON('parRecords', []);
+  const suppliesRecords = loadLocalJSON('icsSuppliesRecords', []);
   const records = [...icsRecords, ...parRecords];
   const selectedYear = yearSelect.value || 'all';
   const selectedMonth = monthSelect.value || 'all';
-  const years = [...new Set(records.map((record) => getRecordYearMonth(record).year).filter(Boolean))]
+  const years = [...new Set([
+    ...records.map((record) => getRecordYearMonth(record).year),
+    ...suppliesRecords.map((row) => getSupplyYearMonth(row).year)
+  ].filter(Boolean))]
     .sort((a, b) => b.localeCompare(a));
   const yearCountMap = years.reduce((map, year) => {
-    map[year] = records.filter((record) => getRecordYearMonth(record).year === year).length;
+    const recordsCount = records.filter((record) => getRecordYearMonth(record).year === year).length;
+    const suppliesCount = suppliesRecords.filter((row) => getSupplyYearMonth(row).year === year).length;
+    map[year] = recordsCount + suppliesCount;
     return map;
   }, {});
-  yearSelect.innerHTML = `<option value="all">All Years (${records.length})</option>`
+  yearSelect.innerHTML = `<option value="all">All Years (${records.length + suppliesRecords.length})</option>`
     + years.map((year) => `<option value="${year}">${year} (${yearCountMap[year] || 0})</option>`).join('');
   yearSelect.value = years.includes(selectedYear) ? selectedYear : 'all';
 
@@ -1217,49 +1543,89 @@ function refreshDataManagerExportFilters(){
   const monthPool = activeYear === 'all'
     ? records
     : records.filter((record) => getRecordYearMonth(record).year === activeYear);
+  const suppliesMonthPool = activeYear === 'all'
+    ? suppliesRecords
+    : suppliesRecords.filter((row) => getSupplyYearMonth(row).year === activeYear);
   const monthCountMap = monthKeys.reduce((map, key) => {
-    map[key] = monthPool.filter((record) => getRecordYearMonth(record).month === key).length;
+    const recordsCount = monthPool.filter((record) => getRecordYearMonth(record).month === key).length;
+    const suppliesCount = suppliesMonthPool.filter((row) => getSupplyYearMonth(row).month === key).length;
+    map[key] = recordsCount + suppliesCount;
     return map;
   }, {});
-  monthSelect.innerHTML = `<option value="all">All Months (${monthPool.length})</option>`
+  monthSelect.innerHTML = `<option value="all">All Months (${monthPool.length + suppliesMonthPool.length})</option>`
     + monthKeys.map((key) => `<option value="${key}">${monthNames[key]} (${monthCountMap[key] || 0})</option>`).join('');
   monthSelect.value = monthKeys.includes(selectedMonth) ? selectedMonth : 'all';
   updateDataManagerExportFilterHint();
 }
 
 function buildSchemaVersionedExport(scope = 'records', options = {}){
-  const allIcsRecords = JSON.parse(localStorage.getItem('icsRecords') || '[]');
-  const allParRecords = JSON.parse(localStorage.getItem('parRecords') || '[]');
+  const exportScope = normalizeDataManagerExportScope(scope);
+  const allIcsRecords = loadLocalJSON('icsRecords', []);
+  const allParRecords = loadLocalJSON('parRecords', []);
+  const allSuppliesRecords = loadLocalJSON('icsSuppliesRecords', []);
+  const allSuppliesHistoryByStockNoRaw = loadLocalJSON('icsSuppliesHistoryByStockNo', {});
+  const allSuppliesStagedItems = loadLocalJSON('icsSuppliesStagedItems', []);
+  const allSuppliesHistoryByStockNo = allSuppliesHistoryByStockNoRaw && typeof allSuppliesHistoryByStockNoRaw === 'object' && !Array.isArray(allSuppliesHistoryByStockNoRaw)
+    ? allSuppliesHistoryByStockNoRaw
+    : {};
+  const includeICS = exportScope === 'all' || exportScope === 'ics';
+  const includePAR = exportScope === 'all' || exportScope === 'par';
+  const includeSupplies = exportScope === 'all' || exportScope === 'supplies';
+  const fullBackup = exportScope === 'all';
   const filters = options?.recordFilters || { year: 'all', month: 'all' };
-  const icsRecords = scope === 'records'
+  const icsRecords = includeICS
     ? filterRecordsByYearMonth(allIcsRecords, filters)
-    : allIcsRecords;
-  const parRecords = scope === 'records'
+    : [];
+  const parRecords = includePAR
     ? filterRecordsByYearMonth(allParRecords, filters)
-    : allParRecords;
+    : [];
+  const filteredSuppliesRecords = includeSupplies
+    ? (fullBackup ? allSuppliesRecords : filterSuppliesByYearMonth(allSuppliesRecords, filters))
+    : [];
+  const filteredSupplyKeys = new Set(
+    (filteredSuppliesRecords || [])
+      .map((row) => normalizeICSKey(((row?.stockNo || '').toString()).trim()))
+      .filter(Boolean)
+  );
+  const filteredSuppliesHistoryByStockNo = includeSupplies
+    ? (fullBackup
+      ? allSuppliesHistoryByStockNo
+      : Object.keys(allSuppliesHistoryByStockNo || {}).reduce((acc, key) => {
+        if (filteredSupplyKeys.has(normalizeICSKey(key))){
+          acc[key] = allSuppliesHistoryByStockNo[key];
+        }
+        return acc;
+      }, {}))
+    : {};
+  const filteredSuppliesStagedItems = includeSupplies
+    ? (fullBackup ? allSuppliesStagedItems : filterSuppliesByYearMonth(allSuppliesStagedItems, filters))
+    : [];
   const exportIcsRecords = ensureRecordTraceProfileKeysForExport(icsRecords);
   const exportParRecords = ensureRecordTraceProfileKeysForExport(parRecords);
   const base = {
     schemaVersion: ICS_SCHEMA_VERSION,
-    packageType: scope === 'full' ? 'full-backup' : 'records',
+    packageType: fullBackup ? 'full-backup' : `scope-${exportScope}`,
     exportedAt: new Date().toISOString(),
     exportedByProfileKey: getCurrentActorProfileKey(),
     app: 'DSIS V1',
     schoolIdentity: normalizeSchoolIdentity(schoolIdentity),
     data: {
       records: exportIcsRecords,
-      parRecords: exportParRecords
+      parRecords: exportParRecords,
+      suppliesRecords: includeSupplies && Array.isArray(filteredSuppliesRecords) ? filteredSuppliesRecords : [],
+      suppliesHistoryByStockNo: includeSupplies ? filteredSuppliesHistoryByStockNo : {},
+      suppliesStagedItems: includeSupplies && Array.isArray(filteredSuppliesStagedItems) ? filteredSuppliesStagedItems : []
     }
   };
-  if (scope === 'records'){
+  if (!fullBackup && (includeICS || includePAR || includeSupplies)){
     base.exportFilter = {
       year: filters.year || 'all',
       month: filters.month || 'all'
     };
   }
-  if (scope === 'full'){
+  if (fullBackup){
     base.data.archives = ensureArchivedTraceProfileKeysForExport(getArchivedItems());
-    base.data.notifications = ensureNotificationTraceProfileKeysForExport(JSON.parse(localStorage.getItem('icsNotifications') || '[]'));
+    base.data.notifications = ensureNotificationTraceProfileKeysForExport(loadLocalJSON('icsNotifications', []));
     base.data.auditLogs = ensureAuditTraceProfileKeysForExport(getAuditLogs());
   }
   return base;
@@ -1267,8 +1633,9 @@ function buildSchemaVersionedExport(scope = 'records', options = {}){
 
 async function exportSchemaVersionedData(scope = 'records'){
   if (!requireAccess('export_data', { label: 'exporting backup/package data' })) return;
+  const exportScope = normalizeDataManagerExportScope(scope);
   const filters = getDataManagerExportFilters();
-  const basePayload = buildSchemaVersionedExport(scope, { recordFilters: filters });
+  const basePayload = buildSchemaVersionedExport(exportScope, { recordFilters: filters });
   const integrityResult = await attachPackageIntegrity(basePayload);
   if (!integrityResult.ok){
     notify('error', integrityResult.reason || 'Unable to generate export checksum.');
@@ -1278,36 +1645,35 @@ async function exportSchemaVersionedData(scope = 'records'){
   const payload = integrityResult.payload;
   const filteredIcsCount = Array.isArray(payload?.data?.records) ? payload.data.records.length : 0;
   const filteredParCount = Array.isArray(payload?.data?.parRecords) ? payload.data.parRecords.length : 0;
-  const filteredTotal = filteredIcsCount + filteredParCount;
-  const exportTypeTag = filteredIcsCount && filteredParCount
-    ? 'ics-par'
-    : (filteredParCount ? 'par' : 'ics');
-  if (scope === 'records' && filteredTotal === 0){
-    notify('error', 'No ICS/PAR records match the selected Year/Month filter.');
-    setDataManagerInlineStatus('error', 'No ICS/PAR records match the selected Year/Month filter.');
+  const filteredSuppliesCount = Array.isArray(payload?.data?.suppliesRecords) ? payload.data.suppliesRecords.length : 0;
+  const filteredTotal = filteredIcsCount + filteredParCount + filteredSuppliesCount;
+  const exportKinds = [];
+  if (filteredIcsCount) exportKinds.push('ics');
+  if (filteredParCount) exportKinds.push('par');
+  if (filteredSuppliesCount) exportKinds.push('supplies');
+  const exportTypeTag = exportKinds.length ? exportKinds.join('-') : 'empty';
+  if (filteredTotal === 0){
+    notify('error', `No data available for selected export scope (${exportScope.toUpperCase()}).`);
+    setDataManagerInlineStatus('error', `No data available for selected export scope (${exportScope.toUpperCase()}).`);
     return;
   }
   const d = new Date();
   const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  const suffix = scope === 'records'
+  const suffix = (exportScope === 'ics' || exportScope === 'par' || exportScope === 'supplies')
     ? `-${filters.year || 'all'}-${filters.month || 'all'}`
     : '';
-  const fileName = scope === 'full'
+  const fileName = exportScope === 'all'
     ? `dsis-schema-v${ICS_SCHEMA_VERSION.replace(/\./g,'_')}-full-${exportTypeTag}-${stamp}.json`
-    : `dsis-schema-v${ICS_SCHEMA_VERSION.replace(/\./g,'_')}-records-${exportTypeTag}${suffix}-${stamp}.json`;
+    : `dsis-schema-v${ICS_SCHEMA_VERSION.replace(/\./g,'_')}-${exportScope}-${exportTypeTag}${suffix}-${stamp}.json`;
   downloadJSONPayload(payload, fileName);
-  if (scope === 'full'){
+  if (exportScope === 'all'){
     localStorage.setItem('icsLastFullBackupAt', new Date().toISOString());
     initDashboardView();
   }
   const checksumShort = (payload.integrity?.checksum || '').slice(0, 12);
-  recordAudit('backup', `Exported ${scope} package (${fileName}) [sha256:${checksumShort}]`);
-  if (scope === 'records'){
-    setDataManagerInlineStatus('success', `Exported ${filteredTotal} filtered record(s): ICS ${filteredIcsCount}, PAR ${filteredParCount} (${fileName})`);
-  } else {
-    setDataManagerInlineStatus('success', `Exported full package: ${fileName}`);
-  }
-  notify('success', `Exported ${scope} package: ${fileName}`);
+  recordAudit('backup', `Exported ${exportScope} package (${fileName}) [sha256:${checksumShort}]`);
+  setDataManagerInlineStatus('success', `Exported ${exportScope.toUpperCase()} package: ICS ${filteredIcsCount}, PAR ${filteredParCount}, Supplies ${filteredSuppliesCount} (${fileName})`);
+  notify('success', `Exported ${exportScope.toUpperCase()} package: ${fileName}`);
 }
 
 function downloadDataManagerConflictReport(){

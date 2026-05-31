@@ -497,7 +497,7 @@ function updateInspectionArchiveButtonState(){
 function formatInspectionHistoryDateTime(value){
   if (!value) return '-';
   const dt = new Date(value);
-  if (!Number.isNaN(dt.getTime())) return dt.toLocaleString();
+  if (!Number.isNaN(dt.getTime())) return formatDateTimeForDisplay(dt, '-');
   return String(value);
 }
 
@@ -568,7 +568,7 @@ function openInspectionHistory(icsNo, itemNo, sourceType){
     return `
       <tr>
         <td>${entryNo}</td>
-        <td>${escapeHTML(log.date || '-')}</td>
+        <td>${escapeHTML(formatDateForDisplay(log.date || '', '-'))}</td>
         <td>${statusRaw ? `<span class="insp-status-pill ${statusClass}">${escapeHTML(statusLabel)}</span>` : '-'}</td>
         <td>${escapeHTML(reason || '-')}</td>
         <td>${escapeHTML(resolvedRemarks || '-').replace(/\n/g, '<br>')}</td>
@@ -1056,7 +1056,7 @@ function openWasteReportModalForTargets(targets, nextAction, returnModal){
   setText('wmrIcsNo', sourceSet.size === 1 ? (rows[0]?.sourceNo || '-') : `Multiple Records (${sourceSet.size})`);
   setText('wmrItemCount', String(rows.length));
   setText('wmrEntity', entitySet.size <= 1 ? (record.entity || '-') : `Multiple Entities (${entitySet.size})`);
-  setText('wmrPreparedAt', sharedFromFirst.preparedAt ? new Date(sharedFromFirst.preparedAt).toLocaleString() : 'Draft');
+  setText('wmrPreparedAt', sharedFromFirst.preparedAt ? formatDateTimeForDisplay(sharedFromFirst.preparedAt, 'Draft') : 'Draft');
 
   applyWmrSignatoryAutosuggest();
   setValue('wmrPlaceOfStorage', sharedFromFirst.placeOfStorage || defaults.placeOfStorage || 'ITEMS FOR DISPOSAL');
@@ -1280,7 +1280,7 @@ function saveWasteReportMetadata(printAfterSave){
       const log = item.inspections[i];
       if ((log.status || '').toLowerCase() !== 'unserviceable') continue;
       latestUnserviceable = log;
-      const marker = `Prepared Waste Materials Report (${new Date(nowIso).toLocaleString()})`;
+      const marker = `Prepared Waste Materials Report (${formatDateTimeForDisplay(nowIso, nowIso)})`;
       const base = (log.notes || '').trim();
       if (!base.includes('Prepared Waste Materials Report')){
         log.notes = base ? `${base} | ${marker}` : marker;

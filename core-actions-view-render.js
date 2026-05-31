@@ -15,7 +15,6 @@ ${renderWelcomeBanner('Action Center')}
         <col class="c-ac-idx">
         <col class="c-ac-record">
         <col class="c-ac-desc">
-        <col class="c-ac-euldays">
         <col class="c-ac-eulstatus">
         <col class="c-ac-inspection">
         <col class="c-ac-remarks">
@@ -23,7 +22,7 @@ ${renderWelcomeBanner('Action Center')}
       </colgroup>
       <thead>
         <tr>
-          <th>#</th><th>ICS/PAR No.</th><th>Description</th><th style="text-align:center">EUL (Days)</th><th style="text-align:center">EUL Status</th><th style="text-align:center">Inspection</th><th>Remarks</th><th style="text-align:center">Actions</th>
+          <th>#</th><th>ICS/PAR No.</th><th>Description</th><th style="text-align:center">EUL Status</th><th style="text-align:center">Inspection</th><th>Remarks</th><th style="text-align:center">Actions</th>
         </tr>
       </thead>
       <tbody id="eulBody"></tbody>

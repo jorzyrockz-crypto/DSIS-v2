@@ -124,15 +124,112 @@ const viewRenderers = {
   'Developer Tools': renderDeveloperToolsView
 };
 
+function isSuppliesQuarterColumnEnabled(){
+  const reporting = typeof getSuppliesReportingConfig === 'function'
+    ? getSuppliesReportingConfig(schoolIdentity)
+    : { showQuarterColumn: false };
+  return !!reporting.showQuarterColumn;
+}
+
+function getSuppliesStageColspan(){
+  return isSuppliesQuarterColumnEnabled() ? 13 : 12;
+}
+
+function extractSupplyQuarterKey(value){
+  const normalized = normalizeSupplyReportQuarter(value || '');
+  if (normalized) return `Q${normalized.slice(-1)}`;
+  const raw = (value || '').toString().trim().toUpperCase();
+  return /^Q[1-4]$/.test(raw) ? raw : '';
+}
+
+function deriveSupplyReportYearForRow(row){
+  const month = normalizeSupplyReportMonth(row?.reportMonth || '') || deriveSupplyReportMonthFromDate(row?.date || '');
+  const year = month.slice(0, 4);
+  return /^\d{4}$/.test(year) ? year : '';
+}
+
+function composeSupplyReportQuarterForRow(row, quarterKey){
+  const key = extractSupplyQuarterKey(quarterKey);
+  if (!key) return '';
+  const year = deriveSupplyReportYearForRow(row);
+  if (!year) return '';
+  return `${year}-${key}`;
+}
+
+function buildSupplyQuarterOptionsMarkup(year, selectedKey){
+  const safeYear = /^\d{4}$/.test((year || '').toString()) ? year : '';
+  const current = extractSupplyQuarterKey(selectedKey);
+  const options = ['Q1', 'Q2', 'Q3', 'Q4'].map((key) => {
+    const selected = key === current ? ' selected' : '';
+    const label = safeYear ? `${key} (${safeYear})` : key;
+    return `<option value="${key}"${selected}>${label}</option>`;
+  }).join('');
+  return `<option value="">Select quarter</option>${options}`;
+}
+
+function resolveSupplyQuarterToneClass(row, enabled){
+  if (!enabled) return '';
+  const quarter = normalizeSupplyReportQuarter(row?.reportQuarter || '')
+    || deriveSupplyReportQuarterFromMonth(row?.reportMonth || '')
+    || deriveSupplyReportQuarterFromDate(row?.date || '');
+  if (!quarter) return '';
+  const quarterNum = quarter.slice(-1);
+  return /^[1-4]$/.test(quarterNum) ? `tone-q${quarterNum}` : '';
+}
+
+function getSuppliesSavedTabKey(){
+  const raw = (window.__suppliesSavedTab || 'saved').toString().trim().toLowerCase();
+  return raw === 'ris' ? 'ris' : 'saved';
+}
+
+function syncSuppliesSavedTabUI(){
+  const active = getSuppliesSavedTabKey();
+  const savedBtn = document.getElementById('suppliesSavedTabSaved');
+  const risBtn = document.getElementById('suppliesSavedTabRis');
+  const savedPane = document.getElementById('suppliesSavedPane');
+  const risPane = document.getElementById('suppliesRISPane');
+  const subtext = document.getElementById('suppliesSavedSubtext');
+  const savedOn = active === 'saved';
+  const risOn = active === 'ris';
+  if (savedBtn){
+    savedBtn.classList.toggle('active', savedOn);
+    savedBtn.setAttribute('aria-selected', savedOn ? 'true' : 'false');
+  }
+  if (risBtn){
+    risBtn.classList.toggle('active', risOn);
+    risBtn.setAttribute('aria-selected', risOn ? 'true' : 'false');
+  }
+  if (savedPane) savedPane.classList.toggle('active', savedOn);
+  if (risPane) risPane.classList.toggle('active', risOn);
+  if (subtext){
+    subtext.textContent = risOn
+      ? 'The RIS is the official document used to request and release supplies from stock.'
+      : 'Finalized supplies are listed here for tracking and inventory operations.';
+  }
+}
+
+function setSuppliesSavedTab(tabKey){
+  const next = (tabKey || '').toString().trim().toLowerCase() === 'ris' ? 'ris' : 'saved';
+  window.__suppliesSavedTab = next;
+  syncSuppliesSavedTabUI();
+  if (next === 'ris'){
+    loadSuppliesRISRecords();
+  } else {
+    loadSuppliesSavedRecords();
+  }
+}
+
 function initSuppliesView(){
   refreshSuppliesAutoSuggest();
   const body = document.getElementById('suppliesStageBody');
   if (!body) return;
   const rows = getSuppliesStagedItems();
   const lookup = buildSuppliesLookup(rows, getSuppliesSavedRecords());
+  const showQuarterColumn = isSuppliesQuarterColumnEnabled();
   if (!rows.length){
-    body.innerHTML = `<tr><td class="empty-cell" colspan="11">No staged supply items yet. <button class="btn btn-sm btn-secondary" data-action="suppliesAddRow"><i data-lucide="plus" aria-hidden="true"></i>Add Row</button></td></tr>`;
+    body.innerHTML = `<tr><td class="empty-cell supplies-stage-empty-cell" colspan="${getSuppliesStageColspan()}"><div class="supplies-stage-empty-state"><span class="supplies-stage-empty-text">No staged supply items yet.</span><button class="btn btn-sm btn-secondary" data-action="suppliesAddRow"><i data-lucide="plus" aria-hidden="true"></i>Add Row</button></div></td></tr>`;
     loadSuppliesSavedRecords();
+    syncSuppliesSavedTabUI();
     return;
   }
   body.innerHTML = rows.map((row, idx) => {
@@ -148,6 +245,11 @@ function initSuppliesView(){
     const item = attr(row?.item);
     const description = attr(row?.description);
     const unit = attr(row?.unit);
+    const reportMonthValue = normalizeSupplyReportMonth(row?.reportMonth || '') || deriveSupplyReportMonthFromDate(row?.date || '');
+    const reportMonth = attr(reportMonthValue);
+    const reportQuarterKey = extractSupplyQuarterKey(row?.reportQuarter || deriveSupplyReportQuarterFromMonth(reportMonthValue));
+    const reportQuarterOptions = buildSupplyQuarterOptionsMarkup(reportMonthValue.slice(0, 4), reportQuarterKey);
+    const reportQuarterDisabled = reportMonthValue ? '' : ' disabled';
     const receiptQty = attr(row?.receiptQty);
     const price = attr(row?.price);
     const reorderPoint = attr(row?.reorderPoint);
@@ -169,6 +271,8 @@ function initSuppliesView(){
         <input class="stage-input supplies-stage-input" data-supplies-index="${idx}" data-supplies-field="unit" value="${unit}" placeholder="Unit" list="${rowUnitListId}" />
         <datalist id="${rowUnitListId}">${rowUnitOptions}</datalist>
       </td>
+      <td><input class="stage-input supplies-stage-input" data-supplies-index="${idx}" data-supplies-field="reportMonth" type="month" value="${reportMonth}" /></td>
+      ${showQuarterColumn ? `<td><select class="stage-input supplies-stage-input" data-supplies-index="${idx}" data-supplies-field="reportQuarter"${reportQuarterDisabled}>${reportQuarterOptions}</select></td>` : ''}
       <td><input class="stage-input supplies-stage-input" data-supplies-index="${idx}" data-supplies-field="receiptQty" value="${receiptQty}" placeholder="0" /></td>
       <td><input class="stage-input supplies-stage-input" data-supplies-index="${idx}" data-supplies-field="price" value="${price}" placeholder="0.00" /></td>
       <td><input class="stage-input supplies-stage-input" data-supplies-index="${idx}" data-supplies-field="reorderPoint" value="${reorderPoint}" placeholder="0" /></td>
@@ -181,6 +285,7 @@ function initSuppliesView(){
     </tr>`;
   }).join('');
   loadSuppliesSavedRecords();
+  syncSuppliesSavedTabUI();
 }
 
 function getSuppliesStagedItems(){
@@ -295,10 +400,23 @@ function syncSuppliesRowInputs(index, row, lookup){
     const el = document.querySelector(`.supplies-stage-input[data-supplies-index="${rowIndex}"][data-supplies-field="${field}"]`);
     if (el && el.value !== inputValue) el.value = inputValue;
   };
+  const setQuarterSelect = () => {
+    const el = document.querySelector(`.supplies-stage-input[data-supplies-index="${rowIndex}"][data-supplies-field="reportQuarter"]`);
+    if (!el) return;
+    const year = deriveSupplyReportYearForRow(row);
+    const derivedQuarter = deriveSupplyReportQuarterFromMonth(row?.reportMonth || '') || deriveSupplyReportQuarterFromDate(row?.date || '');
+    const quarterKey = extractSupplyQuarterKey(row?.reportQuarter || derivedQuarter);
+    el.innerHTML = buildSupplyQuarterOptionsMarkup(year, quarterKey);
+    el.disabled = !year;
+    if (quarterKey && el.value !== quarterKey) el.value = quarterKey;
+    if (!quarterKey && el.value !== '') el.value = '';
+  };
   setInputValue('stockNo', (row?.stockNo || '').toString());
   setInputValue('item', (row?.item || '').toString());
   setInputValue('description', (row?.description || '').toString());
   setInputValue('unit', (row?.unit || '').toString());
+  setInputValue('reportMonth', normalizeSupplyReportMonth(row?.reportMonth || '') || deriveSupplyReportMonthFromDate(row?.date || ''));
+  setQuarterSelect();
 
   const descriptionList = document.getElementById(getSuppliesRowDescriptionListId(rowIndex));
   if (descriptionList){
@@ -373,37 +491,189 @@ function loadSuppliesSavedRecords(){
   const body = document.getElementById('suppliesRecordsBody');
   if (!body) return;
   const rows = getSuppliesSavedRecords();
+  const quarterToneEnabled = isSuppliesQuarterColumnEnabled();
+  const formatPrice = (value) => {
+    const raw = (value ?? '').toString().trim();
+    if (!raw) return '-';
+    const n = Number(raw);
+    return Number.isFinite(n)
+      ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : raw;
+  };
+  const formatQty = (value) => {
+    const raw = (value ?? '').toString().trim();
+    if (!raw) return '-';
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return raw;
+    return Number.isInteger(n) ? String(n) : raw;
+  };
+  const officeColorStyle = (officeName) => {
+    const raw = (officeName || '').toString().trim();
+    if (!raw) return '';
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++){
+      hash = ((hash * 31) + raw.charCodeAt(i)) >>> 0;
+    }
+    const hue = hash % 360;
+    const bg = `hsl(${hue} 78% 94%)`;
+    const border = `hsl(${hue} 56% 78%)`;
+    const text = `hsl(${hue} 48% 28%)`;
+    const bgDark = `hsl(${hue} 58% 26%)`;
+    const textDark = `hsl(${hue} 88% 82%)`;
+    return `--office-bg:${bg};--office-border:${border};--office-text:${text};--office-bg-dark:${bgDark};--office-text-dark:${textDark};`;
+  };
+  const buildOfficeBalancesMarkup = (row) => {
+    const balances = typeof getSupplyOfficeBalances === 'function'
+      ? getSupplyOfficeBalances(row)
+      : {};
+    const entries = Object.entries(balances)
+      .map(([office, qty]) => ({
+        office: (office || '').toString().trim(),
+        qty: Math.max(0, toSupplyQtyNumber(qty))
+      }))
+      .filter((entry) => entry.office && entry.qty > 0)
+      .sort((a, b) => b.qty - a.qty || a.office.localeCompare(b.office));
+    if (!entries.length){
+      const fallbackOffice = (row?.latestIssuedOffice || '').toString().trim();
+      return {
+        html: fallbackOffice ? escapeHTML(fallbackOffice) : '-',
+        title: fallbackOffice || '',
+        style: fallbackOffice ? ` style="${escapeHTML(officeColorStyle(fallbackOffice))}"` : '',
+        className: fallbackOffice ? 'supplies-office-cell has-office' : 'supplies-office-cell'
+      };
+    }
+    const visible = entries.slice(0, 3);
+    const hiddenCount = Math.max(0, entries.length - visible.length);
+    const chips = visible.map((entry) => `
+      <span class="supplies-office-chip" style="${escapeHTML(officeColorStyle(entry.office))}">
+        <span class="supplies-office-name">${escapeHTML(entry.office)}</span>
+        <span class="supplies-office-qty">${escapeHTML(formatQty(entry.qty))}</span>
+      </span>
+    `).join('');
+    const more = hiddenCount
+      ? `<span class="supplies-office-more">+${hiddenCount} more</span>`
+      : '';
+    return {
+      html: `<div class="supplies-office-list">${chips}${more}</div>`,
+      title: entries.map((entry) => `${entry.office}: ${formatQty(entry.qty)}`).join(' | '),
+      style: '',
+      className: entries.length > 1 ? 'supplies-office-cell has-office has-multiple' : 'supplies-office-cell has-office'
+    };
+  };
   if (!rows.length){
-    body.innerHTML = '<tr><td class="empty-cell" colspan="10">No saved supplies yet.</td></tr>';
+    body.innerHTML = '<tr><td class="empty-cell" colspan="11">No saved supplies yet.</td></tr>';
+    loadSuppliesRISRecords();
     return;
   }
   body.innerHTML = rows.map((row, idx) => {
     const stockNo = escapeHTML((row?.stockNo || '').toString());
-    const date = escapeHTML((row?.date || '').toString());
+    const date = escapeHTML(formatDateForDisplay((row?.date || '').toString(), '-'));
+    const reportedPeriod = escapeHTML(resolveSupplyReportedPeriodLabel(row) || '-');
+    const stockQuarterToneClass = resolveSupplyQuarterToneClass(row, quarterToneEnabled);
+    const stockCellClass = stockQuarterToneClass
+      ? `supplies-quarter-cell ${stockQuarterToneClass}`
+      : 'supplies-quarter-cell';
     const item = escapeHTML((row?.item || '').toString());
     const unit = escapeHTML((row?.unit || '').toString());
-    const price = escapeHTML((row?.price || '').toString());
-    const receiptQty = escapeHTML((row?.receiptQty || '').toString());
-    const balanceQty = escapeHTML((row?.balanceQty || '').toString());
-    const latestIssuedOffice = escapeHTML((row?.latestIssuedOffice || '').toString());
+    const price = escapeHTML(formatPrice(row?.price));
+    const receiptQty = escapeHTML(formatQty(row?.receiptQty));
+    const balanceRaw = (row?.balanceQty || '').toString();
+    const balanceQty = escapeHTML(formatQty(balanceRaw));
+    const balanceNum = toSupplyQtyNumber(balanceRaw);
+    const reorderNum = Math.max(0, toSupplyQtyNumber(row?.reorderPoint || ''));
+    let balanceToneClass = 'tone-in-stock';
+    let balanceStatusText = '';
+    if (balanceNum <= 0){
+      balanceToneClass = 'tone-no-stock';
+      balanceStatusText = 'No Stock';
+    } else if (reorderNum > 0 && balanceNum <= reorderNum){
+      balanceToneClass = 'tone-low-stock';
+      balanceStatusText = 'Low Stock';
+    }
+    const officeDisplay = buildOfficeBalancesMarkup(row);
+    const balanceStatusMarkup = balanceStatusText
+      ? `<span class="supplies-balance-status">${escapeHTML(balanceStatusText)}</span>`
+      : '';
+    const balanceTitle = escapeHTML(
+      balanceStatusText
+        ? `${balanceStatusText} | Balance: ${formatQty(balanceNum)} | Re-order Point: ${formatQty(reorderNum)}`
+        : `In Stock | Balance: ${formatQty(balanceNum)}${reorderNum > 0 ? ` | Re-order Point: ${formatQty(reorderNum)}` : ''}`
+    );
     return `<tr>
       <td>${idx + 1}</td>
-      <td>${stockNo ? `<button class="ics-link-btn" data-action="openStockCardByIndex" data-arg1="${idx}" title="Open Stock Card">${stockNo}</button>` : '-'}</td>
+      <td class="${stockCellClass}">${stockNo ? `<button class="ics-link-btn" data-action="openStockCardByIndex" data-arg1="${idx}" title="Open Stock Card">${stockNo}</button>` : '-'}</td>
       <td>${date || '-'}</td>
+      <td>${reportedPeriod || '-'}</td>
       <td>${item || '-'}</td>
       <td>${unit || '-'}</td>
       <td>${price || '-'}</td>
       <td>${receiptQty || '-'}</td>
-      <td>${balanceQty || '-'}</td>
-      <td>${latestIssuedOffice || '-'}</td>
+      <td class="supplies-balance-cell ${balanceToneClass}" title="${balanceTitle}"><span class="supplies-balance-wrap"><span class="supplies-balance-value">${balanceQty || '-'}</span>${balanceStatusMarkup}</span></td>
+      <td class="${officeDisplay.className}"${officeDisplay.style} title="${escapeHTML(officeDisplay.title)}">${officeDisplay.html}</td>
       <td>
-        <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Update Supply" aria-label="Update Supply" data-action="suppliesUpdateSaved" data-arg1="${idx}"><i data-lucide="pencil" aria-hidden="true"></i></button>
+        <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Release Supply" aria-label="Release Supply" data-action="suppliesUpdateSaved" data-arg1="${idx}"><i data-lucide="pencil" aria-hidden="true"></i></button>
         <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Print Supply" aria-label="Print Supply" data-action="suppliesPrintSaved" data-arg1="${idx}"><i data-lucide="printer" aria-hidden="true"></i></button>
+        <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Transfer Stock" aria-label="Transfer Stock" data-action="openSuppliesMovementModal" data-arg1="${idx}"><i data-lucide="move-right" aria-hidden="true"></i></button>
         <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Export Supply" aria-label="Export Supply" data-action="suppliesExportSaved" data-arg1="${idx}"><i data-lucide="download" aria-hidden="true"></i></button>
         <button class="btn btn-sm btn-danger btn-icon icon-only-btn" title="Delete Supply" aria-label="Delete Supply" data-action="suppliesDeleteSaved" data-arg1="${idx}"><i data-lucide="trash-2" aria-hidden="true"></i></button>
       </td>
     </tr>`;
   }).join('');
+  loadSuppliesRISRecords();
+}
+
+function loadSuppliesRISRecords(){
+  const body = document.getElementById('suppliesRISBody');
+  if (!body) return;
+  const records = getSuppliesSavedRecords();
+  const historyMap = getSuppliesHistoryByStockNo();
+  const rows = [];
+  records.forEach((record, recordIndex) => {
+    const stockNoRaw = (record?.stockNo || '').toString().trim();
+    const stockNoKey = normalizeStockNoKey(stockNoRaw);
+    const historyRowsRaw = (stockNoKey && Array.isArray(historyMap[stockNoKey]))
+      ? historyMap[stockNoKey]
+      : (Array.isArray(record?.history) ? record.history : []);
+      const historyRows = normalizeSupplyHistoryRows(historyRowsRaw);
+      historyRows.forEach((tx) => {
+        if (((tx?.action || tx?.entryType || '').toString().trim().toLowerCase()) === 'movement') return;
+        const issuedQty = toSupplyQtyNumber(tx?.issuedQty || '');
+        if (issuedQty <= 0) return;
+      const issuedQtyText = Number.isInteger(issuedQty) ? String(issuedQty) : (tx?.issuedQty || '').toString();
+      const itemRaw = (record?.item || tx?.item || '').toString().trim();
+      const descriptionRaw = (record?.description || tx?.description || '').toString().trim();
+      const descMain = [itemRaw, descriptionRaw].filter(Boolean).join(' - ') || '-';
+      const requestedByRaw = (tx?.entityName || record?.entityName || '').toString().trim();
+      const officeRaw = (tx?.latestIssuedOffice || tx?.office || record?.latestIssuedOffice || '').toString().trim();
+      const purposeRaw = (tx?.reference || record?.reference || '').toString().trim();
+      const at = parseDateDisplayValue(tx?.date || tx?.at || '');
+      rows.push({
+        rowKey: `${recordIndex}:${stockNoKey}:${(tx?.date || '').toString().trim()}:${issuedQtyText}`,
+        sortAt: at && Number.isFinite(at.getTime()) ? at.getTime() : 0,
+        requestedBy: requestedByRaw || '-',
+        stockNo: stockNoRaw || '-',
+        descriptionIssued: descMain,
+        issuedQty: issuedQtyText || '-',
+        remarks: officeRaw ? `Issued to ${officeRaw}` : '-',
+        purpose: purposeRaw || '-'
+      });
+    });
+  });
+  rows.sort((a, b) => b.sortAt - a.sortAt);
+  if (!rows.length){
+    body.innerHTML = '<tr><td class="empty-cell" colspan="6">No RIS entries yet. Release supplies to generate RIS details.</td></tr>';
+    return;
+  }
+  body.innerHTML = rows.map((row, idx) => `
+    <tr>
+      <td>${idx + 1}</td>
+      <td>${escapeHTML(row.requestedBy)}</td>
+      <td>${escapeHTML(row.stockNo)}</td>
+      <td><div class="supplies-ris-desc">${escapeHTML(row.descriptionIssued)}</div><div class="supplies-ris-meta">Issued: ${escapeHTML(row.issuedQty)}</div></td>
+      <td>${escapeHTML(row.remarks)}</td>
+      <td>${escapeHTML(row.purpose)}</td>
+    </tr>
+  `).join('');
 }
 
 function saveSuppliesStagedItems(rows){
@@ -418,6 +688,8 @@ function createEmptySuppliesStageItem(){
     item: '',
     description: '',
     unit: '',
+    reportMonth: '',
+    reportQuarter: '',
     receiptQty: '',
     price: '',
     reorderPoint: ''
@@ -437,17 +709,24 @@ function suppliesAddRow(afterIndex){
 function suppliesUpdateStageField(index, field, value){
   const rows = getSuppliesStagedItems();
   const i = Number(index);
-  const allowedFields = new Set(['stockNo', 'date', 'reference', 'item', 'description', 'unit', 'receiptQty', 'price', 'reorderPoint']);
+  const allowedFields = new Set(['stockNo', 'date', 'reference', 'item', 'description', 'unit', 'reportMonth', 'reportQuarter', 'receiptQty', 'price', 'reorderPoint']);
   if (!Number.isInteger(i) || i < 0 || i >= rows.length) return;
-  if (!allowedFields.has((field || '').toString())) return;
+  const fieldKey = (field || '').toString();
+  if (!allowedFields.has(fieldKey)) return;
   rows[i] = rows[i] && typeof rows[i] === 'object' ? rows[i] : createEmptySuppliesStageItem();
-  rows[i][field] = (value || '').toString();
+  if (fieldKey === 'reportMonth'){
+    rows[i][fieldKey] = normalizeSupplyReportMonth(value || '');
+  } else if (fieldKey === 'reportQuarter'){
+    rows[i][fieldKey] = extractSupplyQuarterKey(value || '');
+  } else {
+    rows[i][fieldKey] = (value || '').toString();
+  }
   const lookup = buildSuppliesLookup(rows, getSuppliesSavedRecords());
   const row = rows[i];
   const stockKey = normalizeStockNoKey(row?.stockNo || '');
 
   // Stock No. is authoritative for Item/Description/Unit identity.
-  if (field === 'stockNo' && stockKey && lookup.stockByKey.has(stockKey)){
+  if (fieldKey === 'stockNo' && stockKey && lookup.stockByKey.has(stockKey)){
     const matchedByStock = lookup.stockByKey.get(stockKey);
     row.item = (matchedByStock?.item || '').toString();
     row.description = (matchedByStock?.description || '').toString();
@@ -458,7 +737,7 @@ function suppliesUpdateStageField(index, field, value){
   // If Item + Description matches a known stock definition, back-fill Stock No. and Unit.
   const itemKey = normalizeSupplyLookupValue(row?.item || '');
   const descriptionKey = normalizeSupplyLookupValue(row?.description || '');
-  if ((field === 'item' || field === 'description') && itemKey && descriptionKey){
+  if ((fieldKey === 'item' || fieldKey === 'description') && itemKey && descriptionKey){
     const pairMatch = lookup.stockByItemDescription.get(createSupplyLookupKey(row.item, row.description));
     if (pairMatch){
       row.stockNo = (pairMatch.stockNo || row.stockNo || '').toString();
@@ -468,11 +747,29 @@ function suppliesUpdateStageField(index, field, value){
   }
 
   // Item can define Unit when only one unit is known for that item.
-  if ((field === 'item' || field === 'description') && !row.unit && itemKey && lookup.unitsByItem.has(itemKey)){
+  if ((fieldKey === 'item' || fieldKey === 'description') && !row.unit && itemKey && lookup.unitsByItem.has(itemKey)){
     const units = [...lookup.unitsByItem.get(itemKey)];
     if (units.length === 1){
       row.unit = units[0];
     }
+  }
+
+  if (fieldKey === 'date'){
+    const derivedMonth = deriveSupplyReportMonthFromDate(row?.date || '');
+    if (derivedMonth && !normalizeSupplyReportMonth(row?.reportMonth || '')){
+      row.reportMonth = derivedMonth;
+    }
+  }
+  if (fieldKey === 'reportMonth'){
+    const selectedQuarterKey = extractSupplyQuarterKey(row?.reportQuarter || '');
+    const fallbackQuarter = extractSupplyQuarterKey(
+      deriveSupplyReportQuarterFromMonth(row?.reportMonth || '') || deriveSupplyReportQuarterFromDate(row?.date || '')
+    );
+    const quarterToApply = selectedQuarterKey || fallbackQuarter;
+    row.reportQuarter = composeSupplyReportQuarterForRow(row, quarterToApply);
+  }
+  if (fieldKey === 'reportQuarter'){
+    row.reportQuarter = composeSupplyReportQuarterForRow(row, row?.reportQuarter || '');
   }
 
   saveSuppliesStagedItems(rows);
@@ -484,35 +781,61 @@ function suppliesDeleteItem(index){
   const rows = getSuppliesStagedItems();
   const i = Number(index);
   if (!Number.isInteger(i) || i < 0 || i >= rows.length) return;
-  rows.splice(i, 1);
-  saveSuppliesStagedItems(rows);
-  initSuppliesView();
-  refreshSuppliesAutoSuggest();
-  if (typeof window.refreshIcons === 'function') window.refreshIcons();
+  const row = rows[i] || {};
+  const stockNo = (row.stockNo || '').toString().trim() || 'this staged item';
+  showConfirm(
+    'Delete Staged Supply Item',
+    `Delete "${stockNo}" from staged supplies?\nTip: Press Enter to confirm or Esc to cancel.`,
+    () => {
+      const nextRows = getSuppliesStagedItems();
+      const idx = Number(index);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= nextRows.length) return;
+      nextRows.splice(idx, 1);
+      saveSuppliesStagedItems(nextRows);
+      initSuppliesView();
+      refreshSuppliesAutoSuggest();
+      if (typeof window.refreshIcons === 'function') window.refreshIcons();
+    },
+    'Delete Item'
+  );
 }
 
 function suppliesDeleteSaved(index){
   const rows = getSuppliesSavedRecords();
   const i = Number(index);
   if (!Number.isInteger(i) || i < 0 || i >= rows.length) return;
-  const deleted = rows[i] || {};
-  rows.splice(i, 1);
-  saveSuppliesSavedRecords(rows);
-  const stockKey = normalizeStockNoKey(deleted.stockNo || '');
-  if (stockKey){
-    const historyMap = getSuppliesHistoryByStockNo();
-    if (!Array.isArray(historyMap[stockKey])) historyMap[stockKey] = [];
-    historyMap[stockKey].push({
-      at: new Date().toISOString(),
-      action: 'delete',
-      stockNo: (deleted.stockNo || '').toString(),
-      data: deleted
-    });
-    saveSuppliesHistoryByStockNo(historyMap);
-  }
-  loadSuppliesSavedRecords();
-  refreshSuppliesAutoSuggest();
-  if (typeof window.refreshIcons === 'function') window.refreshIcons();
+  const target = rows[i] || {};
+  const stockNo = (target.stockNo || '').toString().trim() || 'this supply';
+  const itemName = (target.item || '').toString().trim();
+  const targetLabel = itemName ? `${stockNo} - ${itemName}` : stockNo;
+  showConfirm(
+    'Delete Supply',
+    `Delete "${targetLabel}" permanently from Supplies Saved?\nTip: Press Enter to confirm or Esc to cancel.`,
+    () => {
+      const nextRows = getSuppliesSavedRecords();
+      const idx = Number(index);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= nextRows.length) return;
+      const deleted = nextRows[idx] || {};
+      nextRows.splice(idx, 1);
+      saveSuppliesSavedRecords(nextRows);
+      const stockKey = normalizeStockNoKey(deleted.stockNo || '');
+      if (stockKey){
+        const historyMap = getSuppliesHistoryByStockNo();
+        if (!Array.isArray(historyMap[stockKey])) historyMap[stockKey] = [];
+        historyMap[stockKey].push({
+          at: new Date().toISOString(),
+          action: 'delete',
+          stockNo: (deleted.stockNo || '').toString(),
+          data: deleted
+        });
+        saveSuppliesHistoryByStockNo(historyMap);
+      }
+      loadSuppliesSavedRecords();
+      refreshSuppliesAutoSuggest();
+      if (typeof window.refreshIcons === 'function') window.refreshIcons();
+    },
+    'Delete Supply'
+  );
 }
 
 function suppliesEditSaved(index){
@@ -528,6 +851,8 @@ function suppliesEditSaved(index){
     item: (row.item || '').toString(),
     description: (row.description || '').toString(),
     unit: (row.unit || '').toString(),
+    reportMonth: normalizeSupplyReportMonth(row.reportMonth || '') || deriveSupplyReportMonthFromDate(row.date || ''),
+    reportQuarter: normalizeSupplyReportQuarter(row.reportQuarter || '') || deriveSupplyReportQuarterFromDate(row.date || ''),
     receiptQty: (row.receiptQty || '').toString(),
     price: (row.price || '').toString(),
     reorderPoint: (row.reorderPoint || '').toString()
@@ -545,10 +870,18 @@ function suppliesEditSaved(index){
 }
 
 function setSuppliesSheetEditingIndex(index){
-  window.__suppliesSheetEditingIndex = Number.isInteger(Number(index)) ? Number(index) : null;
+  if (index === null || index === undefined || index === ''){
+    window.__suppliesSheetEditingIndex = null;
+    return;
+  }
+  const next = Number(index);
+  window.__suppliesSheetEditingIndex = Number.isInteger(next) ? next : null;
 }
 
 function getSuppliesSheetEditingIndex(){
+  if (window.__suppliesSheetEditingIndex === null || window.__suppliesSheetEditingIndex === undefined || window.__suppliesSheetEditingIndex === ''){
+    return null;
+  }
   const i = Number(window.__suppliesSheetEditingIndex);
   return Number.isInteger(i) ? i : null;
 }
@@ -588,22 +921,112 @@ function toSupplyQtyNumber(value){
   return Number.isFinite(n) ? n : 0;
 }
 
+function getSupplyLedgerOfficeDisplay(entry){
+  const row = entry && typeof entry === 'object' ? entry : {};
+  const officeDisplay = (row.officeDisplay || '').toString().trim();
+  if (officeDisplay) return officeDisplay;
+  const fromOffice = (row.fromOffice || '').toString().trim();
+  const toOffice = (row.toOffice || row.latestIssuedOffice || '').toString().trim();
+  if (fromOffice && toOffice && fromOffice !== toOffice) return `${fromOffice} -> ${toOffice}`;
+  return (row.latestIssuedOffice || row.office || '').toString().trim();
+}
+
+function getSupplyRecordAvailableQty(record){
+  const row = record && typeof record === 'object' ? record : {};
+  const stockNoKey = normalizeStockNoKey(row.stockNo || '');
+  const historyMap = getSuppliesHistoryByStockNo();
+  const historyRows = stockNoKey && Array.isArray(historyMap[stockNoKey])
+    ? historyMap[stockNoKey]
+    : (Array.isArray(row.history) ? row.history : []);
+  const savedBalance = Math.max(0, toSupplyQtyNumber(row.balanceQty || ''));
+  const savedReceiptQty = Math.max(0, toSupplyQtyNumber(row.receiptQty || ''));
+  if (historyRows.length){
+    const normalizedRows = normalizeSupplyHistoryRows(historyRows);
+    const lastRow = normalizedRows[normalizedRows.length - 1] || {};
+    const historyBalance = Math.max(0, toSupplyQtyNumber(lastRow.balanceQty || ''));
+    const historyReceiptQty = Math.max(0, ...normalizedRows.map((entry) => Math.max(0, toSupplyQtyNumber(entry?.receiptQty || ''))));
+    return Math.max(savedBalance, savedReceiptQty, historyBalance, historyReceiptQty);
+  }
+  return Math.max(savedBalance, savedReceiptQty);
+}
+
+function getSupplyOfficeBalances(record){
+  const row = record && typeof record === 'object' ? record : {};
+  const raw = row.officeBalances && typeof row.officeBalances === 'object' ? row.officeBalances : null;
+  const balances = {};
+  if (raw){
+    Object.entries(raw).forEach(([office, qty]) => {
+      const key = (office || '').toString().trim();
+      if (!key) return;
+      balances[key] = Math.max(0, toSupplyQtyNumber(qty));
+    });
+  }
+  if (Object.keys(balances).length) return balances;
+  const fallbackOffice = ((row.latestIssuedOffice || '').toString().trim() || 'School Office');
+  balances[fallbackOffice] = getSupplyRecordAvailableQty(row);
+  return balances;
+}
+
+function normalizeOfficeBalanceMap(map){
+  const source = map && typeof map === 'object' ? map : {};
+  return Object.entries(source).reduce((acc, [office, qty]) => {
+    const key = (office || '').toString().trim();
+    const value = Math.max(0, toSupplyQtyNumber(qty));
+    if (key && value > 0) acc[key] = String(value);
+    return acc;
+  }, {});
+}
+
+function getSupplyOfficeAvailableQty(record, officeName){
+  const row = record && typeof record === 'object' ? record : {};
+  const office = (officeName || '').toString().trim().toLowerCase();
+  const balances = getSupplyOfficeBalances(row);
+  if (office){
+    const match = Object.entries(balances).find(([name]) => name.toLowerCase() === office);
+    return match ? Math.max(0, toSupplyQtyNumber(match[1])) : 0;
+  }
+  return Object.values(balances).reduce((sum, qty) => sum + Math.max(0, toSupplyQtyNumber(qty)), 0);
+}
+
+function setSuppliesMovementInlineStatus(type, message){
+  const host = document.getElementById('suppliesMovementInlineStatus');
+  if (!host) return;
+  const tone = (type || '').toString().trim().toLowerCase();
+  const text = (message || '').toString().trim();
+  if (!text){
+    host.style.display = 'none';
+    host.className = 'dm-inline-status';
+    host.textContent = '';
+    return;
+  }
+  host.style.display = 'block';
+  host.className = `dm-inline-status${tone ? ` ${tone}` : ''}`;
+  host.textContent = text;
+}
+
 function normalizeSupplyHistoryRows(rows){
   const source = Array.isArray(rows) ? rows : [];
   let runningBalance = 0;
   return source.map((entry) => {
     const row = entry && typeof entry === 'object' ? { ...entry } : {};
     const receiptQty = Math.max(0, toSupplyQtyNumber(row.receiptQty));
-    const issuedQty = Math.max(0, toSupplyQtyNumber(row.issuedQty));
+    const transferQty = Math.max(0, toSupplyQtyNumber(row.transferQty));
+    const isTransfer = ['transfer', 'movement'].includes((row.action || row.entryType || '').toString().trim().toLowerCase()) && transferQty > 0;
+    const issuedQty = isTransfer ? 0 : Math.max(0, toSupplyQtyNumber(row.issuedQty));
     runningBalance = Math.max(0, runningBalance + receiptQty - issuedQty);
     return {
       ...row,
       receiptQty: receiptQty > 0 ? String(receiptQty) : '',
       issuedQty: issuedQty > 0 ? String(issuedQty) : '',
+      transferQty: transferQty > 0 ? String(transferQty) : '',
       balanceQty: String(runningBalance),
       latestIssuedOffice: (row.latestIssuedOffice || row.office || '').toString(),
       reference: (row.reference || '').toString(),
       date: (row.date || '').toString(),
+      reportMonth: normalizeSupplyReportMonth(row.reportMonth || '') || deriveSupplyReportMonthFromDate(row.date || ''),
+      reportQuarter: normalizeSupplyReportQuarter(row.reportQuarter || '')
+        || deriveSupplyReportQuarterFromMonth(row.reportMonth || '')
+        || deriveSupplyReportQuarterFromDate(row.date || ''),
       entityName: (row.entityName || '').toString(),
       fundCluster: (row.fundCluster || '').toString(),
       daysToConsume: (row.daysToConsume || '').toString()
@@ -628,6 +1051,11 @@ function syncSupplyRecordFromHistory(stockNoKey, normalizedHistoryRows, recordIn
     latestIssuedOffice: (lastIssueRow?.latestIssuedOffice || record.latestIssuedOffice || 'School Office').toString(),
     reference: (latestRow?.reference || record.reference || '').toString(),
     date: (latestRow?.date || record.date || '').toString(),
+    reportMonth: normalizeSupplyReportMonth(latestRow?.reportMonth || '') || deriveSupplyReportMonthFromDate(latestRow?.date || record.date || ''),
+    reportQuarter: normalizeSupplyReportQuarter(latestRow?.reportQuarter || '')
+      || deriveSupplyReportQuarterFromMonth(latestRow?.reportMonth || '')
+      || deriveSupplyReportQuarterFromDate(latestRow?.date || '')
+      || normalizeSupplyReportQuarter(record.reportQuarter || ''),
     entityName: (lastIssueRow?.entityName || latestRow?.entityName || record.entityName || '').toString(),
     fundCluster: (lastIssueRow?.fundCluster || latestRow?.fundCluster || record.fundCluster || '').toString(),
     daysToConsume: (lastIssueRow?.daysToConsume || record.daysToConsume || '').toString()
@@ -637,6 +1065,268 @@ function syncSupplyRecordFromHistory(stockNoKey, normalizedHistoryRows, recordIn
   historyMap[key] = historyRows.slice();
   saveSuppliesHistoryByStockNo(historyMap);
   return true;
+}
+
+function setSuppliesMovementEditingIndex(index){
+  if (index === null || index === undefined || index === ''){
+    window.__suppliesMovementEditingIndex = null;
+    return;
+  }
+  const next = Number(index);
+  window.__suppliesMovementEditingIndex = Number.isInteger(next) ? next : null;
+}
+
+function getSuppliesMovementEditingIndex(){
+  if (window.__suppliesMovementEditingIndex === null || window.__suppliesMovementEditingIndex === undefined || window.__suppliesMovementEditingIndex === ''){
+    return null;
+  }
+  const idx = Number(window.__suppliesMovementEditingIndex);
+  return Number.isInteger(idx) ? idx : null;
+}
+
+function closeSuppliesMovementModal(reset = true){
+  const overlay = document.getElementById('suppliesMovementOverlay');
+  if (overlay) overlay.classList.remove('show');
+  if (!reset) return;
+  setSuppliesMovementEditingIndex(null);
+  setSuppliesMovementInlineStatus('', '');
+  ['suppliesMovementFromOffice', 'suppliesMovementIssuedDate'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const linesHost = document.getElementById('suppliesTransferLines');
+  if (linesHost) linesHost.innerHTML = '';
+  const itemPill = document.getElementById('suppliesMovementItemPill');
+  if (itemPill) itemPill.textContent = 'Item -';
+  const qtyPill = document.getElementById('suppliesMovementAvailableQtyPill');
+  if (qtyPill){
+    qtyPill.textContent = 'Available Qty: -';
+    qtyPill.classList.remove('over');
+  }
+}
+
+function getSuppliesMovementLines(){
+  return [...document.querySelectorAll('#suppliesTransferLines .supplies-transfer-line')].map((row, idx) => {
+    const toOffice = (row.querySelector('.supplies-transfer-office')?.value || '').toString().trim();
+    const qty = Math.max(0, toSupplyQtyNumber(row.querySelector('.supplies-transfer-qty')?.value || ''));
+    return { index: idx, toOffice, qty };
+  });
+}
+
+function renderSuppliesMovementLines(lines = [{ toOffice: '', qty: '' }]){
+  const host = document.getElementById('suppliesTransferLines');
+  if (!host) return;
+  const rows = Array.isArray(lines) && lines.length ? lines : [{ toOffice: '', qty: '' }];
+  host.innerHTML = rows.map((line, idx) => `
+    <div class="supplies-transfer-line" data-transfer-line="${idx}">
+      <input class="stage-input supplies-transfer-input supplies-transfer-office" placeholder="To office" list="suppliesIssuedOfficeList" value="${escapeHTML(line?.toOffice || '')}" />
+      <input class="stage-input supplies-transfer-input supplies-transfer-qty" placeholder="Qty" value="${escapeHTML(line?.qty || '')}" />
+      <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" type="button" title="Remove transfer line" aria-label="Remove transfer line" data-action="suppliesMovementDeleteLine" data-arg1="${idx}"><i data-lucide="trash-2" aria-hidden="true"></i></button>
+    </div>
+  `).join('');
+  updateSuppliesMovementQtyPreview();
+  if (typeof window.refreshIcons === 'function') window.refreshIcons();
+}
+
+function suppliesMovementAddLine(){
+  const lines = getSuppliesMovementLines();
+  lines.push({ toOffice: '', qty: '' });
+  renderSuppliesMovementLines(lines);
+}
+
+function suppliesMovementDeleteLine(index){
+  const idx = Number(index);
+  const lines = getSuppliesMovementLines();
+  const next = lines.filter((_, i) => i !== idx);
+  renderSuppliesMovementLines(next.length ? next : [{ toOffice: '', qty: '' }]);
+}
+
+function updateSuppliesMovementQtyPreview(){
+  const pill = document.getElementById('suppliesMovementAvailableQtyPill');
+  if (!pill) return;
+  const index = getSuppliesMovementEditingIndex();
+  if (index === null){
+    pill.textContent = 'Available Qty: -';
+    pill.classList.remove('over');
+    return;
+  }
+  const rows = getSuppliesSavedRecords();
+  const record = rows[index] || {};
+  const fromOffice = (document.getElementById('suppliesMovementFromOffice')?.value || '').toString().trim() || 'School Office';
+  const baseAvailable = getSupplyOfficeAvailableQty(record, fromOffice);
+  const movedQty = getSuppliesMovementLines().reduce((sum, line) => sum + Math.max(0, toSupplyQtyNumber(line.qty)), 0);
+  const remaining = baseAvailable - movedQty;
+  pill.textContent = `Available: ${String(baseAvailable)} | Transfer: ${String(movedQty)} | Remaining: ${String(remaining)}`;
+  pill.classList.toggle('over', remaining < 0);
+}
+
+function openSuppliesMovementModal(index){
+  if (activeViewKey() !== 'Supplies'){
+    notify('error', 'Stock transfer is available only in Supplies view.');
+    return;
+  }
+  if (!hasRoleCapability('edit_records')){
+    notify('error', `Access denied. ${normalizeRoleLabel(currentUser?.role)} role cannot transfer stock records.`);
+    return;
+  }
+  const rows = getSuppliesSavedRecords();
+  const i = Number(index);
+  if (!Number.isInteger(i) || i < 0 || i >= rows.length){
+    notify('error', 'Selected supply record no longer exists.');
+    return;
+  }
+  const record = rows[i] || {};
+  const overlay = document.getElementById('suppliesMovementOverlay');
+  if (!overlay) return;
+  setSuppliesMovementInlineStatus('', '');
+  const itemPill = document.getElementById('suppliesMovementItemPill');
+  if (itemPill){
+    const itemText = [(record.stockNo || '').toString().trim(), (record.item || '').toString().trim()].filter(Boolean).join(' - ');
+    itemPill.textContent = itemText || 'Item -';
+  }
+  const setValue = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.value = (value || '').toString();
+  };
+  const primaryOffice = Object.entries(getSupplyOfficeBalances(record)).sort((a, b) => toSupplyQtyNumber(b[1]) - toSupplyQtyNumber(a[1]))[0]?.[0]
+    || ((record.latestIssuedOffice || '').toString().trim() || 'School Office');
+  setValue('suppliesMovementFromOffice', primaryOffice);
+  setValue('suppliesMovementIssuedDate', (record.date || '').toString().trim() || new Date().toISOString().slice(0, 10));
+  setSuppliesMovementEditingIndex(i);
+  renderSuppliesMovementLines([{ toOffice: '', qty: '' }]);
+  overlay.classList.add('show');
+  updateSuppliesMovementQtyPreview();
+  if (typeof window.refreshIcons === 'function') window.refreshIcons();
+}
+
+function saveSuppliesMovement(){
+  if (activeViewKey() !== 'Supplies'){
+    setSuppliesMovementInlineStatus('error', 'Stock transfer is available only in Supplies view.');
+    notify('error', 'Stock transfer is available only in Supplies view.');
+    closeSuppliesMovementModal();
+    return;
+  }
+  if (!hasRoleCapability('edit_records')){
+    setSuppliesMovementInlineStatus('error', `Access denied. ${normalizeRoleLabel(currentUser?.role)} role cannot transfer stock records.`);
+    notify('error', `Access denied. ${normalizeRoleLabel(currentUser?.role)} role cannot transfer stock records.`);
+    return;
+  }
+  const index = getSuppliesMovementEditingIndex();
+  const rows = getSuppliesSavedRecords();
+  if (index === null || index < 0 || index >= rows.length){
+    setSuppliesMovementInlineStatus('error', 'Selected supply record no longer exists.');
+    notify('error', 'Selected supply record no longer exists.');
+    closeSuppliesMovementModal();
+    return;
+  }
+  const record = rows[index] || {};
+  const stockNo = (record.stockNo || '').toString().trim();
+  const fromOffice = (document.getElementById('suppliesMovementFromOffice')?.value || '').toString().trim() || 'School Office';
+  const movementDate = (document.getElementById('suppliesMovementIssuedDate')?.value || '').toString().trim();
+  const transferLinesRaw = getSuppliesMovementLines();
+  const mergedLinesMap = {};
+  transferLinesRaw.forEach((line) => {
+    const office = (line.toOffice || '').toString().trim();
+    const qty = Math.max(0, toSupplyQtyNumber(line.qty));
+    if (!office && qty <= 0) return;
+    const key = office.toLowerCase();
+    if (!mergedLinesMap[key]) mergedLinesMap[key] = { toOffice: office, qty: 0 };
+    mergedLinesMap[key].qty += qty;
+  });
+  const transferLines = Object.values(mergedLinesMap).filter((line) => line.toOffice && line.qty > 0);
+  const movedQty = transferLines.reduce((sum, line) => sum + line.qty, 0);
+  const available = getSupplyOfficeAvailableQty(record, fromOffice);
+  if (!transferLines.length){
+    setSuppliesMovementInlineStatus('error', 'Add at least one destination office and transfer quantity.');
+    notify('error', 'Add at least one destination office and transfer quantity.');
+    return;
+  }
+  const sameOfficeLine = transferLines.find((line) => line.toOffice.toLowerCase() === fromOffice.toLowerCase());
+  if (sameOfficeLine){
+    setSuppliesMovementInlineStatus('error', 'Destination office must be different from From Office.');
+    notify('error', 'Destination office must be different from From Office.');
+    return;
+  }
+  if (!movementDate){
+    setSuppliesMovementInlineStatus('error', 'Movement Date is required.');
+    notify('error', 'Movement Date is required.');
+    return;
+  }
+  if (movedQty > available){
+    setSuppliesMovementInlineStatus('error', `Over transfer is not allowed. Available Qty: ${available}, Transfer Qty: ${movedQty}.`);
+    notify('error', `Over transfer is not allowed. Available Qty: ${available}, Transfer Qty: ${movedQty}.`);
+    return;
+  }
+  const key = normalizeStockNoKey(stockNo);
+  const historyMap = getSuppliesHistoryByStockNo();
+  const currentRows = Array.isArray(historyMap[key]) ? historyMap[key].slice() : (Array.isArray(record.history) ? record.history.slice() : []);
+  const batchId = createRuntimeId('transfer');
+  const nowIso = new Date().toISOString();
+  const currentBalance = String(getSupplyRecordAvailableQty(record));
+  transferLines.forEach((line) => {
+    currentRows.push({
+      at: nowIso,
+      action: 'transfer',
+      entryType: 'transfer',
+      batchId,
+      stockNo,
+      receiptQty: '',
+      issuedQty: '',
+      transferQty: String(line.qty),
+      balanceQty: currentBalance,
+      latestIssuedOffice: line.toOffice,
+      fromOffice,
+      toOffice: line.toOffice,
+      officeDisplay: `${fromOffice} -> ${line.toOffice}`,
+      reference: `Transfer ${line.qty}: ${fromOffice} -> ${line.toOffice}`,
+      date: movementDate,
+      reportMonth: normalizeSupplyReportMonth(deriveSupplyReportMonthFromDate(movementDate || '') || record.reportMonth || ''),
+      reportQuarter: normalizeSupplyReportQuarter(record.reportQuarter || '') || deriveSupplyReportQuarterFromDate(movementDate || ''),
+      entityName: (record.entityName || '').toString(),
+      fundCluster: (record.fundCluster || '').toString(),
+      daysToConsume: ''
+    });
+  });
+  const normalized = normalizeSupplyHistoryRows(currentRows);
+  if (!syncSupplyRecordFromHistory(key, normalized, index)){
+    setSuppliesMovementInlineStatus('error', 'Unable to save stock movement.');
+    notify('error', 'Unable to save stock movement.');
+    return;
+  }
+  const updatedRows = getSuppliesSavedRecords();
+  const updatedRecord = updatedRows[index] || {};
+  const nextOfficeBalances = getSupplyOfficeBalances(record);
+  const fromOfficeKey = Object.keys(nextOfficeBalances).find((name) => name.toLowerCase() === fromOffice.toLowerCase()) || fromOffice;
+  nextOfficeBalances[fromOfficeKey] = Math.max(0, toSupplyQtyNumber(nextOfficeBalances[fromOfficeKey]) - movedQty);
+  transferLines.forEach((line) => {
+    const existingKey = Object.keys(nextOfficeBalances).find((name) => name.toLowerCase() === line.toOffice.toLowerCase()) || line.toOffice;
+    nextOfficeBalances[existingKey] = Math.max(0, toSupplyQtyNumber(nextOfficeBalances[existingKey]) + line.qty);
+  });
+  const primaryOffice = Object.entries(nextOfficeBalances).sort((a, b) => toSupplyQtyNumber(b[1]) - toSupplyQtyNumber(a[1]))[0]?.[0] || fromOffice;
+  updatedRows[index] = {
+    ...updatedRecord,
+    balanceQty: currentBalance,
+    officeBalances: normalizeOfficeBalanceMap(nextOfficeBalances),
+    latestIssuedOffice: primaryOffice
+  };
+  saveSuppliesSavedRecords(updatedRows);
+  loadSuppliesSavedRecords();
+  refreshSuppliesAutoSuggest();
+  if ((window.__activeStockCardKey || '').toString() === key){
+    const refreshedIndex = findSupplyRecordIndexByStockNoKey(key);
+    if (refreshedIndex >= 0) openStockCardByIndex(refreshedIndex);
+  }
+  const refreshedRows = getSuppliesSavedRecords();
+  const refreshedRecord = refreshedRows[index] || {};
+  const fromOfficeInput = document.getElementById('suppliesMovementFromOffice');
+  const movementDateInput = document.getElementById('suppliesMovementIssuedDate');
+  const nextFromOffice = Object.entries(getSupplyOfficeBalances(refreshedRecord)).sort((a, b) => toSupplyQtyNumber(b[1]) - toSupplyQtyNumber(a[1]))[0]?.[0] || fromOffice;
+  if (fromOfficeInput) fromOfficeInput.value = nextFromOffice;
+  renderSuppliesMovementLines([{ toOffice: '', qty: '' }]);
+  if (movementDateInput) movementDateInput.value = movementDate;
+  updateSuppliesMovementQtyPreview();
+  setSuppliesMovementInlineStatus('success', `Transferred ${movedQty} item(s) from ${fromOffice} to ${transferLines.length} office(s).`);
+  notify('success', `Transferred ${movedQty} item(s) from ${fromOffice} to ${transferLines.length} office(s).`);
 }
 
 function openSuppliesSheetForSavedIndex(index){
@@ -732,8 +1422,7 @@ function updateSuppliesIssuedQtyPreview(){
   const rows = getSuppliesSavedRecords();
   const existing = rows[index] || {};
   const editContext = getSuppliesSheetLedgerEditContext();
-  let baseAvailable = Number((existing?.balanceQty || '').toString().trim());
-  baseAvailable = Number.isFinite(baseAvailable) ? baseAvailable : 0;
+  let baseAvailable = getSupplyRecordAvailableQty(existing);
   if (editContext && editContext.stockNoKey === normalizeStockNoKey(existing?.stockNo || '')){
     const historyMap = getSuppliesHistoryByStockNo();
     const historyRows = Array.isArray(historyMap[editContext.stockNoKey]) ? historyMap[editContext.stockNoKey] : [];
@@ -789,18 +1478,21 @@ function suppliesSaveSheetUpdate(){
     return;
   }
   const editContext = getSuppliesSheetLedgerEditContext();
+  const existingReportMonth = normalizeSupplyReportMonth(existing.reportMonth || '') || deriveSupplyReportMonthFromDate(existing.date || '');
+  const existingReportQuarter = normalizeSupplyReportQuarter(existing.reportQuarter || '');
   const nextRecord = {
     ...existing,
     stockNo,
     date: issuedDateInput || (existing.date || '').toString(),
     reference: referenceInput || (existing.reference || '').toString(),
+    reportMonth: existingReportMonth,
+    reportQuarter: existingReportQuarter,
     entityName: entityNameInput || (existing.entityName || '').toString(),
     fundCluster: fundClusterInput || (existing.fundCluster || '').toString(),
     latestIssuedOffice: issuedOfficeInput || (existing.latestIssuedOffice || '').toString() || 'School Office',
     daysToConsume: daysToConsumeInput
   };
-  const previousBalance = Number((existing?.balanceQty || '').toString().trim());
-  let balanceBase = Number.isFinite(previousBalance) ? previousBalance : 0;
+  let balanceBase = getSupplyRecordAvailableQty(existing);
   if (editContext && editContext.stockNoKey === normalizeStockNoKey(stockNo)){
     const historyMapCurrent = getSuppliesHistoryByStockNo();
     const historyRowsCurrent = Array.isArray(historyMapCurrent[editContext.stockNoKey]) ? historyMapCurrent[editContext.stockNoKey] : [];
@@ -825,6 +1517,8 @@ function suppliesSaveSheetUpdate(){
     latestIssuedOffice: ((nextRecord.latestIssuedOffice || '').toString().trim() || 'School Office'),
     reference: nextRecord.reference,
     date: nextRecord.date,
+    reportMonth: normalizeSupplyReportMonth(deriveSupplyReportMonthFromDate(nextRecord.date || '') || existingReportMonth),
+    reportQuarter: normalizeSupplyReportQuarter(existingReportQuarter || deriveSupplyReportQuarterFromDate(nextRecord.date || '')),
     entityName: (nextRecord.entityName || '').toString(),
     fundCluster: (nextRecord.fundCluster || '').toString(),
     daysToConsume: (nextRecord.daysToConsume || '').toString()
@@ -841,7 +1535,9 @@ function suppliesSaveSheetUpdate(){
     currentRows[editContext.rowIndex] = {
       ...currentRow,
       ...historyEntry,
-      receiptQty: (currentRow.receiptQty || '').toString()
+      receiptQty: (currentRow.receiptQty || '').toString(),
+      reportMonth: normalizeSupplyReportMonth(currentRow.reportMonth || '') || historyEntry.reportMonth,
+      reportQuarter: normalizeSupplyReportQuarter(currentRow.reportQuarter || '') || historyEntry.reportQuarter
     };
     const normalized = normalizeSupplyHistoryRows(currentRows);
     if (!syncSupplyRecordFromHistory(key, normalized, index)){
@@ -858,6 +1554,12 @@ function suppliesSaveSheetUpdate(){
       historyMap[key] = normalized;
       nextRecord.history = normalized.slice();
       nextRecord.balanceQty = normalized.length ? (normalized[normalized.length - 1].balanceQty || nextRecord.balanceQty) : nextRecord.balanceQty;
+      nextRecord.reportMonth = normalized.length
+        ? (normalizeSupplyReportMonth(normalized[normalized.length - 1].reportMonth || '') || nextRecord.reportMonth)
+        : nextRecord.reportMonth;
+      nextRecord.reportQuarter = normalized.length
+        ? (normalizeSupplyReportQuarter(normalized[normalized.length - 1].reportQuarter || '') || nextRecord.reportQuarter)
+        : nextRecord.reportQuarter;
       nextRecord.latestIssuedOffice = (normalized.slice().reverse().find((r) => toSupplyQtyNumber(r.issuedQty) > 0)?.latestIssuedOffice || nextRecord.latestIssuedOffice || 'School Office');
       saveSuppliesHistoryByStockNo(historyMap);
     }
@@ -904,25 +1606,26 @@ function suppliesPrintSaved(index){
   const txRowsRaw = Array.isArray(historyMap[stockNoKey])
     ? historyMap[stockNoKey]
     : (Array.isArray(row.history) ? row.history : []);
-  const txRows = txRowsRaw.map((tx) => {
-    const txDate = (tx.date || '').toString().trim() || ((tx.at || '').toString().slice(0, 10));
-    return {
-      date: txDate,
-      reference: (tx.reference || row.reference || '').toString(),
-      receiptQty: (tx.receiptQty || '').toString(),
-      issuedQty: (tx.issuedQty || '').toString(),
-      office: (tx.latestIssuedOffice || tx.office || '').toString(),
-      balanceQty: (tx.balanceQty || '').toString(),
-      daysToConsume: (tx.daysToConsume || '').toString()
-    };
-  });
+    const txRows = txRowsRaw.map((tx) => {
+      const txDate = (tx.date || '').toString().trim() || ((tx.at || '').toString().slice(0, 10));
+      return {
+        date: formatDateForDisplay(txDate, ''),
+        reference: (tx.reference || row.reference || '').toString(),
+        receiptQty: (tx.receiptQty || '').toString(),
+        issuedQty: (tx.issuedQty || '').toString(),
+        office: getSupplyLedgerOfficeDisplay(tx),
+        balanceQty: (tx.balanceQty || '').toString(),
+        daysToConsume: (tx.daysToConsume || '').toString()
+      };
+    });
   const totalRows = Math.max(34, txRows.length);
   const ledgerRows = [];
   for (let r = 0; r < totalRows; r += 1){
     const tx = txRows[r] || {};
+    const txDate = formatDateForDisplay(tx.date || tx.at || '', '');
     ledgerRows.push(`
       <tr>
-        <td>${text(tx.date || '')}</td>
+        <td>${text(txDate)}</td>
         <td>${text(tx.reference || '')}</td>
         <td class="num">${text(tx.receiptQty || '')}</td>
         <td class="num">${text(tx.issuedQty || '')}</td>
@@ -1095,15 +1798,16 @@ function openStockCardByIndex(index){
   const txHtml = txRows.length
     ? txRows.map((tx, idx) => {
       const txDate = (tx.date || '').toString().trim() || ((tx.at || '').toString().slice(0, 10));
-      return `<tr>
-        <td>${text(txDate)}</td>
-        <td>${text(tx.reference || record.reference || '')}</td>
-        <td>${text(tx.receiptQty)}</td>
-        <td>${text(tx.issuedQty)}</td>
-        <td>${text(tx.latestIssuedOffice || tx.office || '')}</td>
-        <td>${text(tx.balanceQty)}</td>
-        <td>${text(tx.daysToConsume || '')}</td>
-        <td>
+      const txDateDisplay = formatDateForDisplay(txDate, '-');
+        return `<tr>
+          <td>${text(txDateDisplay)}</td>
+          <td>${text(tx.reference || record.reference || '')}</td>
+          <td>${text(tx.receiptQty)}</td>
+          <td>${text(tx.issuedQty)}</td>
+          <td>${text(getSupplyLedgerOfficeDisplay(tx))}</td>
+          <td>${text(tx.balanceQty)}</td>
+          <td>${text(tx.daysToConsume || '')}</td>
+          <td>
           <div class="stage-cell-actions">
             <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Print Row" aria-label="Print Row" data-action="stockLedgerPrintRow" data-arg1="${stockNoKey}" data-arg2="${idx}"><i data-lucide="printer" aria-hidden="true"></i></button>
             <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Edit Row" aria-label="Edit Row" data-action="stockLedgerEditRow" data-arg1="${stockNoKey}" data-arg2="${idx}"><i data-lucide="pencil" aria-hidden="true"></i></button>
@@ -1187,16 +1891,17 @@ function printStockLedgerRowsContinuation(stockNo, record, ledgerRows, targetRow
   for (let r = 0; r < totalRows; r += 1){
     const tx = rows[r] || {};
     const rowClass = r === targetIdx ? 'active' : 'ghost';
+    const txDate = formatDateForDisplay(tx.date || tx.at || '', '');
     ledgerRowsHtml.push(`
-      <tr class="${rowClass}">
-        <td>${text(tx.date || '')}</td>
-        <td>${text(tx.reference || '')}</td>
-        <td class="num">${text(tx.receiptQty || '')}</td>
-        <td class="num">${text(tx.issuedQty || '')}</td>
-        <td>${text(tx.latestIssuedOffice || tx.office || '')}</td>
-        <td class="num">${text(tx.balanceQty || '')}</td>
-        <td class="num">${text(tx.daysToConsume || '')}</td>
-      </tr>
+        <tr class="${rowClass}">
+          <td>${text(txDate)}</td>
+          <td>${text(tx.reference || '')}</td>
+          <td class="num">${text(tx.receiptQty || '')}</td>
+          <td class="num">${text(tx.issuedQty || '')}</td>
+          <td>${text(getSupplyLedgerOfficeDisplay(tx))}</td>
+          <td class="num">${text(tx.balanceQty || '')}</td>
+          <td class="num">${text(tx.daysToConsume || '')}</td>
+        </tr>
     `);
   }
   printDoc.write(`
@@ -1334,6 +2039,15 @@ function stockLedgerPrintRow(stockNoKey, rowIndex){
 }
 
 function stockLedgerEditRow(stockNoKey, rowIndex){
+  const key = normalizeStockNoKey(stockNoKey || '');
+  const idx = Number(rowIndex);
+  const historyMap = getSuppliesHistoryByStockNo();
+  const row = key && Number.isInteger(idx) && Array.isArray(historyMap[key]) ? historyMap[key][idx] : null;
+  const type = (row?.action || row?.entryType || '').toString().trim().toLowerCase();
+  if (type === 'transfer' || type === 'movement'){
+    notify('info', 'Transfer rows are managed through the Transfer Stock action.');
+    return;
+  }
   closeStockCardModal();
   openSuppliesSheetForLedgerRow(stockNoKey, rowIndex);
 }
@@ -1360,7 +2074,7 @@ function stockLedgerDeleteRow(stockNoKey, rowIndex){
   }
   showConfirm(
     'Delete Ledger Row',
-    'Delete this stock ledger row permanently?',
+    'Delete this stock ledger row permanently?\nTip: Press Enter to confirm or Esc to cancel.',
     () => {
       rows.splice(idx, 1);
       const normalized = normalizeSupplyHistoryRows(rows);
@@ -1430,6 +2144,7 @@ function suppliesSaveStaged(){
   }
   let savedCount = 0;
   let skippedCount = 0;
+  let reportingOverrideCount = 0;
 
   stagedRows.forEach((row) => {
     const stockNo = (row?.stockNo || '').toString().trim();
@@ -1445,6 +2160,18 @@ function suppliesSaveStaged(){
     const previousBalance = Number((previous?.balanceQty || '').toString().trim());
     const baseBalance = Number.isFinite(previousBalance) ? previousBalance : 0;
     const nextBalance = Math.max(0, baseBalance + receiptQty);
+    const reportMonth = normalizeSupplyReportMonth(row?.reportMonth || '')
+      || deriveSupplyReportMonthFromDate(row?.date || '')
+      || normalizeSupplyReportMonth(previous?.reportMonth || '')
+      || deriveSupplyReportMonthFromDate(previous?.date || '');
+    const reportQuarter = normalizeSupplyReportQuarter(row?.reportQuarter || '')
+      || deriveSupplyReportQuarterFromMonth(row?.reportMonth || '')
+      || deriveSupplyReportQuarterFromDate(row?.date || '')
+      || normalizeSupplyReportQuarter(previous?.reportQuarter || '');
+    const dateMonth = deriveSupplyReportMonthFromDate(row?.date || '');
+    const dateQuarter = deriveSupplyReportQuarterFromDate(row?.date || '');
+    if (reportMonth && dateMonth && reportMonth !== dateMonth) reportingOverrideCount += 1;
+    if (reportQuarter && dateQuarter && reportQuarter !== dateQuarter) reportingOverrideCount += 1;
     const nextRecord = {
       stockNo,
       date: (row?.date || '').toString(),
@@ -1452,6 +2179,8 @@ function suppliesSaveStaged(){
       item: ((row?.item || '').toString().trim() || (previous?.item || '').toString().trim()),
       description: ((row?.description || '').toString().trim() || (previous?.description || '').toString().trim()),
       unit: ((row?.unit || '').toString().trim() || (previous?.unit || '').toString().trim()),
+      reportMonth,
+      reportQuarter,
       price: (row?.price || '').toString(),
       receiptQty: (row?.receiptQty || '').toString(),
       reorderPoint: (row?.reorderPoint || '').toString(),
@@ -1477,6 +2206,8 @@ function suppliesSaveStaged(){
       latestIssuedOffice: nextRecord.latestIssuedOffice,
       reference: nextRecord.reference,
       date: nextRecord.date,
+      reportMonth: nextRecord.reportMonth,
+      reportQuarter: nextRecord.reportQuarter,
       entityName: nextRecord.entityName,
       fundCluster: nextRecord.fundCluster,
       // Days to consume is issuance-specific; do not auto-populate on receipt/create rows.
@@ -1498,6 +2229,9 @@ function suppliesSaveStaged(){
   saveSuppliesSavedRecords(records);
   saveSuppliesHistoryByStockNo(historyMap);
   saveSuppliesStagedItems([]);
+  if (savedCount && reportingOverrideCount > 0){
+    recordAudit('maintenance', `Saved supplies with ${reportingOverrideCount} reporting period override(s).`);
+  }
   initSuppliesView();
   refreshSuppliesAutoSuggest();
   if (typeof window.refreshIcons === 'function') window.refreshIcons();
@@ -2247,6 +2981,7 @@ function initDeveloperToolsView(){
 function renderView(key){
   const renderer = viewRenderers[key];
   if (!renderer) return;
+  closeSuppliesMovementModal(true);
   if (typeof syncTopbarViewButtons === 'function') syncTopbarViewButtons(key);
   const isDashboardCompact = key === 'Dashboard' && typeof getDashboardViewMode === 'function' && getDashboardViewMode() === 'compact';
   content.classList.toggle('dashboard-compact', !!isDashboardCompact);
@@ -2518,15 +3253,38 @@ function renderEULPage(){
     const detailsAction = isPARSource ? 'openPARDetailsByIndex' : 'openICSDetailsByKey';
     const detailsArg1 = isPARSource ? String(Number(row.sourceIndex) || 0) : safeSourceNo;
     const sourceNoClass = isPARSource ? 'source-no-par' : 'source-no-ics';
+    const sourceDisplay = escapeHTML((row.sourceNoDisplay || row.icsNo || '').toString());
+    const descText = escapeHTML((row.desc || '').toString());
+    const remarksText = remarks ? escapeHTML(remarks) : '';
+    const eulDaysText = row.eulDays === '' ? '' : escapeHTML(String(row.eulDays));
+    const eulDaysNum = Number(row.eulDays);
+    const eulDaysClass = Number.isFinite(eulDaysNum)
+      ? (eulDaysNum < 0 ? 'is-overdue' : (eulDaysNum <= 90 ? 'is-near' : ''))
+      : '';
+    const eulRiskFill = Number.isFinite(eulDaysNum)
+      ? (eulDaysNum < 0
+        ? 100
+        : (eulDaysNum <= 180
+          ? Math.max(6, Math.min(100, Math.round(((180 - Math.max(0, eulDaysNum)) / 180) * 100)))
+          : 6))
+      : 0;
+    const eulRiskToneClass = eulDaysClass === 'is-overdue'
+      ? 'tone-overdue'
+      : (eulDaysClass === 'is-near' ? 'tone-near' : 'tone-ok');
+    const eulDaysPill = eulDaysText
+      ? `<span class="actions-days-pill ${eulDaysClass}">${eulDaysText} days</span>`
+      : '';
+    const eulDaysProgress = eulDaysText
+      ? `<span class="actions-status-progress"><span class="actions-risk-progress ${eulRiskToneClass}" aria-hidden="true"><span class="actions-risk-progress-fill" style="width:${eulRiskFill}%;"></span></span></span>`
+      : '';
     return `<tr class="${isTargeted ? 'targeted-row' : ''}">
       <td>${idx + 1}</td>
-      <td><button class="ics-link-btn source-no-link ${sourceNoClass}" data-action="${detailsAction}" data-arg1="${detailsArg1}" data-arg2="${isPARSource ? '' : safeItemNo}">${escapeHTML(row.sourceNoDisplay || row.icsNo || '')}</button></td>
-      <td>${row.desc}</td>
-      <td style="text-align:center">${row.eulDays === '' ? '' : row.eulDays}</td>
-      <td style="text-align:center"><span class="${row.cls}">${row.status}</span></td>
-      <td style="text-align:center">${insp}</td>
-      <td>${remarks ? escapeHTML(remarks) : '<span class="card-subtext">-</span>'}</td>
-      <td style="text-align:center">
+      <td class="actions-source-cell" title="${sourceDisplay}"><button class="ics-link-btn source-no-link ${sourceNoClass}" data-action="${detailsAction}" data-arg1="${detailsArg1}" data-arg2="${isPARSource ? '' : safeItemNo}">${sourceDisplay}</button></td>
+      <td class="actions-desc-cell" title="${descText || '-'}">${descText ? `<div class="actions-cell-clamp actions-desc">${descText}</div>` : '<span class="card-subtext">-</span>'}</td>
+      <td class="actions-status-cell" style="text-align:center"><div class="actions-status-stack"><div class="actions-status-line"><span class="${row.cls}">${escapeHTML((row.status || '').toString())}</span>${eulDaysPill}</div>${eulDaysProgress}</div></td>
+      <td class="actions-inspection-cell" style="text-align:center">${insp}</td>
+      <td class="actions-remarks-cell" title="${remarksText || '-'}">${remarksText ? `<div class="actions-cell-clamp actions-remarks">${remarksText}</div>` : '<span class="card-subtext">-</span>'}</td>
+      <td class="actions-controls-cell" style="text-align:center">
         <div class="actions-eul-actions">
           ${targetBadge}
           <select class="stage-input action-select" data-action-change="onInspectionChange" data-arg1="${safeSourceNo}" data-arg2="${safeItemNo}" data-arg3="${sourceTypeArg}" ${canArchive ? '' : 'disabled title="Requires Encoder/Admin role"'}>
@@ -2534,13 +3292,15 @@ function renderEULPage(){
             <option value="serviceable">Serviceable</option>
             <option value="unserviceable">Unserviceable</option>
           </select>
-          <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Inspection History" aria-label="Inspection History" data-action="openInspectionHistory" data-arg1="${safeSourceNo}" data-arg2="${safeItemNo}" data-arg3="${sourceTypeArg}"><i data-lucide="history" aria-hidden="true"></i></button>
-          <span class="actions-eul-divider" aria-hidden="true"></span>
-          <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Archive Item" aria-label="Archive Item" data-action="openArchiveModal" data-arg1="${safeSourceNo}" data-arg2="${safeItemNo}" data-arg3="${sourceTypeArg}" ${archiveDisabledAttr}><i data-lucide="archive" aria-hidden="true"></i></button>
+          <div class="actions-eul-btn-row">
+            <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Inspection History" aria-label="Inspection History" data-action="openInspectionHistory" data-arg1="${safeSourceNo}" data-arg2="${safeItemNo}" data-arg3="${sourceTypeArg}"><i data-lucide="history" aria-hidden="true"></i></button>
+            <span class="actions-eul-divider" aria-hidden="true"></span>
+            <button class="btn btn-sm btn-secondary btn-icon icon-only-btn" title="Archive Item" aria-label="Archive Item" data-action="openArchiveModal" data-arg1="${safeSourceNo}" data-arg2="${safeItemNo}" data-arg3="${sourceTypeArg}" ${archiveDisabledAttr}><i data-lucide="archive" aria-hidden="true"></i></button>
+          </div>
         </div>
       </td>
     </tr>`;
-  }).join('') : '<tr><td colspan="8" class="empty-cell">No items for current filter.</td></tr>';
+  }).join('') : '<tr><td colspan="7" class="empty-cell">No items for current filter.</td></tr>';
 }
 
 function openEULCenter(){

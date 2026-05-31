@@ -8,44 +8,64 @@ function getWelcomeGreeting(){
 }
 
 function getViewSubtitle(view){
-  const base = (function(){
-    if (view === 'Dashboard') return 'Portfolio overview, action priorities, and lifecycle trends at a glance.';
-    if (view === 'Supplies') return 'Monitor consumables, stock levels, and replenishment priorities across the workspace.';
-    if (view === 'Manage Inventory') return 'Encode new ICS entries, stage items, and maintain finalized records in one workspace.';
-    if (view === 'Action Center') return 'Review items nearing or past EUL and complete required inspection and disposal actions.';
-    if (view === 'Archives') return 'Track archived items with disposal approvals and complete historical inspection metadata.';
-    return 'Inventory Custodian Slip management workspace.';
-  })();
-  const state = getViewStateSummary(view);
-  return state ? `${base} ${state}` : base;
+  if (view === 'Dashboard') return 'Overview of records, supplies, and priorities.';
+  if (view === 'Supplies') return 'Track supplies, stock levels, and replenishment.';
+  if (view === 'Manage Inventory') return 'Manage ICS and PAR records in one workspace.';
+  if (view === 'Action Center') return 'Review EUL risks and inspection actions.';
+  if (view === 'Archives') return 'Browse archived records and history.';
+  return 'Inventory Custodian Slip workspace.';
 }
 
-function getViewStateSummary(view){
-  const parseArray = (key) => {
-    try {
-      const parsed = JSON.parse(localStorage.getItem(key) || '[]');
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+function parseWelcomeArray(key){
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function getWelcomeQuickStatus(view){
+  const records = parseWelcomeArray('icsRecords');
+  const parRecords = parseWelcomeArray('parRecords');
+  const archives = parseWelcomeArray('icsArchivedItems');
+  const supplies = parseWelcomeArray('icsSuppliesRecords');
+  const toNum = (value) => {
+    const n = Number((value ?? '').toString().trim());
+    return Number.isFinite(n) ? n : 0;
   };
-  const records = parseArray('icsRecords');
-  const parRecords = parseArray('parRecords');
-  const archives = parseArray('icsArchivedItems');
+  const lowStockCount = supplies.filter((item) => {
+    const balance = toNum(item?.balanceQty ?? item?.qtyOnHand ?? 0);
+    const reorder = Math.max(0, toNum(item?.reorderPoint ?? item?.reorderLevel ?? 0));
+    return balance <= reorder;
+  }).length;
 
   if (view === 'Dashboard'){
-    return `Current state: ${records.length} ICS records, ${parRecords.length} PAR records, ${archives.length} archived items.`;
+    return [
+      { text: `ICS ${records.length}`, tone: 'info' },
+      { text: `PAR ${parRecords.length}`, tone: 'info' },
+      { text: `Supplies ${supplies.length}`, tone: 'good' },
+      { text: `Archived ${archives.length}`, tone: 'muted' }
+    ];
   }
 
   if (view === 'Supplies'){
-    const supplyRecords = parseArray('icsSuppliesRecords');
-    const lowStockCount = supplyRecords.filter((item) => Number(item?.qtyOnHand || 0) <= Number(item?.reorderLevel || 0)).length;
-    return `Current state: ${supplyRecords.length} supply entries, ${lowStockCount} at or below reorder level.`;
+    const reporting = typeof getSuppliesReportingConfig === 'function'
+      ? getSuppliesReportingConfig(schoolIdentity)
+      : { showQuarterColumn: false };
+    return [
+      { text: `Saved ${supplies.length}`, tone: 'info' },
+      { text: `Low stock ${lowStockCount}`, tone: lowStockCount > 0 ? 'warn' : 'good' },
+      { text: reporting.showQuarterColumn ? 'Mode: Quarterly' : 'Mode: Monthly', tone: 'muted' }
+    ];
   }
 
   if (view === 'Manage Inventory'){
-    const scope = inventoryFilter === 'missing' ? 'Missing Data filter active' : 'All records view';
-    return `Current state: ${records.length} finalized ICS records and ${parRecords.length} finalized PAR records. ${scope}.`;
+    return [
+      { text: `ICS ${records.length}`, tone: 'info' },
+      { text: `PAR ${parRecords.length}`, tone: 'info' },
+      { text: inventoryFilter === 'missing' ? 'Filter: Missing Data' : 'Filter: All Records', tone: 'muted' }
+    ];
   }
 
   if (view === 'Action Center'){
@@ -68,30 +88,40 @@ function getViewStateSummary(view){
         });
       });
     }
-    const mode = actionCenterFilter === 'near'
+    const filterLabel = actionCenterFilter === 'near'
       ? 'Filter: Due < 3m'
       : actionCenterFilter === 'past'
         ? 'Filter: Past EUL'
-        : 'Filter: All due/past';
-    const scopeParts = [];
-    if (actionCenterSourceFilter) scopeParts.push(`Source: ${(actionCenterSourceFilter || '').toUpperCase()}`);
-    if (actionCenterICSFilter) scopeParts.push(`Record: ${actionCenterICSFilter}`);
-    if (actionCenterItemFilter) scopeParts.push(`Item: ${actionCenterItemFilter}`);
-    const scope = scopeParts.length ? ` Scope ${scopeParts.join(', ')}.` : '';
-    return `Current state: ${past} past EUL, ${near} due < 3m. ${mode}.${scope}`;
+        : 'Filter: All';
+    return [
+      { text: `Past EUL ${past}`, tone: past > 0 ? 'danger' : 'good' },
+      { text: `Due <3m ${near}`, tone: near > 0 ? 'warn' : 'good' },
+      { text: filterLabel, tone: 'muted' }
+    ];
   }
 
   if (view === 'Archives'){
-    const scope = archivesFilterIcs ? ` Scoped to ICS ${archivesFilterIcs}.` : ' Showing all archived items.';
-    return `Current state: ${archives.length} archived items.${scope}`;
+    return [
+      { text: `Archived ${archives.length}`, tone: 'info' },
+      { text: archivesFilterIcs ? `Scope: ${archivesFilterIcs}` : 'Scope: All', tone: 'muted' }
+    ];
   }
 
-  return '';
+  return [];
 }
 
 function renderWelcomeBanner(view){
   const g = getWelcomeGreeting();
+  const quickStatus = getWelcomeQuickStatus(view);
+  const quickStatusMarkup = quickStatus.length
+    ? `<div class="welcome-status-pills">${quickStatus.map((chip) => {
+      const rawTone = (chip?.tone || '').toString().trim().toLowerCase();
+      const tone = ['info', 'good', 'warn', 'danger', 'muted'].includes(rawTone) ? rawTone : 'muted';
+      const label = escapeHTML((chip?.text || '').toString());
+      return `<span class="welcome-status-pill tone-${tone}">${label}</span>`;
+    }).join('')}</div>`
+    : '';
   return `
 <h2 class="welcome-title welcome-head-item">${g.text} <span class="welcome-icon">${g.icon}</span></h2>
-<p class="welcome-subtitle welcome-head-item">${getViewSubtitle(view)}</p>`;
+<div class="welcome-meta-row welcome-head-item"><p class="welcome-subtitle">${getViewSubtitle(view)}</p>${quickStatusMarkup}</div>`;
 }

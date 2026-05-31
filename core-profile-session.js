@@ -34,7 +34,8 @@ function createDefaultUser(){
     preferences: {
       tableDensity: 'comfortable',
       themeAccent: 'elegant-white',
-      defaultView: 'Dashboard'
+      defaultView: 'Dashboard',
+      dateFormat: 'yyyy-mm-dd'
     }
   };
 }
@@ -46,6 +47,9 @@ function normalizeUser(user){
   const density = ['comfortable', 'compact'].includes((prefs.tableDensity || '').toLowerCase()) ? prefs.tableDensity.toLowerCase() : base.preferences.tableDensity;
   const accent = Object.prototype.hasOwnProperty.call(ACCENT_THEMES, prefs.themeAccent) ? prefs.themeAccent : base.preferences.themeAccent;
   const defaultView = PROFILE_VIEWS.includes(prefs.defaultView) ? prefs.defaultView : base.preferences.defaultView;
+  const dateFormat = typeof normalizeDateFormatPreference === 'function'
+    ? normalizeDateFormatPreference(prefs.dateFormat || '')
+    : base.preferences.dateFormat;
   const rawRoleText = (src.role || '').toString().trim();
   const roleLabel = normalizeRoleLabel(src.accessRole || rawRoleText || base.role);
   const inferredDesignation = rawRoleText && rawRoleText !== roleLabel ? rawRoleText : '';
@@ -72,7 +76,8 @@ function normalizeUser(user){
     preferences: {
       tableDensity: density,
       themeAccent: accent,
-      defaultView
+      defaultView,
+      dateFormat
     }
   };
 }
@@ -740,7 +745,8 @@ function ensureDefaultDeveloperProfileForSchool(schoolId){
     preferences: {
       tableDensity: 'comfortable',
       themeAccent: 'elegant-white',
-      defaultView: 'Dashboard'
+      defaultView: 'Dashboard',
+      dateFormat: 'yyyy-mm-dd'
     }
   });
   list.push(profile);

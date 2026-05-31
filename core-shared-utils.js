@@ -40,6 +40,67 @@ function normalizeDateYMD(value){
   return d.toISOString().slice(0, 10);
 }
 
+function normalizeDateFormatPreference(value){
+  const raw = (value || '').toString().trim().toLowerCase();
+  const supported = ['yyyy-mm-dd', 'mm/dd/yyyy', 'dd/mm/yyyy', 'mmm-dd-yyyy'];
+  return supported.includes(raw) ? raw : 'yyyy-mm-dd';
+}
+
+function getDateFormatPreference(){
+  const preferred = (typeof currentUser !== 'undefined' && currentUser?.preferences?.dateFormat)
+    ? currentUser.preferences.dateFormat
+    : '';
+  return normalizeDateFormatPreference(preferred);
+}
+
+function parseDateDisplayValue(value){
+  if (value instanceof Date){
+    return Number.isFinite(value.getTime()) ? new Date(value.getTime()) : null;
+  }
+  const raw = (value || '').toString().trim();
+  if (!raw) return null;
+  const ymd = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymd){
+    const year = Number(ymd[1]);
+    const month = Number(ymd[2]) - 1;
+    const day = Number(ymd[3]);
+    const parsedYmd = new Date(year, month, day);
+    if (Number.isFinite(parsedYmd.getTime())) return parsedYmd;
+  }
+  const parsed = new Date(raw);
+  return Number.isFinite(parsed.getTime()) ? parsed : null;
+}
+
+function formatDateForDisplay(value, fallback = '-'){
+  const raw = (value ?? '').toString().trim();
+  if (!raw && !(value instanceof Date)) return fallback;
+  const parsed = parseDateDisplayValue(value);
+  if (!parsed){
+    const normalized = normalizeDateYMD(raw);
+    return normalized || raw || fallback;
+  }
+  const year = String(parsed.getFullYear());
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  const mode = getDateFormatPreference();
+  if (mode === 'mm/dd/yyyy') return `${month}/${day}/${year}`;
+  if (mode === 'dd/mm/yyyy') return `${day}/${month}/${year}`;
+  if (mode === 'mmm-dd-yyyy'){
+    return parsed.toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' });
+  }
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateTimeForDisplay(value, fallback = '-'){
+  const raw = (value ?? '').toString().trim();
+  if (!raw && !(value instanceof Date)) return fallback;
+  const parsed = parseDateDisplayValue(value);
+  if (!parsed) return raw || fallback;
+  const datePart = formatDateForDisplay(parsed, fallback);
+  const timePart = parsed.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return `${datePart} ${timePart}`;
+}
+
 function normalizeDateTimeISO(value){
   const raw = (value || '').toString().trim();
   if (!raw) return '';

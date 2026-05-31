@@ -24,12 +24,15 @@ function invokeDelegatedAction(action, target, args){
     case 'goToView': return goToView(args[0]);
     case 'setDashboardViewMode': return typeof setDashboardViewMode === 'function' ? setDashboardViewMode(args[0]) : undefined;
     case 'dashboardNewICS': return dashboardNewICS();
+    case 'dashboardNewSupply': return typeof dashboardNewSupply === 'function' ? dashboardNewSupply() : undefined;
     case 'openDataManagerModal': return openDataManagerModal(args[0], args[1]);
     case 'dashboardOpenActions': return dashboardOpenActions();
     case 'dashboardOpenArchives': return dashboardOpenArchives();
+    case 'dashboardOpenActionFiltered': return typeof dashboardOpenActionFiltered === 'function' ? dashboardOpenActionFiltered(args[0]) : undefined;
     case 'suppliesAddRow': return typeof suppliesAddRow === 'function' ? suppliesAddRow(args[0]) : undefined;
     case 'suppliesSaveStaged': return typeof suppliesSaveStaged === 'function' ? suppliesSaveStaged() : undefined;
     case 'suppliesDeleteItem': return typeof suppliesDeleteItem === 'function' ? suppliesDeleteItem(args[0]) : undefined;
+    case 'setSuppliesSavedTab': return typeof setSuppliesSavedTab === 'function' ? setSuppliesSavedTab(args[0]) : undefined;
     case 'suppliesEditSaved': return typeof suppliesEditSaved === 'function' ? suppliesEditSaved(args[0]) : undefined;
     case 'suppliesUpdateSaved': return typeof suppliesUpdateSaved === 'function' ? suppliesUpdateSaved(args[0]) : undefined;
     case 'suppliesSaveSheetUpdate': return typeof suppliesSaveSheetUpdate === 'function' ? suppliesSaveSheetUpdate() : undefined;
@@ -37,6 +40,11 @@ function invokeDelegatedAction(action, target, args){
     case 'suppliesPrintSaved': return typeof suppliesPrintSaved === 'function' ? suppliesPrintSaved(args[0]) : undefined;
     case 'suppliesExportSaved': return typeof suppliesExportSaved === 'function' ? suppliesExportSaved(args[0]) : undefined;
     case 'suppliesDeleteSaved': return typeof suppliesDeleteSaved === 'function' ? suppliesDeleteSaved(args[0]) : undefined;
+    case 'openSuppliesMovementModal': return typeof openSuppliesMovementModal === 'function' ? openSuppliesMovementModal(args[0]) : undefined;
+    case 'closeSuppliesMovementModal': return typeof closeSuppliesMovementModal === 'function' ? closeSuppliesMovementModal() : undefined;
+    case 'suppliesMovementAddLine': return typeof suppliesMovementAddLine === 'function' ? suppliesMovementAddLine() : undefined;
+    case 'suppliesMovementDeleteLine': return typeof suppliesMovementDeleteLine === 'function' ? suppliesMovementDeleteLine(args[0]) : undefined;
+    case 'saveSuppliesMovement': return typeof saveSuppliesMovement === 'function' ? saveSuppliesMovement() : undefined;
     case 'openStockCardByIndex': return typeof openStockCardByIndex === 'function' ? openStockCardByIndex(args[0]) : undefined;
     case 'stockLedgerPrintRow': return typeof stockLedgerPrintRow === 'function' ? stockLedgerPrintRow(args[0], args[1]) : undefined;
     case 'stockLedgerEditRow': return typeof stockLedgerEditRow === 'function' ? stockLedgerEditRow(args[0], args[1]) : undefined;
@@ -136,11 +144,26 @@ function initializeDelegatedActionRouting(){
     invokeDelegatedAction(action, actionNode, args);
   });
   document.addEventListener('change', (e) => {
+    const suppliesTarget = e.target;
+    if (suppliesTarget?.matches?.('.supplies-stage-input')){
+      suppliesUpdateStageField(
+        suppliesTarget.getAttribute('data-supplies-index'),
+        suppliesTarget.getAttribute('data-supplies-field'),
+        suppliesTarget.value
+      );
+      return;
+    }
     const input = e.target?.closest?.('.wmr-batch-item-input');
     if (!input) return;
     commitWmrBatchItemInput(input);
   });
   document.addEventListener('keydown', (e) => {
+    const actionNode = e.target?.closest?.('.dash-overview-kpi.is-clickable[data-action]');
+    if (actionNode && (e.key === 'Enter' || e.key === ' ')){
+      e.preventDefault();
+      actionNode.click();
+      return;
+    }
     if (e.key !== 'Enter') return;
     const input = e.target?.closest?.('.wmr-batch-item-input');
     if (!input) return;
@@ -173,6 +196,10 @@ function initializeDelegatedActionRouting(){
 
   document.addEventListener('input', (e) => {
     const target = e.target;
+    if (target?.matches?.('.supplies-transfer-input')){
+      if (typeof updateSuppliesMovementQtyPreview === 'function') updateSuppliesMovementQtyPreview();
+      return;
+    }
     if (target?.matches?.('.supplies-stage-input')){
       suppliesUpdateStageField(
         target.getAttribute('data-supplies-index'),
@@ -188,6 +215,12 @@ function initializeDelegatedActionRouting(){
     }
     if (target.matches('.stage-itemno')){
       onItemNoInput(target);
+      return;
+    }
+    if (target.matches('.stage-report-month')){
+      if (typeof refreshStageQuarterSelectForRow === 'function'){
+        refreshStageQuarterSelectForRow(target.closest('tr'));
+      }
       return;
     }
     if (target.matches('.stage-qty, .stage-unitcost')){

@@ -1,7 +1,125 @@
 # Project ICS v3 - Status Checkpoint
 
-Last updated: 2026-02-21
+Last updated: 2026-05-31
 Main file: `ics_v_3_standalone_index.html`
+
+## Current Development Checkpoint (2026-05-31, v1.8.1-dev-stability)
+- Status: development hardening checkpoint, not deployment-ready for schools.
+- Version labels:
+  - app/manifest/package: `1.8.1-dev-stability`
+  - schema/export baseline: `1.8.1`
+  - service worker cache baseline: `dsis-v1-pwa-v45`
+- Stability hardening started:
+  - added shared localStorage JSON helpers (`loadLocalJSON`, `saveLocalJSON`) beside `safeParseJSON`
+  - adopted safe JSON reads in common Data Hub, dashboard metrics, and import autosuggest paths
+  - added regression coverage for corrupted/missing localStorage JSON fallbacks
+  - added regression coverage that runtime HTML scripts are represented in the service worker precache
+  - removed stale hardcoded `v1.0` shell labels so runtime version display can be manifest-driven
+- Dashboard KPI chart polish:
+  - increased mini-chart canvas size and added point markers with per-quarter SVG titles
+  - changed risk metrics (`Low Stock Supplies`, `Outside EUL`) to compact bar-style risk charts
+  - replaced repeated `Quarterly trends` labels with `Last 4 quarters` / `Risk by quarter`
+  - made zero-baseline trend copy show `new vs <quarter>` instead of misleading `+100%`
+- Supplies transfer improvement:
+  - renamed the saved-supplies movement action to `Transfer Stock`
+  - replaced single-destination movement inputs with multiple transfer lines (`To office` + `Qty`)
+  - added live preview for available, total transfer, and remaining quantity
+  - transfer save now creates a shared `batchId` and transfer-specific ledger rows using `transferQty`
+  - transfer rows preserve total stock balance and update per-office `officeBalances`
+  - RIS generation remains limited to release/issue rows, not transfer rows
+- Supplies Saved office distribution:
+  - `Latest Issued Office` column now renders office balance chips when stock is split across multiple offices
+  - chips show per-office quantity and the cell tooltip lists the full office distribution
+  - single-office rows retain the prior compact colored office-cell treatment
+- Still not ready:
+  - plaintext local profile passwords and hardcoded developer default need product hardening
+  - formal historical schema migration map is still missing
+  - critical workflow regression coverage remains incomplete
+  - packaging/licensing should wait until the stability and data-safety baseline is stronger
+
+## Newly Implemented (2026-02-26, Supplies RIS tab + preference/date UX updates)
+- Supplies Saved workspace extended with internal tab system:
+  - added `Supplies Saved` and `Manage RIS` tabs inside the Supplies records card
+  - implemented tab state/action wiring (`setSuppliesSavedTab`) via delegated action routing
+  - added tab-aware dynamic subheading copy for RIS context
+- New `Manage RIS` tab and rendering:
+  - added RIS table with columns:
+    - `# | Requested by | Stock Number | Description (Item + Description) Issued | Remarks | Purpose`
+  - RIS rows are generated from supply-history issuance entries (`issuedQty > 0`)
+  - field mapping:
+    - `Requested by` -> `entityName` (history or record fallback)
+    - `Stock Number` -> `stockNo`
+    - `Description ... Issued` -> item/description pair + issued qty metadata
+    - `Remarks` -> issued office text (`Issued to <office>`)
+    - `Purpose` -> reference field
+  - includes empty-state guidance when no issuance entries exist
+- Supplies action copy refinement:
+  - changed Saved-supplies pencil action tooltip/aria from `Update Supply` to `Release Supply`
+- Date format preference added to Profile Settings:
+  - new Preferences selector:
+    - `YYYY-MM-DD`
+    - `MM/DD/YYYY`
+    - `DD/MM/YYYY`
+    - `MMM DD, YYYY`
+  - persisted as `currentUser.preferences.dateFormat` with normalization/default support
+  - introduced centralized date formatting helpers in shared utils and applied to key views:
+    - inventory issued dates
+    - supplies saved and stock-card ledger dates
+    - dashboard recent activity dates
+    - records search/details and lineage timestamps
+    - action-center inspection history date/time
+    - profile `Last login`
+- Inventory table readability follow-up:
+  - strengthened `Entity` column wrapping behavior (ICS/PAR tables) to prevent single-line overflow for long school/entity names
+
+## Newly Implemented (2026-02-22, version sync + Supplies ledger actions/overlay print + Data Hub dev controls)
+- Versioning aligned and minor bumped to `1.8`:
+  - manifest/app version: `1.8`
+  - schema version: `1.8.0`
+  - service worker cache baseline: `dsis-v1-pwa-v44`
+  - package metadata version aligned to `1.8`
+- Supplies workflow and Stock Card enhancements:
+  - corrected label text from `Recept` to `Receipt`
+  - improved `Receipt (QTY)` column alignment in `Supplies Saved`
+  - added Stock Card ledger row actions:
+    - `Print Row` (continuation/overlay style)
+    - `Edit` (preloads selected ledger row to Supplies floating form)
+    - `Delete` (deletes per-row ledger data with balance/history re-normalization)
+  - `Edit Row` now closes Stock Card modal before opening floating form
+  - Stock Card modal title now shows Item and Stock No. in pills
+- Supplies floating form behavior upgrades:
+  - autosuggest added for `Entity Name`, `Fund Cluster`, `New Reference`, and `Issued Office`
+  - `Issued Office` default now sourced from Supply Entry stock record (`School Office` fallback)
+  - dynamic `Available Qty` pill beside `Issued Qty`:
+    - live remaining quantity calculation (`available - issued`)
+    - negative/over-issue display in red
+    - save blocked on over-issuance
+  - `No. of Days to Consume` now strictly user-entered from floating form for issuance rows
+  - issuance save now writes Stock Card row fields:
+    - `Reference` <- `New Reference`
+    - `Date` <- `Issued Date`
+    - `Issue Qty` <- `Issued Qty`
+    - `Office` <- `Issued Office`
+    - `No. of Days to Consume` <- floating-form input
+    - `Balance Qty` recomputed as `previous balance - issued qty`
+- Print output improvements:
+  - Supplies `Print` now uses stock-card format template (Appendix/ledger style)
+  - row overlay printing improved:
+    - uses same stock-card layout
+    - only target row in black text
+    - all other text and table borders forced white for printed-form overlay
+  - print column widths adjusted:
+    - `Office`: `25%`
+    - `Balance Qty`: `13%`
+    - `No. of Days to Consume`: `13%`
+- Data Hub controls and generation policy updates:
+  - auto-populate generation policy now enforced:
+    - Supplies: consumable items only
+    - ICS: non-consumable items below `50k` per item
+    - PAR: non-consumable items above `50k` per item
+  - auto-generated Supplies records now default `latestIssuedOffice` to `School Office`
+  - added `Delete All Data` action in Data Hub
+  - `Auto-Populate` and `Delete All Data` are now developer-account-only (UI visibility + action guards)
 
 ## Newly Implemented (2026-02-21, supplies flow stabilization: staged-first encoding + stock card modal + autosuggest)
 - Supplies workflow finalized as staged-first entry:
@@ -1146,3 +1264,39 @@ Main file: `ics_v_3_standalone_index.html`
 
 ## Resume Prompt (Copy for New Chat)
 Use `PROJECT_STATUS.md` as baseline and continue from current fully modularized multi-file runtime. Current baseline includes centralized access control guards, immutable per-record lineage timeline with hash checks, device/session-attributed audits, and extracted modules (`core-storage-security.js`, `core-lineage-audit.js`, `core-data-manager.js`, `core-records-workflow.js`, `core-actions-workflow.js`, `core-profile-session.js`, `core-theme-preferences.js`, `core-school-setup-ui.js`, `core-profile-modal.js`, `core-shell-init.js`, `core-dashboard-view.js`, `core-dashboard-render.js`, `core-inventory-view-render.js`, `core-actions-view-render.js`, `core-archives-view-render.js`, `core-dashboard-actions.js`, `core-dashboard-metrics.js`, `core-app-bootstrap.js`, `core-keyboard-routing.js`, `core-notifications.js`, `core-delegated-action-routing.js`, `core-modal-scroll-shadows.js`, `core-ui-event-wiring.js`, `core-modal-system.js`, `core-shell-view-state.js`, `core-main-entry.js`). Next priority: packaging/licensing, then formal schema migration map and regression checks.
+## Newly Implemented (2026-02-22, dashboard + Data Hub UX refinement)
+- Data Hub import/export usability and scope workflow:
+  - integrated Supplies datasets in Data Hub import/export payloads
+  - import now supports Supplies records/history/staged items alongside ICS/PAR
+  - export now supports dataset-specific actions: `Supplies`, `ICS`, `PAR`, `All Data`
+  - export payload metadata now tags scope package types (e.g. `scope-supplies`, `scope-ics`, `scope-par`, `full-backup`)
+  - import target selection simplified to auto-detect from package contents (no manual scope selector)
+- Import Center UX overhaul (3-step clarity pass):
+  - merged `Scope` + `Source` into `Source and Detection`
+  - improved status guidance with detected package summary and readiness states
+  - moved `Apply Import` into `Review and Rules` header area
+  - removed `Apply Import` action from Validation Preview panel
+  - `Apply Import` now locks after successful apply for the loaded file and re-enables only after loading a new file
+  - removed toast notifications in Choose JSON and Apply Import flows; retained inline status feedback
+- Supplies deletion safety enhancements:
+  - added confirmation prompts for staged and saved Supplies deletions
+  - strengthened Stock Card ledger-row delete confirmation messaging
+  - keyboard-confirm flow supported via existing confirm modal key handling (`Enter` confirm, `Esc` cancel)
+- Export Center visual and usability improvements:
+  - added distinct button colors for `Export Supplies`, `Export ICS`, `Export PAR`, `Export All Data`
+  - added icons across key import/export actions for faster scanning
+  - improved disabled button contrast/readability in Data Hub footer actions
+- Dashboard enhancements:
+  - `Add New Supplies` dashboard action now routes to Supplies view and primes staged entry context
+  - added KPI widgets: `Total Supplies` and `Low Stock Supplies`
+  - expanded recent activity feed to include Supplies cards
+  - renamed section to `Recent Supplies, ICS, PAR Added`
+  - upgraded Compliance Health widget:
+    - added compliance score (`0-100`)
+    - added low-stock supplies risk lane and bar
+    - improved badge logic using highest active risk (EUL or low stock)
+    - added contextual priority tip and quick-action buttons
+- Compact and guided KPI layout tuning:
+  - compact KPI strip enforced to 6 widgets in one row
+  - reduced KPI card footprint for desktop fit
+  - guided view on wide screens (`>=1400px`) now auto-uses compact KPI styling while preserving guided layout

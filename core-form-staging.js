@@ -228,6 +228,17 @@ function getStageRows(){
   return [...body.querySelectorAll('tr')].filter((r) => !r.classList.contains('stage-empty-row'));
 }
 
+function isInventoryQuarterColumnEnabled(){
+  const reporting = typeof getSuppliesReportingConfig === 'function'
+    ? getSuppliesReportingConfig(schoolIdentity)
+    : { showQuarterColumn: false };
+  return !!reporting.showQuarterColumn;
+}
+
+function getInventoryStageColspan(){
+  return isInventoryQuarterColumnEnabled() ? 11 : 10;
+}
+
 function renumberStageRows(){
   getStageRows().forEach((row, idx) => {
     row.children[0].innerText = String(idx + 1);
@@ -238,7 +249,7 @@ function renderStageEmptyState(){
   const body = document.getElementById('icsBody');
   if (!body) return;
   if (getStageRows().length > 0) return;
-  body.innerHTML = '<tr class="stage-empty-row"><td class="empty-cell" colspan="9">No staged items yet. Click "+ Row" or import JSON.</td></tr>';
+  body.innerHTML = `<tr class="stage-empty-row"><td class="empty-cell" colspan="${getInventoryStageColspan()}">No staged items yet. Click "+ Row" or import JSON.</td></tr>`;
 }
 
 function resetStageItems(){
@@ -413,6 +424,40 @@ function adjustEUL(btn, delta){
   input.value = String(Math.max(0, cur + delta));
 }
 
+function extractStageQuarterKey(value){
+  const normalized = normalizeSupplyReportQuarter(value || '');
+  if (normalized) return `Q${normalized.slice(-1)}`;
+  const raw = (value || '').toString().trim().toUpperCase();
+  return /^Q[1-4]$/.test(raw) ? raw : '';
+}
+
+function buildStageQuarterOptionsMarkup(year, selectedKey){
+  const safeYear = /^\d{4}$/.test((year || '').toString()) ? year : '';
+  const selected = extractStageQuarterKey(selectedKey);
+  const options = ['Q1', 'Q2', 'Q3', 'Q4'].map((key) => {
+    const isSelected = key === selected ? ' selected' : '';
+    const label = safeYear ? `${key} (${safeYear})` : key;
+    return `<option value="${key}"${isSelected}>${label}</option>`;
+  }).join('');
+  return `<option value="">Select quarter</option>${options}`;
+}
+
+function refreshStageQuarterSelectForRow(row){
+  if (!row) return;
+  const monthInput = row.querySelector('.stage-report-month');
+  const quarterSelect = row.querySelector('.stage-report-quarter');
+  if (!monthInput || !quarterSelect) return;
+  const month = normalizeSupplyReportMonth(monthInput.value || '');
+  const year = month.slice(0, 4);
+  const current = extractStageQuarterKey(quarterSelect.value || quarterSelect.getAttribute('data-quarter-value') || '');
+  const fallback = extractStageQuarterKey(deriveSupplyReportQuarterFromMonth(month));
+  const selected = current || fallback;
+  quarterSelect.innerHTML = buildStageQuarterOptionsMarkup(year, selected);
+  quarterSelect.disabled = !year;
+  if (selected) quarterSelect.value = selected;
+  else quarterSelect.value = '';
+}
+
 function addRow(seed = {}){
   if (!hasRoleCapability('edit_records')) return;
   const body = document.getElementById('icsBody');
@@ -420,18 +465,25 @@ function addRow(seed = {}){
   const empty = body.querySelector('.stage-empty-row');
   if (empty) empty.remove();
   const i = getStageRows().length + 1;
+  const showQuarterColumn = isInventoryQuarterColumnEnabled();
   const qtyRaw = (seed.qtyText ?? seed.qty ?? '').toString();
   const unitCostNum = parseCurrencyValue(seed.unitCost);
   const unitCostRaw = Number.isFinite(unitCostNum) ? formatCurrencyValue(unitCostNum) : '';
   const totalNum = parseCurrencyValue(seed.total);
   const totalRaw = Number.isFinite(totalNum) ? formatCurrencyValue(totalNum) : '';
   const eulRaw = seed.eul === undefined || seed.eul === null || seed.eul === '' ? '' : String(seed.eul);
+  const reportMonthRaw = normalizeSupplyReportMonth(seed.reportMonth || '') || deriveSupplyReportMonthFromDate(seed.reportDate || '');
+  const reportQuarterRaw = extractStageQuarterKey(seed.reportQuarter || deriveSupplyReportQuarterFromMonth(reportMonthRaw));
+  const reportQuarterOptions = buildStageQuarterOptionsMarkup(reportMonthRaw.slice(0, 4), reportQuarterRaw);
+  const reportQuarterDisabled = reportMonthRaw ? '' : ' disabled';
   const tr = document.createElement('tr');
   tr.innerHTML = `<td class="row-index">${i}</td>
     <td><input class="stage-input stage-desc" list="stageDescList" value="${(seed.desc || '').replace(/"/g, '&quot;')}" /></td>
     <td><input class="stage-input stage-itemno" value="${(seed.itemNo || '').replace(/"/g, '&quot;')}" /></td>
     <td><input class="stage-input stage-qty" value="${qtyRaw.replace(/"/g, '&quot;')}" /></td>
     <td><input class="stage-input stage-unit" list="stageUnitList" value="${(seed.unit || '').replace(/"/g, '&quot;')}" /></td>
+    <td><input class="stage-input stage-report-month" type="month" value="${(reportMonthRaw || '').replace(/"/g, '&quot;')}" /></td>
+    ${showQuarterColumn ? `<td><select class="stage-input stage-report-quarter" data-quarter-value="${(reportQuarterRaw || '').replace(/"/g, '&quot;')}"${reportQuarterDisabled}>${reportQuarterOptions}</select></td>` : ''}
     <td><input class="stage-input stage-unitcost" value="${unitCostRaw}" /></td>
     <td><input class="stage-input stage-total" readonly value="${totalRaw}" /></td>
     <td>
@@ -448,6 +500,7 @@ function addRow(seed = {}){
       </div>
     </td>`;
   body.appendChild(tr);
+  refreshStageQuarterSelectForRow(tr);
   updateUnitSuggestionsForRow(tr);
   if (!seed.total) syncRow(tr.querySelector('.stage-qty'));
   if (sheet.classList.contains('show')) requestAnimationFrame(placeSheetNearAddItemButton);

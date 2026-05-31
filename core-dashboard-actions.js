@@ -60,6 +60,23 @@ function dashboardNewICS(){
   }, 0);
 }
 
+function dashboardNewSupply(){
+  if (!requireAccess('edit_records', { label: 'add new supplies' })) return;
+  goToView('Supplies');
+  setTimeout(() => {
+    const stagedRows = typeof getSuppliesStagedItems === 'function' ? getSuppliesStagedItems() : [];
+    if (!Array.isArray(stagedRows) || !stagedRows.length){
+      if (typeof suppliesAddRow === 'function') suppliesAddRow();
+    }
+    const stagedTable = document.querySelector('.supplies-staged-items-table');
+    if (stagedTable){
+      const topbarOffset = 110;
+      const targetTop = Math.max(0, window.scrollY + stagedTable.getBoundingClientRect().top - topbarOffset);
+      window.scrollTo({ top: targetTop, behavior: 'smooth' });
+    }
+  }, 0);
+}
+
 function dashboardImportJSON(){
   if (!requireAccess('import_json')) return;
   goToView('Manage Inventory');

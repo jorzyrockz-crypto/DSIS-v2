@@ -88,10 +88,11 @@ let dataManagerState = {
   parsedPayload: null,
   conflicts: [],
   verification: null,
-  migrationRows: []
+  migrationRows: [],
+  importApplied: false
 };
-const ICS_SCHEMA_VERSION = '1.8.0';
-const APP_UI_VERSION_FALLBACK = '1.8';
+const ICS_SCHEMA_VERSION = '1.8.1';
+const APP_UI_VERSION_FALLBACK = '1.8.1-dev-stability';
 window.APP_FEEDBACK_FORM_URL = 'https://forms.gle/xBwdfzq9FaWvK1Wr8';
 window.DEFAULT_DEVELOPER_ACCOUNT = {
   enabled: true,
